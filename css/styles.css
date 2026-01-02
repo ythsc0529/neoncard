@@ -1156,22 +1156,30 @@ body {
     margin-bottom: 30px;
 }
 
+/* Skill Preview in Selection */
+.skill-preview {
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+
 .select-card {
-    width: 180px;
+    width: 240px;
+    min-height: 380px;
     padding: 15px;
     cursor: pointer;
     transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
 }
 
 .select-card:hover {
     transform: translateY(-10px);
-}
-
-.select-card.selected {
-    box-shadow: 0 0 20px var(--neon-cyan);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
 }
 
 .select-card.selected-battle {
+    border: 2px solid var(--neon-red);
     box-shadow: 0 0 20px var(--neon-red);
 }
 
@@ -1254,12 +1262,4 @@ body {
 .player-area.player2.active-turn {
     box-shadow: inset 0 0 40px rgba(255, 0, 128, 0.2);
     border: 1px solid rgba(255, 0, 128, 0.3);
-}
-
-/* Skill Preview in Selection */
-.skill-preview {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
 }
