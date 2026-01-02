@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - Neon Card Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="menu-container">
+        <h1 class="game-title neon-text">霓虹牌</h1>
+        <div class="menu-buttons">
+            <button class="btn menu-btn" onclick="showModeSelection()">開始遊戲</button>
+            <button class="btn menu-btn btn-magenta" onclick="startTutorial()">新手教學</button>
+            <button class="btn menu-btn" disabled>劇情模式</button>
+            <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
+        </div>
+    </div>
+
+    <!-- Mode Selection Modal -->
+    <div class="modal-overlay" id="modeModal">
+        <div class="modal glass">
+            <h2>選擇模式</h2>
+            <div class="modal-buttons">
+                <button class="btn" onclick="startGame('quick')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="startGame('classic')">經典模式 (7張牌)</button>
+                <button class="btn" disabled>連線模式 (開發中)</button>
+                <button class="btn" onclick="closeModeModal()" style="margin-top: 20px; opacity: 0.7;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div class="tutorial-overlay hidden" id="tutorialOverlay">
+        <div class="tutorial-box glass">
+            <h2 class="tutorial-title" id="tutorialTitle">歡迎來到霓虹牌！</h2>
+            <p class="tutorial-text" id="tutorialText">這是一款雙人對戰卡牌遊戲。讓我們開始學習基本規則吧！</p>
+            <div class="tutorial-buttons">
+                <button class="btn" id="tutorialPrev" onclick="prevTutorial()">上一步</button>
+                <button class="btn btn-magenta" id="tutorialNext" onclick="nextTutorial()">下一步</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showModeSelection() {
+            document.getElementById('modeModal').classList.add('active');
+        }
+
+        function closeModeModal() {
+            document.getElementById('modeModal').classList.remove('active');
+        }
+
+        function startGame(mode) {
+            localStorage.setItem('gameMode', mode);
+            location.href = 'game.html';
+        }
+
+        // Tutorial System
+        const tutorialSteps = [
+            { title: '歡迎來到霓虹牌！', text: '這是一款雙人對戰卡牌遊戲，兩位玩家在同一台裝置上進行對戰。' },
+            { title: '遊戲模式', text: '快速模式：每位玩家擁有3張牌\n經典模式：每位玩家擁有7張牌\n規則相同，只有牌數不同。' },
+            { title: '開局流程', text: '1. 擲硬幣決定先手\n2. 雙方抽取角色牌\n3. 選擇一張放入戰鬥區\n4. 其餘放入備戰區' },
+            { title: '戰鬥區與備戰區', text: '戰鬥區：進行戰鬥的角色（各1隻）\n備戰區：待命的角色，可透過「撤退」替換' },
+            { title: '回合行動', text: '每回合必須選擇以下其中一個行動：\n• 普攻：造成ATK值的傷害\n• 技能：使用角色技能（有冷卻）\n• 撤退：與備戰區角色交換' },
+            { title: '技能冷卻', text: '技能括號中的數字代表冷卻回合數。\n使用後需等待該回合數才能再次使用。\n注意：備戰區角色的冷卻也會持續計算！' },
+            { title: '狀態效果', text: '• 睡眠：無法行動，每回合50%機率甦醒\n• 暈眩：無法行動\n• 中毒/灼燒：每回合受到持續傷害\n• 沉默：無法使用技能' },
+            { title: '勝利條件', text: '擊敗對手所有角色即可獲勝！\n善用角色特性和技能組合來取得優勢。' },
+            { title: '準備好了嗎？', text: '現在你已經了解基本規則，開始遊戲吧！\n祝你遊戲愉快！' }
+        ];
+        let currentStep = 0;
+
+        function startTutorial() {
+            currentStep = 0;
+            document.getElementById('tutorialOverlay').classList.remove('hidden');
+            updateTutorial();
+        }
+
+        function updateTutorial() {
+            const step = tutorialSteps[currentStep];
+            document.getElementById('tutorialTitle').textContent = step.title;
+            document.getElementById('tutorialText').textContent = step.text;
+            document.getElementById('tutorialPrev').style.display = currentStep === 0 ? 'none' : 'inline-block';
+            document.getElementById('tutorialNext').textContent = currentStep === tutorialSteps.length - 1 ? '完成' : '下一步';
+        }
+
+        function nextTutorial() {
+            if (currentStep < tutorialSteps.length - 1) {
+                currentStep++;
+                updateTutorial();
+            } else {
+                document.getElementById('tutorialOverlay').classList.add('hidden');
+            }
+        }
+
+        function prevTutorial() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateTutorial();
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('modeModal').addEventListener('click', function (e) {
+            if (e.target === this) closeModeModal();
+        });
+    </script>
+</body>
+
+</html>

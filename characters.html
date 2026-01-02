@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 角色列表</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .character-detail-modal {
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .skill-list {
+            margin-top: 15px;
+        }
+
+        .skill-detail {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--neon-cyan);
+        }
+
+        .skill-detail .skill-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .skill-detail .skill-name {
+            color: var(--neon-cyan);
+            font-weight: bold;
+        }
+
+        .skill-detail .skill-cd {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .passive-detail {
+            border-left-color: var(--neon-gold);
+            margin-top: 15px;
+        }
+
+        .passive-detail .skill-name {
+            color: var(--neon-gold);
+        }
+
+        .stats-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-box .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .stat-box.hp .value {
+            color: #ff6b6b;
+        }
+
+        .stat-box.atk .value {
+            color: #ffd93d;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: currentColor;
+            color: var(--bg-dark) !important;
+        }
+
+        .filter-btn:hover {
+            opacity: 0.8;
+        }
+
+        .page-header {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .char-count {
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="btn back-btn">← 返回</a>
+
+    <div class="character-list-container">
+        <div class="page-header">
+            <h1 class="page-title">角色列表</h1>
+            <p class="char-count">共 <span id="charCount">0</span> 個角色</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋角色名稱、技能或被動..."
+                oninput="filterCharacters()">
+        </div>
+
+        <div class="filter-container" id="filterContainer">
+            <button class="filter-btn active" onclick="setFilter('all')" data-filter="all"
+                style="color: #fff;">全部</button>
+            <button class="filter-btn rarity-common" onclick="setFilter('COMMON')" data-filter="COMMON">一般</button>
+            <button class="filter-btn rarity-rare" onclick="setFilter('RARE')" data-filter="RARE">稀有</button>
+            <button class="filter-btn rarity-epic" onclick="setFilter('EPIC')" data-filter="EPIC">史詩</button>
+            <button class="filter-btn rarity-legendary" onclick="setFilter('LEGENDARY')"
+                data-filter="LEGENDARY">傳說</button>
+            <button class="filter-btn rarity-mythic" onclick="setFilter('MYTHIC')" data-filter="MYTHIC">神話</button>
+            <button class="filter-btn rarity-special" onclick="setFilter('SPECIAL')" data-filter="SPECIAL">特殊</button>
+        </div>
+
+        <div class="character-grid" id="characterGrid"></div>
+    </div>
+
+    <!-- Character Detail Modal -->
+    <div class="modal-overlay" id="detailModal" onclick="closeDetail(event)">
+        <div class="modal character-detail-modal glass" onclick="event.stopPropagation()">
+            <div id="detailContent"></div>
+            <button class="btn" onclick="closeDetailModal()" style="margin-top: 20px;">關閉</button>
+        </div>
+    </div>
+
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters.js"></script>
+    <script>
+        let currentFilter = 'all';
+
+        function renderCharacters(characters) {
+            const grid = document.getElementById('characterGrid');
+            grid.innerHTML = '';
+
+            characters.forEach(char => {
+                const card = document.createElement('div');
+                card.className = `character-card glass ${getRarityClass(char.rarity)}`;
+                card.onclick = () => showDetail(char);
+
+                const hpDisplay = typeof char.hp === 'object'
+                    ? `${char.hp.min}~${char.hp.max}`
+                    : char.hp;
+                const atkDisplay = typeof char.atk === 'object'
+                    ? `${char.atk.min}~${char.atk.max}`
+                    : char.atk;
+
+                card.innerHTML = `
+                    <div class="character-header">
+                        <span class="character-id">#${char.id}</span>
+                        <span class="character-rarity ${getRarityClass(char.rarity)}">${getRarityName(char.rarity)}</span>
+                    </div>
+                    <div class="character-name">${char.name}</div>
+                    <div class="character-stats">
+                        <span class="stat"><span class="stat-label stat-hp">❤</span> ${hpDisplay}</span>
+                        <span class="stat"><span class="stat-label stat-atk">⚔</span> ${atkDisplay}</span>
+                    </div>
+                    <div class="character-skills">
+                        ${char.skills && char.skills.length > 0
+                        ? char.skills.slice(0, 2).map(s =>
+                            `<div class="skill-item"><span class="skill-name">${s.name}</span> (CD: ${s.cd})</div>`
+                        ).join('')
+                        : '<div class="skill-item" style="color: #666;">無技能</div>'
+                    }
+                        ${char.skills && char.skills.length > 2 ? '<div style="color: var(--text-secondary); font-size: 0.8rem;">還有 ' + (char.skills.length - 2) + ' 個技能...</div>' : ''}
+                        ${char.passive
+                        ? `<div class="skill-item passive-item"><span style="color: var(--neon-gold);">[被動] ${char.passive.name}</span></div>`
+                        : ''
+                    }
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+
+            document.getElementById('charCount').textContent = characters.length;
+        }
+
+        function filterCharacters() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = ALL_CHARACTERS;
+
+            // Filter by rarity
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(c => c.rarity === currentFilter);
+            }
+
+            // Filter by search query
+            if (query) {
+                filtered = filtered.filter(c => {
+                    // Search in name
+                    if (c.name.toLowerCase().includes(query)) return true;
+
+                    // Search in skills
+                    if (c.skills) {
+                        for (const skill of c.skills) {
+                            if (skill.name.toLowerCase().includes(query)) return true;
+                            if (skill.desc && skill.desc.toLowerCase().includes(query)) return true;
+                        }
+                    }
+
+                    // Search in passive
+                    if (c.passive) {
+                        if (c.passive.name.toLowerCase().includes(query)) return true;
+                        if (c.passive.desc && c.passive.desc.toLowerCase().includes(query)) return true;
+                    }
+
+                    return false;
+                });
+            }
+
+            renderCharacters(filtered);
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            filterCharacters();
+        }
+
+        function showDetail(char) {
+            const hpDisplay = typeof char.hp === 'object'
+                ? `${char.hp.min} ~ ${char.hp.max}`
+                : char.hp;
+            const atkDisplay = typeof char.atk === 'object'
+                ? `${char.atk.min} ~ ${char.atk.max}`
+                : char.atk;
+
+            let skillsHtml = '';
+            if (char.skills && char.skills.length > 0) {
+                skillsHtml = '<div class="skill-list"><h4 style="margin-bottom: 10px; color: var(--neon-cyan);">技能</h4>';
+                char.skills.forEach(skill => {
+                    skillsHtml += `
+                        <div class="skill-detail">
+                            <div class="skill-header">
+                                <span class="skill-name">${skill.name}</span>
+                                <span class="skill-cd">冷卻: ${skill.cd} 回合</span>
+                            </div>
+                            <div style="color: var(--text-secondary);">${skill.desc}</div>
+                        </div>
+                    `;
+                });
+                skillsHtml += '</div>';
+            }
+
+            let passiveHtml = '';
+            if (char.passive) {
+                passiveHtml = `
+                    <div class="skill-detail passive-detail">
+                        <div class="skill-header">
+                            <span class="skill-name">[被動] ${char.passive.name}</span>
+                        </div>
+                        <div style="color: var(--text-secondary);">${char.passive.desc}</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detailContent').innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <span style="color: var(--text-secondary);">#${char.id}</span>
+                    <span class="${getRarityClass(char.rarity)}" style="padding: 4px 12px; border: 1px solid; border-radius: 12px;">
+                        ${getRarityName(char.rarity)}
+                    </span>
+                </div>
+                <h2 style="font-size: 2rem; margin-bottom: 20px;" class="${getRarityClass(char.rarity)}">
+                    ${char.name}
+                </h2>
+                <div class="stats-detail">
+                    <div class="stat-box hp">
+                        <div style="color: var(--text-secondary); margin-bottom: 5px;">生命值</div>
+                        <div class="value">${hpDisplay}</div>
+                    </div>
+                    <div class="stat-box atk">
+                        <div style="color: var(--text-secondary); margin-bottom: 5px;">攻擊力</div>
+                        <div class="value">${atkDisplay}</div>
+                    </div>
+                </div>
+                ${skillsHtml}
+                ${passiveHtml}
+            `;
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeDetail(event) {
+            if (event.target.id === 'detailModal') {
+                closeDetailModal();
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCharacters(ALL_CHARACTERS);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeDetailModal();
+            if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+    </script>
+</body>
+
+</html>

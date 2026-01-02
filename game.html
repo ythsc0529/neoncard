@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>霓虹牌 - 對戰</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Animation Overlay -->
+    <div class="animation-overlay hidden" id="animationOverlay"></div>
+
+    <!-- Card Selection Phase -->
+    <div class="selection-phase hidden" id="selectionPhase">
+        <h2 class="selection-title" id="selectionTitle">玩家1 抽牌階段</h2>
+        <p class="selection-subtitle" id="selectionSubtitle">選擇一張牌放入戰鬥區</p>
+        <div class="drawn-cards" id="drawnCards"></div>
+        <div class="selection-info" id="selectionInfo"></div>
+        <button class="btn confirm-selection" id="confirmSelection" disabled>確認選擇</button>
+    </div>
+
+    <!-- Battle Screen -->
+    <div class="battle-container" id="battleContainer">
+        <!-- Player 1 Area (Left / Top) -->
+        <div class="player-area player1" id="player1Area">
+            <div class="player-header glass">
+                <span class="player-name">玩家1</span>
+                <span class="turn-badge hidden" id="p1TurnBadge">你的回合</span>
+            </div>
+
+            <div class="battle-card glass" id="p1BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p1CharName">-</span>
+                    <span class="battle-char-rarity" id="p1CharRarity">-</span>
+                </div>
+
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p1ShieldBar" style="width: 0%"></div>
+                        <div class="hp-bar" id="p1HpBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p1HpText">100 / 100</div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p1Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p1Shield">0</span></span>
+                </div>
+
+                <div class="status-effects" id="p1Status"></div>
+                <div class="passive-info" id="p1Passive"></div>
+
+                <div class="skills-container" id="p1Skills"></div>
+
+                <div class="action-buttons" id="p1Actions">
+                    <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
+                </div>
+            </div>
+
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p1Standby"></div>
+            </div>
+        </div>
+
+        <!-- Center Battle Info -->
+        <div class="battle-center glass">
+            <div class="turn-indicator" id="turnIndicator">
+                回合 <span id="turnCount">0</span>
+            </div>
+            <div class="battle-log" id="battleLog"></div>
+        </div>
+
+        <!-- Player 2 Area (Right / Bottom) -->
+        <div class="player-area player2" id="player2Area">
+            <div class="player-header glass">
+                <span class="player-name">玩家2</span>
+                <span class="turn-badge hidden" id="p2TurnBadge">你的回合</span>
+            </div>
+
+            <div class="battle-card glass" id="p2BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p2CharName">-</span>
+                    <span class="battle-char-rarity" id="p2CharRarity">-</span>
+                </div>
+
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p2ShieldBar" style="width: 0%"></div>
+                        <div class="hp-bar" id="p2HpBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p2HpText">100 / 100</div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p2Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p2Shield">0</span></span>
+                </div>
+
+                <div class="status-effects" id="p2Status"></div>
+                <div class="passive-info" id="p2Passive"></div>
+
+                <div class="skills-container" id="p2Skills"></div>
+
+                <div class="action-buttons" id="p2Actions">
+                    <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
+                </div>
+            </div>
+
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p2Standby"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Replacement Modal (Mandatory death replacement) -->
+    <div class="modal-overlay" id="replacementModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="replacementTitle">角色已陣亡！選擇替換上場的角色</h2>
+            <div id="replacementOptions" class="drawn-cards"></div>
+        </div>
+    </div>
+
+    <!-- Card Details Modal -->
+
+    <!-- Card Details Modal -->
+    <div class="modal-overlay" id="cardDetailsModal">
+        <div class="modal glass" id="cardDetailsContent">
+            <!-- Content injected via JS -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters.js"></script>
+    <script src="js/core/gameState.js"></script>
+    <script src="js/core/battleSystem.js"></script>
+    <script src="js/ui/animations.js"></script>
+    <script>
+        // Game initialization
+        let selectionPhase = 'p1_draw';
+        let selectedBattleCard = null;
+
+        async function initGame() {
+            const mode = localStorage.getItem('gameMode') || 'classic';
+            GameState.init(mode);
+
+            // Coin flip
+            const firstPlayer = await Animations.coinFlip();
+            GameState.firstPlayer = firstPlayer;
+            GameState.currentPlayer = firstPlayer;
+
+            // Draw phase for Player 1
+            await startDrawPhase('player1');
+        }
+
+        async function startDrawPhase(playerKey) {
+            const cardCount = GameState.getCardCount();
+            const cards = GameState.drawCards(playerKey, cardCount);
+
+            document.getElementById('selectionPhase').classList.remove('hidden');
+            document.getElementById('battleContainer').style.display = 'none';
+
+            document.getElementById('selectionTitle').textContent =
+                playerKey === 'player1' ? '玩家1 抽牌階段' : '玩家2 抽牌階段';
+
+            // Show card draw animation
+            await Animations.drawCards(cards);
+
+            // Show selection UI
+            renderSelectionCards(playerKey, cards);
+        }
+
+        function renderSelectionCards(playerKey, cards) {
+            const container = document.getElementById('drawnCards');
+            container.innerHTML = '';
+
+            cards.forEach((card, idx) => {
+                const div = document.createElement('div');
+                div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+                // Add specific styling for detailed view
+                div.style.minHeight = '350px';
+                div.style.display = 'flex';
+                div.style.flexDirection = 'column';
+
+                // Skills display
+                let skillsHtml = '';
+                if (card.skills && card.skills.length > 0) {
+                    skillsHtml = '<div style="margin-top: 10px; flex-grow: 1; overflow-y: auto; text-align: left;">';
+                    card.skills.forEach(skill => {
+                        skillsHtml += `<div class="skill-preview" style="margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                            <div style="color: var(--neon-cyan); font-weight: bold;">• ${skill.name} <span style="font-size: 0.7rem; color: #888;">(CD:${skill.cd})</span></div>
+                            <div style="font-size: 0.8rem; color: #ddd; margin-top: 2px; line-height: 1.3;">${skill.desc || '無描述'}</div>
+                        </div>`;
+                    });
+                    skillsHtml += '</div>';
+                }
+
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">#${card.id}</span>
+                        <span class="${getRarityClass(card.rarity)}" style="font-size: 0.75rem;">${getRarityName(card.rarity)}</span>
+                    </div>
+                    <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: var(--text-primary); text-shadow: 0 0 5px currentColor;">${card.name}</div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
+                        <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
+                        <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
+                    </div>
+                    ${card.passive ? `
+                        <div style="font-size: 0.8rem; color: var(--neon-gold); margin-bottom: 8px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 5px; border-radius: 4px;">
+                            <div style="font-weight: bold;">被動: ${card.passive.name}</div>
+                            <div style="margin-top: 2px; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
+                        </div>` : ''}
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px; border-bottom: 1px solid var(--text-secondary);">技能:</div>
+                    ${skillsHtml}
+                `;
+                div.onclick = () => selectCard(playerKey, idx);
+                container.appendChild(div);
+            });
+
+            selectedBattleCard = null;
+            updateSelectionInfo();
+        }
+
+        function selectCard(playerKey, idx) {
+            const cards = document.querySelectorAll('.select-card');
+            cards.forEach((c, i) => {
+                c.classList.remove('selected-battle');
+                if (i === idx) c.classList.add('selected-battle');
+            });
+
+            selectedBattleCard = idx;
+            updateSelectionInfo();
+        }
+
+        function updateSelectionInfo() {
+            const btn = document.getElementById('confirmSelection');
+            btn.disabled = selectedBattleCard === null;
+
+            document.getElementById('selectionInfo').textContent =
+                selectedBattleCard !== null ? '已選擇戰鬥角色' : '請選擇一張牌作為戰鬥角色';
+        }
+
+        document.getElementById('confirmSelection').onclick = async function () {
+            if (selectedBattleCard === null) return;
+
+            if (selectionPhase === 'p1_draw') {
+                GameState.setBattleCard('player1', selectedBattleCard);
+                selectionPhase = 'p2_draw';
+                await startDrawPhase('player2');
+            } else if (selectionPhase === 'p2_draw') {
+                GameState.setBattleCard('player2', selectedBattleCard);
+                startBattle();
+            }
+        };
+
+        function startBattle() {
+            document.getElementById('selectionPhase').classList.add('hidden');
+            document.getElementById('battleContainer').style.display = 'flex';
+            GameState.phase = 'battle';
+            GameState.turnCount = 1;
+
+            updateUI();
+            GameState.addLog('戰鬥開始！', 'skill');
+            updateBattleLog();
+        }
+
+        function updateUI() {
+            // Update turn indicator
+            document.getElementById('turnCount').textContent = GameState.turnCount;
+
+            // Update player cards
+            updatePlayerCard('player1', 'p1');
+            updatePlayerCard('player2', 'p2');
+
+            // Show/hide action buttons based on current player
+            const isP1Turn = GameState.currentPlayer === 1;
+            document.getElementById('p1Actions').style.display = isP1Turn ? 'flex' : 'none';
+            document.getElementById('p2Actions').style.display = isP1Turn ? 'none' : 'flex';
+
+            document.getElementById('p1TurnBadge').classList.toggle('hidden', !isP1Turn);
+            document.getElementById('p2TurnBadge').classList.toggle('hidden', isP1Turn);
+
+            // Mobile rotation
+            if (window.innerWidth <= 900) {
+                document.getElementById('player1Area').classList.toggle('rotated', !isP1Turn);
+                document.getElementById('player2Area').classList.toggle('rotated', isP1Turn);
+            }
+
+            // Highlight active player
+            document.getElementById('player1Area').classList.toggle('active-turn', isP1Turn);
+            document.getElementById('player2Area').classList.toggle('active-turn', !isP1Turn);
+        }
+
+        function updatePlayerCard(playerKey, prefix) {
+            const player = GameState[playerKey];
+            const card = player.battleCard;
+
+            if (!card) {
+                document.getElementById(`${prefix}CharName`).textContent = '無角色';
+                return;
+            }
+
+            document.getElementById(`${prefix}CharName`).textContent = card.name;
+            document.getElementById(`${prefix}CharRarity`).textContent = getRarityName(card.rarity);
+            document.getElementById(`${prefix}CharRarity`).className = `battle-char-rarity ${getRarityClass(card.rarity)}`;
+
+            // HP bar
+            const hpPercent = Math.max(0, Math.min(100, (card.hp / card.maxHp) * 100));
+            document.getElementById(`${prefix}HpBar`).style.width = hpPercent + '%';
+            document.getElementById(`${prefix}HpText`).textContent = `${Math.max(0, card.hp)} / ${card.maxHp}`;
+
+            // Shield bar
+            const shieldPercent = Math.min(100, (card.shield / card.maxHp) * 100);
+            document.getElementById(`${prefix}ShieldBar`).style.width = shieldPercent + '%';
+            document.getElementById(`${prefix}Shield`).textContent = card.shield;
+
+            // ATK
+            document.getElementById(`${prefix}Atk`).textContent = card.atk;
+
+            // Status effects & Resources
+            const statusDiv = document.getElementById(`${prefix}Status`);
+            statusDiv.innerHTML = '';
+
+            // 1. Status Effects
+            card.statusEffects.forEach(effect => {
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${effect.type}`;
+                let text = effect.name || effect.type;
+
+                if (effect.turns && effect.turns > 0 && !effect.permanent) {
+                    text += ` (${effect.turns}回)`;
+                } else if (effect.permanent) {
+                    text += ` (∞)`;
+                }
+
+                if (effect.hits !== undefined) {
+                    text += ` [${effect.hits}次]`;
+                } else if (effect.value !== undefined && effect.type !== 'dot' && effect.type !== 'poison' && effect.type !== 'burn') {
+                    text += `: ${effect.value}`;
+                } else if (effect.chance !== undefined) {
+                    text += ` ${effect.chance}%`;
+                }
+
+                badge.textContent = text;
+                statusDiv.appendChild(badge);
+            });
+
+            // 2. Resources (Combo, stacks, etc.)
+            if (card.resources) {
+                Object.entries(card.resources).forEach(([key, value]) => {
+                    const badge = document.createElement('span');
+                    badge.className = 'status-badge resource';
+                    badge.style.background = 'rgba(0, 255, 255, 0.2)';
+                    badge.style.color = '#fff';
+                    badge.textContent = `${key}: ${value}`;
+                    statusDiv.appendChild(badge);
+                });
+            }
+
+            // Passive
+            const passiveDiv = document.getElementById(`${prefix}Passive`);
+            if (card.passive) {
+                passiveDiv.innerHTML = `
+                <div style="font-size: 0.8rem; color: var(--neon-gold); margin: 5px 0; text-align: left; padding: 5px; background: rgba(255, 215, 0, 0.1); border-left: 2px solid var(--neon-gold); border-radius: 4px;">
+                    <div style="font-weight: bold; margin-bottom: 2px;">被動: ${card.passive.name}</div>
+                    <div style="color: #ddd; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
+                </div>`;
+            } else {
+                passiveDiv.innerHTML = '';
+            }
+
+            // Skills
+            const skillsDiv = document.getElementById(`${prefix}Skills`);
+            skillsDiv.innerHTML = '';
+
+            // Check if it's this player's turn to enable/disable buttons
+            const isMyTurn = (playerKey === 'player1' && GameState.currentPlayer === 1) ||
+                (playerKey === 'player2' && GameState.currentPlayer === 2);
+
+            if (card.skills) {
+                card.skills.forEach((skill, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'skill-btn';
+                    // Strict disable: Not my turn OR cooldown OR silence
+                    btn.disabled = !isMyTurn ||
+                        card.cooldowns[idx] > 0 ||
+                        card.statusEffects.some(e => e.type === 'silence');
+                    btn.innerHTML = `
+                        <div style="font-weight: bold;">${skill.name}</div>
+                        <div style="font-size: 0.75rem; color: #aaa; margin: 2px 0;">${skill.desc || '無描述'}</div>
+                        <span class="cooldown">${card.cooldowns[idx] > 0 ? `CD: ${card.cooldowns[idx]}` : `CD: ${skill.cd}`}</span>
+                    `;
+                    btn.title = skill.desc || '';
+                    btn.onclick = () => doAction('skill', idx);
+                    skillsDiv.appendChild(btn);
+                });
+            }
+
+            // Standby cards
+            const standbyDiv = document.getElementById(`${prefix}Standby`);
+            standbyDiv.innerHTML = '';
+            player.standbyCards.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = `standby-card glass ${getRarityClass(c.rarity)}`;
+                div.textContent = c.name;
+                div.onclick = () => showCardDetails(c); // Click to view details
+                standbyDiv.appendChild(div);
+            });
+        }
+
+        function updateBattleLog() {
+            const logDiv = document.getElementById('battleLog');
+            logDiv.innerHTML = '';
+            GameState.battleLog.slice(0, 15).forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry log-${entry.type}`;
+                div.textContent = entry.message;
+                logDiv.appendChild(div);
+            });
+        }
+
+        async function doAction(type, skillIndex = null) {
+            const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+            const opponentKey = GameState.currentPlayer === 1 ? 'player2' : 'player1';
+            const attacker = GameState[playerKey].battleCard;
+            const defender = GameState[opponentKey].battleCard;
+
+            if (!attacker || !defender) return;
+
+            if (type === 'attack') {
+                await BattleSystem.normalAttack(attacker, defender);
+            } else if (type === 'skill') {
+                await BattleSystem.useSkill(attacker, defender, skillIndex); // Await async skill
+            }
+
+            updateUI();
+            updateBattleLog();
+
+            // Check for deaths
+            const playersToCheck = ['player1', 'player2'];
+            for (const p of playersToCheck) {
+                const card = GameState[p].battleCard;
+                if (card && card.hp <= 0) {
+                    const died = GameState.handleDeath(p);
+                    if (died) {
+                        GameState.addLog(`${card.name} 被擊敗！`, 'damage');
+                        updateUI();
+                        updateBattleLog();
+
+                        // If there are standby cards, must pick one
+                        if (GameState[p].standbyCards.length > 0) {
+                            await promptReplacement(p);
+                        }
+                    }
+                }
+            }
+
+            // Check win
+            if (GameState.checkWin()) {
+                await Animations.victory(GameState.winner === 1 ? '玩家1' : '玩家2');
+                return;
+            }
+
+            // End turn
+            GameState.endTurn();
+            updateUI();
+            updateBattleLog();
+        }
+
+        function promptReplacement(playerKey) {
+            return new Promise((resolve) => {
+                const player = GameState[playerKey];
+                const modal = document.getElementById('replacementModal');
+                const optionsDiv = document.getElementById('replacementOptions');
+                const title = document.getElementById('replacementTitle');
+
+                title.textContent = `${player.name} 的角色已陣亡！請選擇替換角色`;
+                optionsDiv.innerHTML = '';
+                modal.classList.add('active');
+
+                player.standbyCards.forEach((card, idx) => {
+                    const div = document.createElement('div');
+                    div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+
+                    let skillsHtml = '';
+                    if (card.skills && card.skills.length > 0) {
+                        skillsHtml = '<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">';
+                        card.skills.forEach(skill => {
+                            skillsHtml += `<div class="skill-preview">
+                                • <span style="color: var(--neon-cyan);">${skill.name}</span>
+                            </div>`;
+                        });
+                        skillsHtml += '</div>';
+                    }
+
+                    div.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span class="${getRarityClass(card.rarity)}" style="font-size: 0.75rem;">${getRarityName(card.rarity)}</span>
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${card.name}</div>
+                        <div style="font-size: 0.9rem;">HP: ${card.hp}/${card.maxHp}</div>
+                        <div style="font-size: 0.9rem;">ATK: ${card.atk}</div>
+                        ${skillsHtml}
+                    `;
+
+                    div.onclick = () => {
+                        // Perform the swap (remove from standby, set as battle)
+                        player.battleCard = player.standbyCards.splice(idx, 1)[0];
+                        GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
+
+                        modal.classList.remove('active');
+                        updateUI();
+                        updateBattleLog();
+                        resolve();
+                    };
+                    optionsDiv.appendChild(div);
+                });
+            });
+        }
+
+        function showRetreat() {
+            const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+            const player = GameState[playerKey];
+
+            if (player.standbyCards.length === 0) {
+                GameState.addLog('備戰區沒有角色可替換！', 'status');
+                updateBattleLog();
+                return;
+            }
+
+            const optionsDiv = document.getElementById('retreatOptions');
+            optionsDiv.innerHTML = '';
+
+            player.standbyCards.forEach((card, idx) => {
+                const div = document.createElement('div');
+                div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+
+                // Reuse the card rendering logic similar to selection
+                let skillsHtml = '';
+                if (card.skills && card.skills.length > 0) {
+                    skillsHtml = '<div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">';
+                    card.skills.forEach(skill => {
+                        skillsHtml += `<div class="skill-preview" title="${skill.desc || '無描述'}">
+                            • <span style="color: var(--neon-cyan);">${skill.name}</span>
+                            <span style="font-size: 0.7rem; color: #888;">(CD:${skill.cd})</span>
+                        </div>`;
+                    });
+                    skillsHtml += '</div>';
+                }
+
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span class="${getRarityClass(card.rarity)}" style="font-size: 0.75rem;">${getRarityName(card.rarity)}</span>
+                    </div>
+                    <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${card.name}</div>
+                    <div style="font-size: 0.9rem;">HP: ${card.hp}/${card.maxHp}</div>
+                    <div style="font-size: 0.9rem;">ATK: ${card.atk}</div>
+                    ${skillsHtml}
+                    ${card.passive ? `<div style="font-size: 0.8rem; color: var(--neon-gold); margin-top: 5px; text-align: left;" title="${card.passive.desc || '無描述'}">被動: ${card.passive.name}</div>` : ''}
+                `;
+
+                div.onclick = () => {
+                    BattleSystem.retreat(playerKey, idx);
+                    closeRetreatModal();
+                    updateUI();
+                    updateBattleLog();
+                    GameState.endTurn();
+                    updateUI();
+                };
+                optionsDiv.appendChild(div);
+            });
+
+            document.getElementById('retreatModal').classList.add('active');
+        }
+
+        function closeRetreatModal() {
+            document.getElementById('retreatModal').classList.remove('active');
+        }
+
+        function showCardDetails(card) {
+            const modal = document.getElementById('cardDetailsModal');
+            const content = document.getElementById('cardDetailsContent');
+
+            let skillsHtml = '';
+            if (card.skills && card.skills.length > 0) {
+                skillsHtml = '<div style="margin-top: 15px; text-align: left;">';
+                card.skills.forEach(skill => {
+                    skillsHtml += `
+                        <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                            <div style="color: var(--neon-cyan); font-weight: bold;">${skill.name} <span style="font-size: 0.8rem; color: #888;">(CD: ${skill.cd})</span></div>
+                            <div style="font-size: 0.9rem; color: #ddd; margin-top: 3px;">${skill.desc || '無描述'}</div>
+                        </div>`;
+                });
+                skillsHtml += '</div>';
+            }
+
+            content.innerHTML = `
+                <div class="battle-card-header" style="justify-content: center; margin-bottom: 20px;">
+                    <span class="battle-char-name" style="font-size: 2rem;">${card.name}</span>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 20px; font-size: 1.2rem; margin-bottom: 20px;">
+                    <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
+                    <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
+                </div>
+                ${card.passive ? `
+                    <div style="margin-bottom: 15px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 10px; border-left: 3px solid var(--neon-gold); border-radius: 4px;">
+                        <div style="color: var(--neon-gold); font-weight: bold;">被動: ${card.passive.name}</div>
+                        <div style="font-size: 0.9rem; margin-top: 5px;">${card.passive.desc || '無描述'}</div>
+                    </div>` : ''}
+                ${skillsHtml}
+                <button class="btn" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('cardDetailsModal').classList.remove('active')">關閉</button>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('cardDetailsModal').onclick = (e) => {
+            if (e.target.id === 'cardDetailsModal') {
+                e.target.classList.remove('active');
+            }
+        };
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+
+</html>
