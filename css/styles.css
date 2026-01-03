@@ -383,6 +383,10 @@ body {
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
 }
 
 .modal-overlay.active .modal {
@@ -1154,6 +1158,10 @@ body {
     gap: 15px;
     justify-content: center;
     margin-bottom: 30px;
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 5px;
 }
 
 /* Skill Preview in Selection */
