@@ -52,10 +52,11 @@
                 <div class="status-effects" id="p1Status"></div>
                 <div class="passive-info" id="p1Passive"></div>
 
-                <div class="skills-container" id="p1Skills"></div>
 
                 <div class="action-buttons" id="p1Actions">
                     <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn skill-btn-main" id="p1SkillBtn"
+                        onclick="openSkillModal('player1')">使用技能</button>
                     <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
                 </div>
             </div>
@@ -103,10 +104,11 @@
                 <div class="status-effects" id="p2Status"></div>
                 <div class="passive-info" id="p2Passive"></div>
 
-                <div class="skills-container" id="p2Skills"></div>
 
                 <div class="action-buttons" id="p2Actions">
                     <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn skill-btn-main" id="p2SkillBtn"
+                        onclick="openSkillModal('player2')">使用技能</button>
                     <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
                 </div>
             </div>
@@ -133,6 +135,15 @@
             <p style="margin-bottom: 20px; color: var(--text-secondary);">選擇一個隊友來替換當前上場的角色</p>
             <div id="retreatOptions" class="drawn-cards"></div>
             <button class="btn" onclick="closeRetreatModal()" style="margin-top: 20px;">取消</button>
+        </div>
+    </div>
+
+    <!-- Skill Panel Modal -->
+    <div class="modal-overlay" id="skillPanelModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="skillModalTitle">使用技能</h2>
+            <div id="skillModalOptions" class="skills-container-modal"></div>
+            <button class="btn" onclick="closeSkillModal()" style="margin-top: 20px; width: 100%;">返回</button>
         </div>
     </div>
 
@@ -297,11 +308,9 @@
             document.getElementById('p1TurnBadge').classList.toggle('hidden', !isP1Turn);
             document.getElementById('p2TurnBadge').classList.toggle('hidden', isP1Turn);
 
-            // Mobile rotation
-            if (window.innerWidth <= 900) {
-                document.getElementById('player1Area').classList.toggle('rotated', !isP1Turn);
-                document.getElementById('player2Area').classList.toggle('rotated', isP1Turn);
-            }
+            // Update Skill Button state
+            document.getElementById('p1SkillBtn').disabled = !isP1Turn;
+            document.getElementById('p2SkillBtn').disabled = isP1Turn;
 
             // Highlight active player
             document.getElementById('player1Area').classList.toggle('active-turn', isP1Turn);
@@ -386,33 +395,6 @@
                 passiveDiv.innerHTML = '';
             }
 
-            // Skills
-            const skillsDiv = document.getElementById(`${prefix}Skills`);
-            skillsDiv.innerHTML = '';
-
-            // Check if it's this player's turn to enable/disable buttons
-            const isMyTurn = (playerKey === 'player1' && GameState.currentPlayer === 1) ||
-                (playerKey === 'player2' && GameState.currentPlayer === 2);
-
-            if (card.skills) {
-                card.skills.forEach((skill, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'skill-btn';
-                    // Strict disable: Not my turn OR cooldown OR silence
-                    btn.disabled = !isMyTurn ||
-                        card.cooldowns[idx] > 0 ||
-                        card.statusEffects.some(e => e.type === 'silence');
-                    btn.innerHTML = `
-                        <div style="font-weight: bold;">${skill.name}</div>
-                        <div style="font-size: 0.75rem; color: #aaa; margin: 2px 0;">${skill.desc || '無描述'}</div>
-                        <span class="cooldown">${card.cooldowns[idx] > 0 ? `CD: ${card.cooldowns[idx]}` : `CD: ${skill.cd}`}</span>
-                    `;
-                    btn.title = skill.desc || '';
-                    btn.onclick = () => doAction('skill', idx);
-                    skillsDiv.appendChild(btn);
-                });
-            }
-
             // Standby cards
             const standbyDiv = document.getElementById(`${prefix}Standby`);
             standbyDiv.innerHTML = '';
@@ -423,6 +405,53 @@
                 div.onclick = () => showCardDetails(c); // Click to view details
                 standbyDiv.appendChild(div);
             });
+        }
+
+        function openSkillModal(playerKey) {
+            const player = GameState[playerKey];
+            const card = player.battleCard;
+            if (!card) return;
+
+            const modal = document.getElementById('skillPanelModal');
+            const options = document.getElementById('skillModalOptions');
+            const title = document.getElementById('skillModalTitle');
+
+            title.textContent = `${player.name} - 使用技能`;
+            options.innerHTML = '';
+
+            const isMyTurn = (playerKey === 'player1' && GameState.currentPlayer === 1) ||
+                (playerKey === 'player2' && GameState.currentPlayer === 2);
+
+            if (card.skills) {
+                card.skills.forEach((skill, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'skill-btn-modal';
+                    // Strict disable: Not my turn OR cooldown OR silence
+                    const onCooldown = card.cooldowns[idx] > 0;
+                    const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    btn.disabled = !isMyTurn || onCooldown || isSilenced;
+
+                    btn.innerHTML = `
+                        <div class="skill-name-modal">${skill.name}</div>
+                        <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
+                        <div class="skill-footer-modal">
+                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
+                        </div>
+                    `;
+
+                    btn.onclick = async () => {
+                        closeSkillModal();
+                        await doAction('skill', idx);
+                    };
+                    options.appendChild(btn);
+                });
+            }
+            modal.classList.add('active');
+        }
+
+        function closeSkillModal() {
+            document.getElementById('skillPanelModal').classList.remove('active');
         }
 
         function updateBattleLog() {
