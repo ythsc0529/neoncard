@@ -165,7 +165,11 @@ const GameState = {
     // End turn
     endTurn() {
         // Process end-of-turn effects
-        this.processStatusEffects(this.getCurrentPlayer().battleCard);
+        const currentCard = this.getCurrentPlayer().battleCard;
+        if (currentCard) {
+            this.processPassive(currentCard, 'on_turn_end');
+        }
+        this.processStatusEffects(currentCard);
 
         // Switch player
         this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
@@ -196,6 +200,25 @@ const GameState = {
                 const val = effect.value || 0;
                 card.shield += val;
                 this.addLog(`${card.name} 獲得 ${val} 持續護盾`, 'skill');
+            } else if (effect.type === 'percent_hp_dot') {
+                // 王欸等-微笑: 每回合-10%當前HP
+                const dmg = Math.floor(card.hp * (effect.percent / 100));
+                card.hp -= dmg;
+                this.addLog(`${card.name} 受到 ${effect.name || '百分比傷害'} ${dmg} 傷害`, 'damage');
+            } else if (effect.type === 'delayed_buff') {
+                // 伽利略-軟禁: 暈眩結束後增益
+                if (effect.triggersAfter !== undefined && effect.triggersAfter > 0) {
+                    effect.triggersAfter--;
+                    if (effect.triggersAfter <= 0) {
+                        card.hp = Math.min(card.maxHp, card.hp + (effect.hp || 0));
+                        card.atk += (effect.atk || 0);
+                        this.addLog(`${card.name} 軟禁結束，HP +${effect.hp}, ATK +${effect.atk}`, 'skill');
+                        return false; // Remove after triggering
+                    }
+                }
+            } else if (effect.type === 'buff_atk_temp') {
+                // 梅子綠茶-侮辱: 臨時攻擊增益，結束時扣除
+                // This is handled when turns reach 0
             }
 
             // 3. Update durations
@@ -204,7 +227,14 @@ const GameState = {
             if (effect.turns !== undefined) {
                 if (effect.turns > 0) {
                     effect.turns--;
-                    if (effect.turns <= 0) keep = false;
+                    if (effect.turns <= 0) {
+                        // Clean up effects that have ended
+                        if (effect.type === 'buff_atk_temp') {
+                            card.atk -= (effect.value || 0);
+                            this.addLog(`${card.name} 攻擊增益結束`, 'status');
+                        }
+                        keep = false;
+                    }
                 } else if (effect.turns === 0) {
                     keep = false;
                 }
@@ -261,6 +291,9 @@ const GameState = {
         // Process passive on_turn_start effects
         this.processPassive(card, 'on_turn_start');
 
+        // Process turn interval passives (every X turns)
+        this.processTurnIntervalPassives(card);
+
         // Reduce cooldowns
         if (card.cooldowns) {
             Object.keys(card.cooldowns).forEach(k => {
@@ -270,7 +303,7 @@ const GameState = {
     },
 
     // Process passive abilities
-    processPassive(card, trigger) {
+    processPassive(card, trigger, args = {}) {
         if (!card.passive) return;
         const effect = card.passive.effect;
         if (effect.trigger !== trigger && effect.trigger !== 'passive') return;
@@ -279,6 +312,12 @@ const GameState = {
             case 'buff_atk':
                 card.atk += effect.value;
                 this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.value}`, 'skill');
+                break;
+            case 'shield':
+                if (trigger === 'on_skill_success' && (!effect.skill || effect.skill === args.skillName)) {
+                    card.shield += effect.value;
+                    this.addLog(`${card.name} 獲得 ${effect.value} 護盾`, 'skill');
+                }
                 break;
             case 'buff_max_hp':
                 card.maxHp += effect.value;
@@ -302,30 +341,33 @@ const GameState = {
                 card.hp = Math.min(card.maxHp, card.hp + effect.value);
                 this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${effect.value} HP`, 'heal');
                 break;
-            case 'heal_turn_number':
+            case 'heal_turn_number': // 太陽-黑子
                 card.hp = Math.min(card.maxHp, card.hp + this.turnCount);
                 this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${this.turnCount} HP`, 'heal');
                 break;
-            case 'scale_with_turn':
+            case 'scale_with_turn': // 冥王星-遠離
                 // Per user rule: hp+ means recovery. If they want max hp, they say "血量上限".
                 // Since this desc says "hp+", we treat as recovery.
                 card.hp = Math.min(card.maxHp, card.hp + (effect.hp_mult || 0));
                 card.atk += (effect.atk_mult || 0);
                 this.addLog(`${card.name} 被動 [${card.passive.name}] 成長中`, 'skill');
                 break;
-            case 'no_attack_dot_revive':
+            case 'no_attack_dot_revive': // 阿共-共機擾台
                 const opp = this.getOpponent();
                 if (opp.battleCard) {
                     opp.battleCard.hp -= effect.dot;
                     this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
                 }
                 break;
-            case 'manhattan_project':
+            case 'manhattan_project': // 奧本海默-曼哈頓計畫
                 card.resources.plan = (card.resources.plan || 0) + 1;
-                if (card.resources.plan >= 8) card.resources.has_nuke = true;
+                if (card.resources.plan >= 8) {
+                    card.resources.has_nuke = true;
+                    this.addLog(`${card.name} 獲得原子彈！`, 'skill');
+                }
                 break;
-            case 'conditional_stats':
-                // 王世堅情: hp > 50% reduction 20%, hp < 50% atk * 1.25
+            case 'conditional_stats': // 王世堅情-有出息
+                // hp > 50% reduction 20%, hp < 50% atk * 1.25
                 if (card.hp > card.maxHp / 2) {
                     // This damage reduction part needs to be checked in applyDamage
                 } else {
@@ -333,7 +375,7 @@ const GameState = {
                     this.addLog(`${card.name} 進入憤怒狀態，ATK 提升`, 'status');
                 }
                 break;
-            case 'debuff_max_hp':
+            case 'debuff_max_hp': // 暴擊騎士-詛咒
                 const targetOpp = this.getOpponent();
                 if (targetOpp.battleCard) {
                     targetOpp.battleCard.maxHp = Math.max(1, targetOpp.battleCard.maxHp - effect.value);
@@ -341,15 +383,281 @@ const GameState = {
                     this.addLog(`${card.name} 被動：對手血量上限下降了 ${effect.value}`, 'status');
                 }
                 break;
-            case 'draw':
+            case 'draw': // 魔眼-燃盡, 夏天與你-意志傳承, 達文西-天才
                 const owner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
-                this.drawCards(owner, effect.count);
-                this.addLog(`${card.name} 被動：抽取了 ${effect.count} 張牌`, 'skill');
+                const drawn = [];
+                for (let i = 0; i < effect.count; i++) {
+                    const ch = drawRandomCharacter();
+                    const inst = createCharacterInstance(ch);
+                    this[owner].standbyCards.push(inst);
+                    drawn.push(inst);
+                }
+                if (drawn.length > 0) {
+                    this.addLog(`${card.name} 被動：抽取了 ${drawn.map(d => d.name).join(', ')}`, 'skill');
+                    Animations.drawCards(drawn);
+                }
                 break;
-            case 'add_resource':
+            case 'add_resource': // 小米-研發, 高鐵-速度, Peter-特選
                 card.resources[effect.resource] = (card.resources[effect.resource] || 0) + effect.value;
+                if (effect.resource === 'special_count') {
+                    this.addLog(`${card.name} 特選 +1 (${card.resources[effect.resource]})`, 'skill');
+                }
                 break;
+
+            // --- NEW PASSIVE HANDLERS ---
+
+            case 'apple_passive':
+                card.resources[effect.resource || 'apple'] = (card.resources[effect.resource || 'apple'] || 0) + 1;
+                const appleCount = card.resources[effect.resource || 'apple'];
+                card.shield += appleCount * (effect.shield_per || 35);
+                this.addLog(`${card.name} 獲得蘋果 (共${appleCount}) 並增加護盾`, 'skill');
+                break;
+            case 'apple_bonus_revive':
+                if (trigger === 'on_enter' || (trigger === 'on_turn_start' && !card.resources.entered)) {
+                    const apples = card.resources.prev_apples || 0;
+                    const hpBonus = apples * 30;
+                    card.maxHp += hpBonus;
+                    card.hp += hpBonus;
+                    card.resources.entered = true;
+                    this.addLog(`${card.name} 繼承了 ${apples} 顆蘋果，血量上限 +${hpBonus}`, 'skill');
+                }
+                break;
+            case 'tribal_bonus':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const allyName = '莫那魯道';
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const hasAlly = this[ownerP].standbyCards.some(c => c.name === allyName);
+                    if (hasAlly && !card.resources.tribal_buff_active) {
+                        card.atk += 30;
+                        card.resources.tribal_buff_active = true;
+                        this.addLog(`${card.name} 因 ${allyName} 在場，攻擊力提升！`, 'status');
+                    } else if (!hasAlly && card.resources.tribal_buff_active) {
+                        card.atk -= 30;
+                        card.resources.tribal_buff_active = false;
+                        this.addLog(`${card.name} 失去羈絆，攻擊力下降`, 'status');
+                    }
+                }
+                break;
+            case 'debuff_vs_character':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const opponent = this.getOpponent().battleCard;
+                    if (opponent && opponent.name.includes(effect.target)) {
+                        if (opponent.maxHp > effect.set_max_hp) {
+                            opponent.maxHp = effect.set_max_hp;
+                            if (opponent.hp > opponent.maxHp) opponent.hp = opponent.maxHp;
+                            this.addLog(`${opponent.name} 受到 ${card.name} 壓制，血量上限變為 ${effect.set_max_hp}`, 'status');
+                        }
+                    }
+                }
+                break;
+            case 'stealth_shield':
+                if (trigger === 'on_turn_start') {
+                    card.shield = Math.max(card.shield, effect.shield);
+                    this.addLog(`${card.name} 進入隱蔽狀態 (護盾 ${effect.shield})`, 'status');
+                } else if (trigger === 'on_turn_end') {
+                    if (card.shield > 0) {
+                        card.shield = 0;
+                        this.addLog(`${card.name} 隱蔽結束`, 'status');
+                    }
+                }
+                break;
+            case 'self_kill_chance':
+                if (Math.random() * 100 < effect.chance) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 根據被動效果自我毀滅了！`, 'damage');
+                }
+                break;
+            case 'self_kill_scaling':
+                const drownC = card.resources.drown_chance || effect.base_chance;
+                if (Math.random() * 100 < drownC) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 溺水了！`, 'damage');
+                } else {
+                    card.resources.drown_chance = drownC + effect.increment;
+                }
+                break;
+
+            // On death: summon category (地球-適居帶, 土星-星球之力, 梅子綠茶-梅子給我擦)
+            case 'summon_category':
+                const catOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const catChar = getRandomFromCategory(effect.category);
+                if (catChar) {
+                    const inst = createCharacterInstance(catChar);
+                    this[catOwner].standbyCards.push(inst);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                    Animations.drawCards([inst]);
+                }
+                break;
+
+            // On death: summon multiple (狗狗肉摩托車-環保)
+            case 'summon_multiple':
+                const multOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const summoned = [];
+                for (let i = 0; i < effect.count; i++) {
+                    const targetChar = getCharacterByName(effect.target);
+                    if (targetChar) {
+                        const inst = createCharacterInstance(targetChar);
+                        this[multOwner].standbyCards.push(inst);
+                        summoned.push(inst);
+                    }
+                }
+                if (summoned.length > 0) {
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${summoned.length} 隻 ${effect.target}`, 'skill');
+                    Animations.drawCards(summoned);
+                }
+                break;
+
+            // On death: damage turn based (菸-擋一根)
+            case 'damage_turn_based':
+                const dmgOpp = this.getOpponent();
+                if (dmgOpp.battleCard) {
+                    const dmg = effect.base + this.turnCount * effect.turn_mult;
+                    dmgOpp.battleCard.hp -= dmg;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${dmgOpp.battleCard.name} 造成 ${dmg} 傷害`, 'damage');
+                }
+                break;
+
+            // On death: damage (伊魯帕恩-同歸於盡)
+            case 'damage':
+                const damageOpp = this.getOpponent();
+                if (damageOpp.battleCard) {
+                    damageOpp.battleCard.hp -= effect.value;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${damageOpp.battleCard.name} 造成 ${effect.value} 傷害`, 'damage');
+                }
+                break;
+
+            // HP loss trigger (E人-血怒)
+            case 'buff_atk_per_hp':
+                // This is handled in applyDamage by calculating ATK bonus from HP lost
+                break;
+
+            // Sacrifice HP for ATK (超凡-血祭)
+            case 'sacrifice_hp_buff_atk':
+                const totalSacrificed = card.resources.sacrificed_hp || 0;
+                if (totalSacrificed < effect.max_sacrifice) {
+                    card.maxHp -= effect.hp_loss;
+                    card.hp = Math.min(card.hp, card.maxHp);
+                    card.atk += effect.atk_gain;
+                    card.resources.sacrificed_hp = totalSacrificed + effect.hp_loss;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限 -${effect.hp_loss}, ATK +${effect.atk_gain}`, 'skill');
+                }
+                break;
+
+            // Dodge chance passive (很亮的魚-大跳, 籃球-滑, 球球-滑, 垃圾-猛攻, 黑筆-墨)
+            case 'dodge_chance':
+                // This adds a permanent dodge chance - should be stored in resources
+                if (!card.resources.dodge) {
+                    card.resources.dodge = effect.value;
+                }
+                break;
+
+            // Self kill chance (賦能哥-天才少年, 越野摩托車-翻車)
+            case 'self_kill_chance':
+                if (Math.random() * 100 < effect.chance) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
+                }
+                break;
+
+            // Apple passive (賈伯斯-天才)
+            case 'apple_passive':
+                card.resources.apple = (card.resources.apple || 0) + 1;
+                card.shield = card.resources.apple * effect.shield_per_apple;
+                this.addLog(`蘋果 +1 (${card.resources.apple})，護盾設為 ${card.shield}`, 'skill');
+                break;
+
+            // Summon if no tea (台茶18號-名貴)
+            case 'summon_if_no_tea':
+                const teaOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const hasTea = this[teaOwner].standbyCards.some(c => c.tags?.includes('tea'));
+                if (!hasTea) {
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[teaOwner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                }
+                break;
+
+            // Heal when low HP (美秀吉團-大老婆)
+            case 'heal_low_hp':
+                if (card.hp < card.maxHp * (effect.threshold / 100)) {
+                    const healAmount = Math.floor(card.maxHp * (effect.heal_percent / 100));
+                    card.hp = Math.min(card.maxHp, card.hp + healAmount);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${healAmount} HP`, 'heal');
+                }
+                break;
+
+            // Buff ATK when low HP (科比布萊恩特-曼巴精神)
+            case 'buff_atk_low_hp':
+                if (card.hp < card.maxHp * (effect.threshold / 100) && !card.resources.mamba_triggered) {
+                    card.atk += effect.atk;
+                    card.resources.mamba_triggered = true;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.atk}`, 'skill');
+                }
+                break;
+
+            // Dodge and scale (垃圾-猛攻)
+            case 'dodge_scale':
+                // Handled in applyDamage
+                break;
+
+            // Tea garden (採茶員-茶園)
+            case 'buff_per_standby_category':
+                const standbyTeas = this[this.player1.battleCard === card ? 'player1' : 'player2'].standbyCards.filter(c => c.tags?.includes(effect.category)).length;
+                card.maxHp += standbyTeas * effect.hp_per;
+                card.hp += standbyTeas * effect.hp_per;
+                card.atk += standbyTeas * effect.atk_per;
+                if (standbyTeas > 0) {
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：根據備戰區${effect.category}數量提升能力`, 'skill');
+                }
+                break;
+
             // Add more passive handlers as needed
+        }
+    },
+
+    // Process turn interval passives (called from processStartOfTurn)
+    processTurnIntervalPassives(card) {
+        if (!card || !card.passive) return;
+        const effect = card.passive.effect;
+        if (effect.trigger !== 'on_turn_interval') return;
+
+        if (this.turnCount > 0 && this.turnCount % effect.interval === 0) {
+            switch (effect.action) {
+                case 'summon': // 奧沙利文-147
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const targetChar = getCharacterByName(effect.target);
+                    if (targetChar) {
+                        const inst = createCharacterInstance(targetChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                    break;
+                case 'summon_category': // 伽利略-天文天才
+                    const catOwner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const catChar = getRandomFromCategory(effect.category);
+                    if (catChar) {
+                        const inst = createCharacterInstance(catChar);
+                        this[catOwner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                    // Buff ATK per standby planets
+                    if (effect.atk_per_standby) {
+                        const planetCount = this[catOwner].standbyCards.filter(c => c.tags?.includes('planet')).length;
+                        card.atk = card.baseAtk + planetCount * effect.atk_per_standby;
+                    }
+                    break;
+                case 'buff_hp_atk': // 怕瘦團-大寶
+                    card.hp = Math.min(card.maxHp, card.hp + (effect.hp || 0));
+                    card.atk += (effect.atk || 0);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：HP +${effect.hp}, ATK +${effect.atk}`, 'skill');
+                    break;
+            }
         }
     },
 
