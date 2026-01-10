@@ -338,7 +338,7 @@ const BattleSystem = {
         }
 
         // Set cooldown
-        attacker.cooldowns[skillIndex] = skill.cd;
+        attacker.cooldowns[skillIndex] = skill.cd + 1;
 
         // Execute skill effect
         GameState.addLog(`${attacker.name} 使用 [${skill.name}]`, 'skill');
