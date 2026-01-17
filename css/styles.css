@@ -40,6 +40,7 @@ body {
     background: radial-gradient(circle at center, #1a1a2e 0%, #050510 100%);
     color: var(--text-primary);
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
     line-height: 1.6;
 }
@@ -363,6 +364,7 @@ body {
 /* ========== MAIN MENU ========== */
 .menu-container {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -495,6 +497,7 @@ body {
 /* ========== CHARACTER LIST ========== */
 .character-list-container {
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 40px 20px;
     background: radial-gradient(circle at top, #1a1a2e 0%, #050510 100%);
 }
@@ -670,6 +673,7 @@ body {
 /* ========== BATTLE SCREEN ========== */
 .battle-container {
     height: 100vh;
+    height: 100dvh;
     display: flex;
     overflow: hidden;
     background: radial-gradient(circle at center, #11111a 0%, #000000 100%);
@@ -1311,6 +1315,7 @@ body {
     background: var(--bg-dark);
     z-index: 500;
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     overflow-y: auto;
 }
 
@@ -1398,6 +1403,7 @@ body {
 
     .player-area.player2 {
         order: 2;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
     }
 
     .battle-log {
@@ -1505,31 +1511,32 @@ body {
 .skill-silence-modal {
     color: var(--neon-red);
     font-weight: bold;
-/* Dice face results */
-.dice {
-    transition: transform 0.5s ease-out;
-}
 
-.dice.show-1 {
-    transform: rotateX(0deg) rotateY(0deg);
-}
+    /* Dice face results */
+    .dice {
+        transition: transform 0.5s ease-out;
+    }
 
-.dice.show-6 {
-    transform: rotateX(0deg) rotateY(180deg);
-}
+    .dice.show-1 {
+        transform: rotateX(0deg) rotateY(0deg);
+    }
 
-.dice.show-3 {
-    transform: rotateX(0deg) rotateY(90deg);
-}
+    .dice.show-6 {
+        transform: rotateX(0deg) rotateY(180deg);
+    }
 
-.dice.show-4 {
-    transform: rotateX(0deg) rotateY(-90deg);
-}
+    .dice.show-3 {
+        transform: rotateX(0deg) rotateY(90deg);
+    }
 
-.dice.show-2 {
-    transform: rotateX(-90deg) rotateY(0deg);
-}
+    .dice.show-4 {
+        transform: rotateX(0deg) rotateY(-90deg);
+    }
 
-.dice.show-5 {
-    transform: rotateX(90deg) rotateY(0deg);
-}
+    .dice.show-2 {
+        transform: rotateX(-90deg) rotateY(0deg);
+    }
+
+    .dice.show-5 {
+        transform: rotateX(90deg) rotateY(0deg);
+    }
