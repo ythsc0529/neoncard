@@ -188,10 +188,7 @@ const GameState = {
         if (!card || !card.statusEffects) return;
 
         card.statusEffects = card.statusEffects.filter(effect => {
-            // 1. Permanent effects always stay
-            if (effect.permanent || effect.turns === -1) return true;
-
-            // 2. Process special turn-start/end behaviors
+            // 1. Process special turn-start/end behaviors
             if (['poison', 'burn', 'dot'].includes(effect.type)) {
                 const dmg = effect.damage || 0;
                 card.hp -= dmg;
@@ -216,10 +213,10 @@ const GameState = {
                         return false; // Remove after triggering
                     }
                 }
-            } else if (effect.type === 'buff_atk_temp') {
-                // 梅子綠茶-侮辱: 臨時攻擊增益，結束時扣除
-                // This is handled when turns reach 0
             }
+
+            // 2. Permanent effects always stay
+            if (effect.permanent || effect.turns === -1) return true;
 
             // 3. Update durations
             let keep = true;
@@ -267,10 +264,6 @@ const GameState = {
         const stun = card.statusEffects.find(e => e.type === 'stun');
         if (stun) {
             this.addLog(`${card.name} 被暈眩，無法行動！`, 'status');
-            stun.turns--;
-            if (stun.turns <= 0) {
-                card.statusEffects = card.statusEffects.filter(e => e !== stun);
-            }
             this.endTurn();
             return;
         }
@@ -290,6 +283,9 @@ const GameState = {
 
         // Process passive on_turn_start effects
         this.processPassive(card, 'on_turn_start');
+
+        // Process general passives (e.g. conditional stats)
+        this.processPassive(card, 'passive');
 
         // Process turn interval passives (every X turns)
         this.processTurnIntervalPassives(card);
@@ -353,12 +349,14 @@ const GameState = {
                 this.addLog(`${card.name} 被動 [${card.passive.name}] 成長中`, 'skill');
                 break;
             case 'no_attack_dot_revive': // 阿共-共機擾台
-                const opp = this.getOpponent();
-                if (opp.battleCard) {
-                    opp.battleCard.hp -= effect.dot;
-                    this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
+                {
+                    const opp = this.getOpponent();
+                    if (opp.battleCard) {
+                        opp.battleCard.hp -= effect.dot;
+                        this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
+                    }
+                    break;
                 }
-                break;
             case 'manhattan_project': // 奧本海默-曼哈頓計畫
                 card.resources.plan = (card.resources.plan || 0) + 1;
                 if (card.resources.plan >= 8) {
@@ -584,7 +582,9 @@ const GameState = {
             // Heal when low HP (美秀吉團-大老婆)
             case 'heal_low_hp':
                 if (card.hp < card.maxHp * (effect.threshold / 100)) {
-                    const healAmount = Math.floor(card.maxHp * (effect.heal_percent / 100));
+                    // Fix: Data uses 'value' but code expected 'heal_percent'
+                    const percent = effect.heal_percent || effect.value || 0;
+                    const healAmount = Math.floor(card.maxHp * (percent / 100));
                     card.hp = Math.min(card.maxHp, card.hp + healAmount);
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${healAmount} HP`, 'heal');
                 }
@@ -615,7 +615,109 @@ const GameState = {
                 }
                 break;
 
-            // Add more passive handlers as needed
+            // Summon chance and buff dodge (No Party For Cao Dong)
+            case 'summon_chance_buff_dodge':
+                if (Math.random() * 100 < effect.chance) {
+                    const targetChar = getCharacterByName(effect.target);
+                    if (targetChar) {
+                        const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                        const inst = createCharacterInstance(targetChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                }
+                // Recalculate dodge based on owned cards
+                const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
+                const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
+                const newDodge = effect.base_dodge + (count * effect.dodge_per);
+                card.resources.dodge = newDodge;
+                // Log only if changed? Maybe too spammy.
+                break;
+
+            // Money passive (Bill Gates) - On turn start logic
+            case 'money_passive':
+                if (trigger === 'on_turn_start') {
+                    card.resources[effect.resource || 'money'] = (card.resources[effect.resource || 'money'] || 0) + 1;
+                    this.addLog(`${card.name} 獲得錢錢 (共${card.resources[effect.resource || 'money']})`, 'skill');
+                }
+                break;
+
+            // Summon if enemy tea (Fruit Tea)
+            case 'summon_if_enemy_tea':
+                const opp = this.getOpponent().battleCard;
+                if (opp && opp.tags && opp.tags.includes('tea')) {
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：對手是茶，額外召喚了 ${inst.name}`, 'skill');
+                    }
+                }
+                break;
+
+            // Conditional summon tea (Lemon Tea) - Handled in on_skill normally, but here if needed
+            case 'conditional_summon_tea':
+                // Check if already handled in battleSystem or here.
+                // battleSystem calls processPassive with 'on_skill' or 'on_skill_success'.
+                // If args.success is true (cleared dodge)
+                if (trigger === 'on_skill_success' && args.success) {
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：成功清除閃避，召喚了 ${inst.name}`, 'skill');
+                    }
+                }
+                break;
+
+            // Increment counter (Peter)
+            case 'increment_counter':
+                if (card.resources[effect.counter] !== undefined) {
+                    card.resources[effect.counter]++;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：${effect.counter} +1 (${card.resources[effect.counter]})`, 'skill');
+                }
+                break;
+
+            case 'buff_resource':
+                card.resources[effect.resource] = (card.resources[effect.resource] || 0) + effect.value;
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：${effect.resource} +${effect.value}`, 'skill');
+                break;
+
+            // Conditional stats (Wang Shijian)
+            case 'conditional_stats':
+                if (card.baseAtk !== undefined) {
+                    // Reset to base first (to avoid double stacking if called multiple times)
+                    // But we don't know if other buffs exist.
+                    // Ideally we track temporary buffs separately.
+                    // Simple approach: Check condition and apply multiplier to baseAtk?
+                    // But if he has other buffs (e.g. from skill), setting = baseAtk * 1.25 removes them.
+                    // Correct approach: Track a specific modifier for this passive.
+                    // But we don't have a modifier system for passives yet.
+                    // Hack: Check if modifier is applied.
+                    const isLow = card.hp < card.maxHp * 0.5;
+                    const bonusKey = 'conditional_stats_bonus';
+                    const currentBonus = card.resources[bonusKey] || 0;
+
+                    if (isLow) {
+                        const targetBonus = Math.floor(card.baseAtk * 0.25); // 1.25x = +0.25x
+                        if (currentBonus !== targetBonus) {
+                            card.atk = card.atk - currentBonus + targetBonus;
+                            card.resources[bonusKey] = targetBonus;
+                            this.addLog(`${card.name} 被動：HP < 50%，ATK 提升`, 'status');
+                        }
+                    } else {
+                        // Remove bonus
+                        if (currentBonus > 0) {
+                            card.atk -= currentBonus;
+                            card.resources[bonusKey] = 0;
+                            this.addLog(`${card.name} 被動：HP > 50%，ATK 恢復`, 'status');
+                        }
+                    }
+                }
+                break;
         }
     },
 

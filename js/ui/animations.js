@@ -85,7 +85,10 @@ const Animations = {
 
             setTimeout(() => {
                 const d = document.getElementById('dice');
-                if (d) d.classList.remove('rolling');
+                if (d) {
+                    d.classList.remove('rolling');
+                    d.classList.add(`show-${result}`); // Rotate to correct face
+                }
                 const dr = document.getElementById('diceResult');
                 if (dr) dr.style.opacity = '1';
             }, 1500);
@@ -113,6 +116,9 @@ const Animations = {
                         <div class="probability-result" id="probResult" style="opacity: 0;">
                             ${success ? '✓ 成功！' : '✗ 失敗'}
                         </div>
+                        <div style="margin-top: 10px; color: #888; font-size: 0.9rem;">
+                            目標: < ${chance}%
+                        </div>
                     </div>
                 `;
 
@@ -123,28 +129,34 @@ const Animations = {
                     return;
                 }
 
-                let current = 0;
-                const interval = setInterval(() => {
-                    current += Math.floor(Math.random() * 20) + 5;
-                    if (current > 100) current = current % 100;
-                    if (probElement) probElement.textContent = current;
-                }, 50);
+                let duration = 1500;
+                let startTime = Date.now();
 
-                setTimeout(() => {
-                    clearInterval(interval);
-                    if (probElement) {
-                        probElement.textContent = success ? 'SUCCESS' : 'FAIL';
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed < duration) {
+                        probElement.textContent = Math.floor(Math.random() * 100);
+                        requestAnimationFrame(animate);
+                    } else {
+                        probElement.textContent = success ? Math.floor(Math.random() * (chance - 1)) : Math.floor(Math.random() * (100 - chance)) + chance;
+                        // Use actual random number logic for display if we want to be precise, but simple visual success/fail is better.
+                        // Actually, just show "Pass" or "Fail" text or color.
+                        probElement.textContent = success ? 'PASS' : 'FAIL';
                         probElement.style.fontSize = '2rem';
-                    }
 
-                    const resultEl = document.getElementById('probResult');
-                    if (resultEl) {
-                        resultEl.style.opacity = '1';
-                        resultEl.textContent = success ? '判定通過' : '判定失敗';
-                        resultEl.className = `probability-result ${success ? 'success' : 'fail'}`;
-                        resultEl.style.color = success ? 'var(--neon-green)' : 'var(--neon-red)';
+                        const resultEl = document.getElementById('probResult');
+                        if (resultEl) {
+                            resultEl.style.opacity = '1';
+                            resultEl.textContent = success ? '判定通過' : '判定失敗';
+                            resultEl.className = `probability-result ${success ? 'success' : 'fail'}`;
+                            resultEl.style.color = success ? 'var(--neon-green)' : 'var(--neon-red)';
+                            resultEl.style.textShadow = `0 0 10px ${success ? 'var(--neon-green)' : 'var(--neon-red)'}`;
+                            resultEl.style.transform = 'scale(1.2)';
+                            resultEl.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                        }
                     }
-                }, 1500);
+                };
+                requestAnimationFrame(animate);
 
                 setTimeout(() => {
                     this.hide();
@@ -168,7 +180,7 @@ const Animations = {
                 this.container.innerHTML = `
                     <div class="probability-container glass">
                         <div class="probability-title">${description || '隨機數值'}</div>
-                        <div class="probability-display" id="randDisplay">
+                        <div class="probability-display" id="randDisplay" style="font-family: 'Courier New', monospace;">
                             <span id="randNumber">${min}</span>
                         </div>
                         <div class="probability-result" id="randResult" style="opacity: 0;">
@@ -184,21 +196,28 @@ const Animations = {
                     return;
                 }
 
-                const interval = setInterval(() => {
-                    if (el) el.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
-                }, 50);
+                let duration = 1500;
+                let startTime = Date.now();
 
-                setTimeout(() => {
-                    clearInterval(interval);
-                    if (el) {
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed < duration) {
+                        // Slow down effect: only update every few frames as we get closer?
+                        // Simple random update for now
+                        el.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
+                        requestAnimationFrame(animate);
+                    } else {
                         el.textContent = result;
                         el.style.color = 'var(--neon-gold)';
-                        el.style.transform = 'scale(1.2)';
-                    }
+                        el.style.transform = 'scale(1.5)';
+                        el.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                        el.style.display = 'inline-block';
 
-                    const resultEl = document.getElementById('randResult');
-                    if (resultEl) resultEl.style.opacity = '1';
-                }, 1500);
+                        const resultEl = document.getElementById('randResult');
+                        if (resultEl) resultEl.style.opacity = '1';
+                    }
+                };
+                requestAnimationFrame(animate);
 
                 setTimeout(() => {
                     this.hide();
