@@ -139,7 +139,16 @@ const GameState = {
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！`, 'status');
 
                 if (effect.action === 'draw_revive_limited') {
-                    this.drawCards(this.currentPlayer === 1 ? 'player1' : 'player2', effect.draw);
+                    // Draw cards to standby (not overwrite allCards)
+                    const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    for (let i = 0; i < (effect.draw || 1); i++) {
+                        const drCh = drawRandomCharacter();
+                        if (drCh) {
+                            const drInst = createCharacterInstance(drCh);
+                            this[ownerKey].standbyCards.push(drInst);
+                        }
+                    }
+                    this.addLog(`${card.name} 抽卡`, 'skill');
                 }
                 return true;
             }
@@ -302,7 +311,12 @@ const GameState = {
     processPassive(card, trigger, args = {}) {
         if (!card.passive) return;
         const effect = card.passive.effect;
-        if (effect.trigger !== trigger && effect.trigger !== 'passive') return;
+        // Allow through if trigger matches, or is a 'passive' type, or certain special triggers
+        // that need to fall through to let specific cases handle them
+        if (effect.trigger !== trigger && effect.trigger !== 'passive') {
+            // Allow on_skill/on_skill_count/on_skill_success to fall through so case handlers can filter
+            if (!['on_skill_success', 'on_skill', 'on_skill_count'].includes(trigger)) return;
+        }
 
         switch (effect.action) {
             case 'buff_atk':
@@ -364,15 +378,7 @@ const GameState = {
                     this.addLog(`${card.name} 獲得原子彈！`, 'skill');
                 }
                 break;
-            case 'conditional_stats': // 王世堅情-有出息
-                // hp > 50% reduction 20%, hp < 50% atk * 1.25
-                if (card.hp > card.maxHp / 2) {
-                    // This damage reduction part needs to be checked in applyDamage
-                } else {
-                    card.atk = Math.floor(card.baseAtk * 1.25);
-                    this.addLog(`${card.name} 進入憤怒狀態，ATK 提升`, 'status');
-                }
-                break;
+            // conditional_stats handled below (de-duplicated)
             case 'debuff_max_hp': // 暴擊騎士-詛咒
                 const targetOpp = this.getOpponent();
                 if (targetOpp.battleCard) {
@@ -404,12 +410,7 @@ const GameState = {
 
             // --- NEW PASSIVE HANDLERS ---
 
-            case 'apple_passive':
-                card.resources[effect.resource || 'apple'] = (card.resources[effect.resource || 'apple'] || 0) + 1;
-                const appleCount = card.resources[effect.resource || 'apple'];
-                card.shield += appleCount * (effect.shield_per || 35);
-                this.addLog(`${card.name} 獲得蘋果 (共${appleCount}) 並增加護盾`, 'skill');
-                break;
+            // apple_passive handled below (de-duplicated)
             case 'apple_bonus_revive':
                 if (trigger === 'on_enter' || (trigger === 'on_turn_start' && !card.resources.entered)) {
                     const apples = card.resources.prev_apples || 0;
@@ -544,6 +545,7 @@ const GameState = {
             // Dodge chance passive (很亮的魚-大跳, 籃球-滑, 球球-滑, 垃圾-猛攻, 黑筆-墨)
             case 'dodge_chance':
                 // This adds a permanent dodge chance - should be stored in resources
+                if (!card.resources) card.resources = {};
                 if (!card.resources.dodge) {
                     card.resources.dodge = effect.value;
                 }
@@ -559,9 +561,13 @@ const GameState = {
 
             // Apple passive (賈伯斯-天才)
             case 'apple_passive':
-                card.resources.apple = (card.resources.apple || 0) + 1;
-                card.shield = card.resources.apple * effect.shield_per_apple;
-                this.addLog(`蘋果 +1 (${card.resources.apple})，護盾設為 ${card.shield}`, 'skill');
+                if (trigger === 'on_turn_start') {
+                    card.resources.apple = (card.resources.apple || 0) + 1;
+                    const appleCount = card.resources.apple;
+                    // Shield = apples × 35 (not cumulative add, set directly)
+                    card.shield = appleCount * (effect.shield_per || 35);
+                    this.addLog(`${card.name} 蘋果 +1 (共${appleCount})，護盾設為 ${card.shield}`, 'skill');
+                }
                 break;
 
             // Summon if no tea (台茶18號-名貴)
@@ -590,12 +596,18 @@ const GameState = {
                 }
                 break;
 
-            // Buff ATK when low HP (科比布萊恩特-曼巴精神)
+            // Buff ATK when low HP (科比布萊恩特-曼巴精神 with action: low_hp_buff)
             case 'buff_atk_low_hp':
-                if (card.hp < card.maxHp * (effect.threshold / 100) && !card.resources.mamba_triggered) {
-                    card.atk += effect.atk;
-                    card.resources.mamba_triggered = true;
-                    this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.atk}`, 'skill');
+            case 'low_hp_buff':
+                if (!card.resources) card.resources = {};
+                if (card.hp < card.maxHp * ((effect.threshold || 30) / 100) && !card.resources.low_hp_buff_triggered) {
+                    card.atk += (effect.atk || 50);
+                    card.resources.low_hp_buff_triggered = true;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.atk || 50}`, 'skill');
+                } else if (card.hp >= card.maxHp * ((effect.threshold || 30) / 100) && card.resources.low_hp_buff_triggered) {
+                    // If HP recovered above threshold, remove bonus
+                    card.atk -= (effect.atk || 50);
+                    card.resources.low_hp_buff_triggered = false;
                 }
                 break;
 
@@ -686,38 +698,90 @@ const GameState = {
                 this.addLog(`${card.name} 被動 [${card.passive.name}]：${effect.resource} +${effect.value}`, 'skill');
                 break;
 
-            // Conditional stats (Wang Shijian)
-            case 'conditional_stats':
-                if (card.baseAtk !== undefined) {
-                    // Reset to base first (to avoid double stacking if called multiple times)
-                    // But we don't know if other buffs exist.
-                    // Ideally we track temporary buffs separately.
-                    // Simple approach: Check condition and apply multiplier to baseAtk?
-                    // But if he has other buffs (e.g. from skill), setting = baseAtk * 1.25 removes them.
-                    // Correct approach: Track a specific modifier for this passive.
-                    // But we don't have a modifier system for passives yet.
-                    // Hack: Check if modifier is applied.
-                    const isLow = card.hp < card.maxHp * 0.5;
-                    const bonusKey = 'conditional_stats_bonus';
-                    const currentBonus = card.resources[bonusKey] || 0;
+            // On resource trigger passive (豬自清-背影: every 2 oranges hp+30 atk+5)
+            case 'buff_hp_atk': // Can be triggered by on_resource
+                if (trigger === 'on_resource') {
+                    const resName = effect.resource || args?.resource;
+                    const resCount = args?.count || (card.resources && card.resources[resName]) || 0;
+                    if (resName && resCount > 0 && resCount % (effect.count || 2) === 0) {
+                        const hpGain = effect.hp || 0;
+                        const atkGain = effect.atk || 0;
+                        card.hp = Math.min(card.maxHp, card.hp + hpGain);
+                        card.atk += atkGain;
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：HP +${hpGain}, ATK +${atkGain}！`, 'skill');
+                    }
+                }
+                break;
 
-                    if (isLow) {
-                        const targetBonus = Math.floor(card.baseAtk * 0.25); // 1.25x = +0.25x
-                        if (currentBonus !== targetBonus) {
-                            card.atk = card.atk - currentBonus + targetBonus;
-                            card.resources[bonusKey] = targetBonus;
-                            this.addLog(`${card.name} 被動：HP < 50%，ATK 提升`, 'status');
-                        }
-                    } else {
-                        // Remove bonus
-                        if (currentBonus > 0) {
-                            card.atk -= currentBonus;
-                            card.resources[bonusKey] = 0;
-                            this.addLog(`${card.name} 被動：HP > 50%，ATK 恢復`, 'status');
+
+            case 'summon_category': // on_skill_count trigger with summon_category
+                if (effect.trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    // Only match the specific skill if effect.skill is set
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        card.resources.skill_count = (card.resources.skill_count || 0) + 1;
+                        if (card.resources.skill_count % effect.count === 0) {
+                            const catOwnerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                            const catChar = getRandomFromCategory(effect.category);
+                            if (catChar) {
+                                const inst = createCharacterInstance(catChar);
+                                this[catOwnerKey].standbyCards.push(inst);
+                                this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                                Animations.drawCards([inst]);
+                            }
                         }
                     }
                 }
                 break;
+
+            // Bonus damage by rarity passive (摳P-垃圾不分藍綠)
+            case 'bonus_damage_by_rarity': {
+                if (trigger === 'on_attack') {
+                    const oppBdr = this.getOpponent().battleCard;
+                    if (oppBdr) {
+                        const rarityOrder = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'SPECIAL'];
+                        const oppRarityIdx = rarityOrder.indexOf(oppBdr.rarity);
+                        const legendaryIdx = rarityOrder.indexOf('LEGENDARY');
+                        let bonusDmg = 0;
+                        if (oppRarityIdx < legendaryIdx) {
+                            bonusDmg = 30;
+                        } else {
+                            bonusDmg = 50;
+                        }
+                        oppBdr.hp -= bonusDmg;
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${oppBdr.name} 造成 ${bonusDmg} 額外傷害`, 'damage');
+                    }
+                }
+                break;
+            }
+
+            // Conditional stats (王世堅情-有出息)
+            case 'conditional_stats': {
+                if (!card.resources) card.resources = {};
+                const isLow = card.hp < card.maxHp * 0.5;
+                const bonusKey = 'conditional_stats_bonus';
+                const currentBonus = card.resources[bonusKey] || 0;
+
+                if (isLow) {
+                    // Bug fix: should use current atk (before bonus), not baseAtk
+                    // We track a 20% bonus of the "base" (atk before this bonus was applied)
+                    const atkWithoutBonus = card.atk - currentBonus;
+                    const targetBonus = Math.floor(atkWithoutBonus * 0.25); // *1.25 = +25%
+                    if (currentBonus !== targetBonus) {
+                        card.atk = card.atk - currentBonus + targetBonus;
+                        card.resources[bonusKey] = targetBonus;
+                        this.addLog(`${card.name} 被動：HP < 50%，ATK ×1.25`, 'status');
+                    }
+                } else {
+                    // Remove bonus when HP is back above 50%
+                    if (currentBonus > 0) {
+                        card.atk = Math.max(0, card.atk - currentBonus);
+                        card.resources[bonusKey] = 0;
+                        this.addLog(`${card.name} 被動：HP > 50%，ATK 恢復`, 'status');
+                    }
+                }
+                break;
+            }
         }
     },
 
@@ -739,7 +803,8 @@ const GameState = {
                         Animations.drawCards([inst]);
                     }
                     break;
-                case 'summon_category': // 伽利略-天文天才
+                case 'summon_category': // 伽利略-天文天才 (summon_category action)
+                case 'summon_buff': // alias for 伽利略-天文天才
                     const catOwner = this.player1.battleCard === card ? 'player1' : 'player2';
                     const catChar = getRandomFromCategory(effect.category);
                     if (catChar) {
@@ -748,10 +813,13 @@ const GameState = {
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
                         Animations.drawCards([inst]);
                     }
-                    // Buff ATK per standby planets
-                    if (effect.atk_per_standby) {
-                        const planetCount = this[catOwner].standbyCards.filter(c => c.tags?.includes('planet')).length;
-                        card.atk = card.baseAtk + planetCount * effect.atk_per_standby;
+                    // Buff ATK per standby planets (use atk_per or atk_per_standby)
+                    {
+                        const atk_per = effect.atk_per || effect.atk_per_standby || 0;
+                        if (atk_per > 0) {
+                            const planetCount = this[catOwner].standbyCards.filter(c => c.tags?.includes('planet')).length;
+                            card.atk = (card.baseAtk || card.atk) + planetCount * atk_per;
+                        }
                     }
                     break;
                 case 'buff_hp_atk': // 怕瘦團-大寶

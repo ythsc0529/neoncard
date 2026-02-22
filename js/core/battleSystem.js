@@ -29,6 +29,16 @@ const BattleSystem = {
 
         attacker.hasAttacked = true;
 
+        // 摳P 被動: on_attack 觸發
+        GameState.processPassive(attacker, 'on_attack', {});
+
+        // 水上摩托車 溺水被動：每普攻一次，機率+5%
+        if (attacker.passive?.effect?.action === 'self_kill_scaling') {
+            const incr = attacker.passive.effect.increment || 5;
+            attacker.resources.drown_chance = (attacker.resources.drown_chance || attacker.passive.effect.base_chance || 25) + incr;
+            GameState.addLog(`${attacker.name} 溺水機率 +${incr}% → ${attacker.resources.drown_chance}%`, 'status');
+        }
+
         return result;
     },
 
@@ -56,16 +66,29 @@ const BattleSystem = {
                         }
                     }
 
-                    // Check 垃圾 passive - scale on dodge
+                    // Check 垃圾 passive - scale on dodge (animation already shown via probabilityRoll)
                     if (defender.passive?.effect?.action === 'dodge_scale') {
-                        defender.maxHp *= defender.passive.effect.hp_mult;
-                        defender.hp *= defender.passive.effect.hp_mult;
-                        defender.atk *= defender.passive.effect.atk_mult;
                         GameState.addLog(`${defender.name} 被動觸發，能力翻倍！`, 'skill');
+                        defender.maxHp = Math.floor(defender.maxHp * (defender.passive.effect.hp_mult || 2));
+                        defender.hp = Math.floor(defender.hp * (defender.passive.effect.hp_mult || 2));
+                        defender.atk = Math.floor(defender.atk * (defender.passive.effect.atk_mult || 2));
                     }
 
                     return { damage: 0, dodged: true };
                 }
+            }
+        }
+
+        // Check dodge_shield status (花店老闆-弗花)
+        const dodgeShield = defender.statusEffects.find(e => e.type === 'dodge_shield');
+        if (dodgeShield && !options.ignoresDodge) {
+            const shieldDodged = await Animations.probabilityRoll(dodgeShield.chance || 40, '弗花免傷判定');
+            if (shieldDodged) {
+                defender.shield += (dodgeShield.shield || 30);
+                dodgeShield.hits = (dodgeShield.hits || 1) - 1;
+                if (dodgeShield.hits <= 0) defender.statusEffects = defender.statusEffects.filter(e => e !== dodgeShield);
+                GameState.addLog(`${defender.name} 弗花觸發！免疫傷害並獲得 ${dodgeShield.shield || 30} 護盾！`, 'skill');
+                return { damage: 0, dodged: true };
             }
         }
 
@@ -140,6 +163,18 @@ const BattleSystem = {
         // Check damage reduction (from passive conditional_stats - 王世堅情)
         if (defender.passive?.effect?.action === 'conditional_stats' && defender.hp > defender.maxHp / 2) {
             damage = Math.floor(damage * 0.8);
+            GameState.addLog(`${defender.name} 被動減傷 20%`, 'status');
+        }
+
+        // Check execute_threshold (琉璃-榨乾)
+        if (attacker.passive?.effect?.action === 'execute_threshold') {
+            const thresh = attacker.passive.effect.threshold || 30;
+            if (defender.hp < defender.maxHp * thresh / 100) {
+                // Next attack ignores everything and kills
+                defender.hp = 0;
+                GameState.addLog(`${attacker.name} 被動 [榨乾]：直接擊殺 ${defender.name}！`, 'damage');
+                return { damage: defender.maxHp, executeKill: true };
+            }
         }
 
         // Check damage cap (passive - 二肆八六)
@@ -154,6 +189,17 @@ const BattleSystem = {
             damage = capHit.cap;
             capHit.hits--;
             if (capHit.hits <= 0) defender.statusEffects = defender.statusEffects.filter(e => e !== capHit);
+        }
+
+        // Check convert damage to atk (琉璃-魅惑 status effect)
+        const convertToAtk = defender.statusEffects.find(e => e.type === 'convert_damage_to_atk');
+        if (convertToAtk) {
+            const atkGain = Math.floor(damage * (convertToAtk.percent || 60) / 100);
+            defender.atk += atkGain;
+            GameState.addLog(`${defender.name} 魅惑觸發！ATK +${atkGain}（傷害轉換）`, 'skill');
+            convertToAtk.hits = (convertToAtk.hits || 1) - 1;
+            if (convertToAtk.hits <= 0) defender.statusEffects = defender.statusEffects.filter(e => e !== convertToAtk);
+            // Damage is still applied (description says damage converts to ATK, but HP loss still occurs)
         }
 
         // Check convert damage to max HP (燒杯) - Not Immune
@@ -211,14 +257,7 @@ const BattleSystem = {
             }
         }
 
-        // Check conditional_stats damage reduction (Wang Shijian)
-        if (defender.passive?.effect?.action === 'conditional_stats') {
-            if (defender.hp > defender.maxHp * 0.5) {
-                const reduction = Math.floor(damage * 0.2);
-                damage = Math.max(0, damage - reduction);
-                GameState.addLog(`${defender.name} 被動減傷 (-${reduction})`, 'status');
-            }
-        }
+        // conditional_stats damage reduction is handled above (near line 140)
 
         // Check shield (unless ignores shield)
         const ignoresShield = attacker.passive?.effect?.action === 'ignore_shield';
@@ -387,7 +426,28 @@ const BattleSystem = {
         GameState.addLog(`${attacker.name} 使用 [${skill.name}]`, 'skill');
 
         const result = await this.executeSkillEffect(attacker, defender, skill);
-        GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
+        // Handle on_skill passive (e.g., 水上摩托車-溺水)
+        const onSkillPassive = attacker.passive?.effect;
+        if (onSkillPassive?.trigger === 'on_skill') {
+            if (onSkillPassive.action === 'self_kill_scaling') {
+                // Increment basic attack chance
+                const currentDrownChance = attacker.resources.drown_chance || onSkillPassive.base_chance || 25;
+                // Show animation for the chance check
+                const willDrown = await Animations.probabilityRoll(currentDrownChance, `${attacker.name} 溺水判定`);
+                if (willDrown) {
+                    attacker.hp = 0;
+                    GameState.addLog(`${attacker.name} 溺水自殺了！`, 'damage');
+                } else {
+                    GameState.addLog(`${attacker.name} 溺水未觸發 (${currentDrownChance}%)`, 'status');
+                }
+            } else {
+                GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
+            }
+        } else {
+            GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
+        }
+        // Dispatch on_skill_count for count-based passives
+        GameState.processPassive(attacker, 'on_skill_count', { skillName: skill.name });
         return result;
     },
 
@@ -432,7 +492,8 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, Math.floor((defender.baseAtk || defender.atk) * effect.mult));
                     break;
                 case 'damage_enemy_atk':
-                    await this.applyDamage(attacker, defender, defender.baseAtk || defender.atk);
+                    // Bug fix: use defender's current atk (not baseAtk)
+                    await this.applyDamage(attacker, defender, defender.atk);
                     break;
                 case 'damage_hp_mult':
                     await this.applyDamage(attacker, defender, Math.floor(attacker.hp * effect.mult));
@@ -577,11 +638,17 @@ const BattleSystem = {
                         GameState.addLog(`${attacker.name} 突破了極限！血量上限變為 ${Math.floor(attacker.maxHp)}`, 'skill');
                     }
                     break;
-                case 'buff_chance':
+                case 'buff_chance': // 豬自清-橘子
                     if (await Animations.probabilityRoll(effect.chance, '機率判定')) {
                         if (effect.success.max_hp) { attacker.maxHp += effect.success.max_hp; attacker.hp += effect.success.max_hp; }
                         if (effect.success.hp) attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.success.hp);
                         if (effect.success.atk) attacker.atk += effect.success.atk;
+                        // Increment oranges resource (for 豬自清 passive)
+                        if (attacker.resources && 'oranges' in attacker.resources) {
+                            attacker.resources.oranges = (attacker.resources.oranges || 0) + 1;
+                            // Check on_resource passive trigger
+                            GameState.processPassive(attacker, 'on_resource', { resource: 'oranges', count: attacker.resources.oranges });
+                        }
                         GameState.addLog('效果觸發成功！', 'skill');
                     } else if (effect.fail) {
                         if (effect.fail.atk) attacker.atk += effect.fail.atk;
@@ -1015,10 +1082,11 @@ const BattleSystem = {
                     attacker.statusEffects.push({ type: 'damage_reduction_flat', name: '減傷', value: effect.reduction, hits: 1 });
                     GameState.addLog(`${attacker.name} HP +${effect.heal}，下次受傷減少 ${effect.reduction}`, 'skill');
                     break;
-                case 'heal_damage_cap': // 拳王-超格擋
+                case 'heal_damage_cap': // 拳王-超格擋 (limited hits=1 per use)
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
-                    attacker.statusEffects.push({ type: 'damage_cap_hit', name: '格擋', cap: effect.cap, hits: 1 });
-                    GameState.addLog(`${attacker.name} HP +${effect.heal}，下次受傷不超過 ${effect.cap}`, 'skill');
+                    // Bug fix: limit to 1 hit (was unlimited)
+                    attacker.statusEffects.push({ type: 'damage_cap_hit', name: '超格擋', cap: effect.cap, hits: 1 });
+                    GameState.addLog(`${attacker.name} HP +${effect.heal}，下次受傷不超過 ${effect.cap} (1次)`, 'skill');
                     break;
 
                 // --- ADDITIONAL BUFF EFFECTS ---
@@ -1031,9 +1099,12 @@ const BattleSystem = {
                     attacker.atk += atkBuff;
                     GameState.addLog(`${attacker.name} ATK +${atkBuff}`, 'skill');
                     break;
-                case 'buff_atk_mult': // 老利-老利
-                    attacker.atk = Math.floor(attacker.atk * effect.mult);
-                    GameState.addLog(`${attacker.name} ATK ×${effect.mult}`, 'skill');
+                case 'buff_atk_mult': // 夏天與你-ace (next attack only)
+                    // Bug fix: should only affect next attack as a temporary multiplier
+                    // Set nextAttackMult instead of permanently modifying atk
+                    attacker.nextAttackMult = (attacker.nextAttackMult || 0) + Math.floor(attacker.atk * (effect.mult - 1));
+                    attacker.statusEffects.push({ type: 'buff_next', name: '暫時攻擊提升', nextAttackMult: effect.mult, turns: effect.turns || 1 });
+                    GameState.addLog(`${attacker.name} 下次攻擊 ATK ×${effect.mult}`, 'skill');
                     break;
                 case 'buff_atk_mult_chance': // 12了-12了
                     if (await Animations.probabilityRoll(effect.chance, '強化判定')) {
@@ -1696,14 +1767,30 @@ const BattleSystem = {
                     }
                     break;
 
-                case 'convert_damage_to_atk': // Liuli (琉璃)
-                    // Deal damage, gain ATK equal to damage
-                    const convRes = await this.applyDamage(attacker, defender, effect.damage || attacker.atk);
-                    if (convRes && convRes.damage > 0) {
-                        const atkGain = Math.floor(convRes.damage * (effect.percent || 100) / 100);
-                        attacker.atk += atkGain;
-                        GameState.addLog(`${attacker.name} 汲取力量，ATK +${atkGain}`, 'skill');
+                case 'convert_damage_to_atk': // 琉璃-魅惑 (bug fix: apply as status effect to convert incoming damage)
+                    // The character should RECEIVE damage and convert X% to ATK bonus
+                    // Implementation: set status effect that intercepts incoming damage
+                    attacker.statusEffects.push({ type: 'convert_damage_to_atk', name: '魅惑', percent: effect.percent || 60, hits: effect.hits || 1 });
+                    GameState.addLog(`${attacker.name} 準備將受到的傷害轉換為攻擊力`, 'skill');
+                    break;
+
+                case 'damage_conditional_hp': // 琉璃-高傲
+                    {
+                        const thresholdHp = defender.maxHp * (effect.threshold || 50) / 100;
+                        const condMet = effect.above ? defender.hp > thresholdHp : defender.hp <= thresholdHp;
+                        if (condMet) {
+                            await this.applyDamage(attacker, defender, effect.damage);
+                            GameState.addLog(`${attacker.name} 技能觸發！造成 ${effect.damage} 傷害`, 'skill');
+                        } else {
+                            GameState.addLog(`條件不符，技能無效`, 'status');
+                        }
                     }
+                    break;
+
+                case 'dodge_shield': // 花店老闆-弗花
+                    // Apply a status that gives dodge+shield on next hit
+                    attacker.statusEffects.push({ type: 'dodge_shield', name: '弗花', chance: effect.chance || 40, shield: effect.shield || 30, hits: 1 });
+                    GameState.addLog(`${attacker.name} 進入戒備狀態 (${effect.chance}%機率免傷+${effect.shield}護盾)`, 'skill');
                     break;
 
                 case 'spend_resource_evolve':
