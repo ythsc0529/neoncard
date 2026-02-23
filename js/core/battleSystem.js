@@ -278,6 +278,11 @@ const BattleSystem = {
         // Apply damage to HP
         defender.hp -= damage;
 
+        // Show floating damage number
+        if (damage > 0) {
+            Animations.showDamage(Animations.getCardEl(defender), damage, false);
+        }
+
         // E-Ren passive: Update ATK based on HP loss
         if (defender.passive?.effect?.action === 'buff_atk_per_hp') {
             const hpLost = defender.maxHp - defender.hp;
@@ -552,42 +557,50 @@ const BattleSystem = {
                 case 'heal':
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.value);
                     GameState.addLog(`${attacker.name} 恢復 ${effect.value} HP`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), effect.value);
                     break;
                 case 'heal_max_hp_percent':
                     const hAmt = Math.floor(attacker.maxHp * effect.value / 100);
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + hAmt);
                     GameState.addLog(`${attacker.name} 恢復 ${hAmt} HP`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), hAmt);
                     break;
                 case 'heal_lost_hp_percent':
                     const hLost = Math.floor((attacker.maxHp - attacker.hp) * effect.value / 100);
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + hLost);
                     GameState.addLog(`${attacker.name} 恢復 ${hLost} HP`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), hLost);
                     break;
                 case 'heal_random':
                     const rHeal = await Animations.showRandomNumber(effect.min, effect.max, '隨機治療');
                     if (rHeal > 0) {
                         attacker.hp = Math.min(attacker.maxHp, attacker.hp + rHeal);
                         GameState.addLog(`${attacker.name} 恢復 ${rHeal} HP`, 'heal');
+                        Animations.showHeal(Animations.getCardEl(attacker), rHeal);
                     } else if (rHeal < 0) {
                         attacker.hp += rHeal;
                         GameState.addLog(`${attacker.name} 受到 ${-rHeal} 傷害`, 'damage');
+                        Animations.showDamage(Animations.getCardEl(attacker), -rHeal);
                     }
                     break;
                 case 'heal_damage':
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
                     await this.applyDamage(attacker, defender, effect.damage);
                     GameState.addLog(`${attacker.name} 恢復 ${effect.heal} HP`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), effect.heal);
                     break;
 
                 // --- SHIELD EFFECTS ---
                 case 'shield':
                     attacker.shield += effect.value;
                     GameState.addLog(`${attacker.name} 獲得 ${effect.value} 護盾`, 'skill');
+                    Animations.showShield(Animations.getCardEl(attacker), effect.value);
                     break;
                 case 'shield_random':
                     const rShield = await Animations.showRandomNumber(effect.min, effect.max, '隨機護盾');
                     attacker.shield += rShield;
                     GameState.addLog(`${attacker.name} 獲得 ${rShield} 護盾`, 'skill');
+                    Animations.showShield(Animations.getCardEl(attacker), rShield);
                     break;
                 case 'shield_dot':
                     attacker.statusEffects.push({ type: 'shield_dot', name: '持續護盾', value: effect.value, turns: effect.turns });

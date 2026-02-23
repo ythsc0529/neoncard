@@ -3,6 +3,14 @@
 const Animations = {
     container: null,
 
+    // Resolve a character object to its DOM battle-card element
+    getCardEl(charObj) {
+        if (!charObj || typeof GameState === 'undefined') return null;
+        if (GameState.player1?.battleCard === charObj) return document.getElementById('p1BattleCard');
+        if (GameState.player2?.battleCard === charObj) return document.getElementById('p2BattleCard');
+        return null;
+    },
+
     init() {
         this.container = document.getElementById('animationOverlay');
         if (!this.container) {
@@ -251,19 +259,45 @@ const Animations = {
         });
     },
 
-    // Show damage number
-    showDamage(element, damage, isHeal = false) {
+    // Show damage number floating above a card element
+    // elementOrId: a DOM element or an element ID string (e.g., 'p1BattleCard')
+    showDamage(elementOrId, damage, isHeal = false) {
+        const element = typeof elementOrId === 'string'
+            ? document.getElementById(elementOrId)
+            : elementOrId;
+        if (!element || !damage) return;
+
         const num = document.createElement('div');
         num.className = `floating-number ${isHeal ? 'heal' : 'damage'}`;
         num.textContent = (isHeal ? '+' : '-') + damage;
 
         const rect = element.getBoundingClientRect();
-        num.style.left = rect.left + rect.width / 2 + 'px';
-        num.style.top = rect.top + 'px';
+        // Random horizontal scatter so multiple hits don't overlap
+        const scatter = (Math.random() - 0.5) * rect.width * 0.5;
+        num.style.left = (rect.left + rect.width / 2 + scatter) + 'px';
+        num.style.top = (rect.top + rect.height * 0.25) + 'px';
 
         document.body.appendChild(num);
+        setTimeout(() => num.remove(), 1200);
+    },
 
-        setTimeout(() => num.remove(), 1000);
+    // Convenience wrapper for heal numbers
+    showHeal(elementOrId, amount) { this.showDamage(elementOrId, amount, true); },
+
+    // Shield gain number (blue)
+    showShield(elementOrId, amount) {
+        const element = typeof elementOrId === 'string'
+            ? document.getElementById(elementOrId)
+            : elementOrId;
+        if (!element || !amount) return;
+        const num = document.createElement('div');
+        num.className = 'floating-number shield';
+        num.textContent = '🛡+' + amount;
+        const rect = element.getBoundingClientRect();
+        num.style.left = (rect.left + rect.width / 2) + 'px';
+        num.style.top = (rect.top + rect.height * 0.25) + 'px';
+        document.body.appendChild(num);
+        setTimeout(() => num.remove(), 1200);
     },
 
     // Summon animation

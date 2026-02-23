@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>霓虹牌 - 新手教學</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ===== TUTORIAL SPECIFIC STYLES ===== */
+        body {
+            overflow: hidden;
+        }
+
+        /* Spotlight overlay */
+        .spotlight-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 500;
+            pointer-events: none;
+            transition: all 0.4s ease;
+        }
+
+        .spotlight-overlay.hidden {
+            display: none;
+        }
+
+        /* NPC dialogue box */
+        .npc-dialogue {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 900;
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            padding: 20px 24px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 60%, transparent);
+            min-height: 160px;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .npc-dialogue.visible {
+            transform: translateY(0);
+        }
+
+        .npc-avatar {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #bc13fe, #ff0055);
+            border: 2px solid #bc13fe;
+            box-shadow: 0 0 16px rgba(188, 19, 254, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .npc-avatar.player-side {
+            background: linear-gradient(135deg, #00f3ff, #0066ff);
+            border-color: #00f3ff;
+            box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
+        }
+
+        .npc-bubble {
+            flex: 1;
+            background: rgba(15, 15, 30, 0.95);
+            border: 1px solid rgba(188, 19, 254, 0.4);
+            border-radius: 16px;
+            padding: 16px 20px;
+            position: relative;
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.15);
+        }
+
+        .npc-bubble.player-bubble {
+            border-color: rgba(0, 243, 255, 0.4);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+        }
+
+        .npc-name {
+            font-size: 0.75rem;
+            color: #bc13fe;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .npc-bubble.player-bubble .npc-name {
+            color: #00f3ff;
+        }
+
+        .npc-text {
+            font-size: 1rem;
+            color: #e0e0f0;
+            line-height: 1.6;
+            min-height: 40px;
+        }
+
+        .npc-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #bc13fe;
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        /* Continue button */
+        .dialogue-continue {
+            position: fixed;
+            bottom: 24px;
+            right: 28px;
+            z-index: 950;
+            padding: 10px 24px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .dialogue-continue.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Step indicator */
+        .tut-progress {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 950;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .tut-step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s;
+        }
+
+        .tut-step-dot.active {
+            background: #00f3ff;
+            box-shadow: 0 0 6px #00f3ff;
+            width: 20px;
+            border-radius: 4px;
+        }
+
+        .tut-step-dot.done {
+            background: rgba(0, 243, 255, 0.5);
+        }
+
+        .tut-label {
+            font-size: 0.7rem;
+            color: #a0a0b0;
+            margin-right: 6px;
+        }
+
+        /* Highlight pulse on target element */
+        .tut-highlight {
+            position: fixed;
+            pointer-events: none;
+            z-index: 600;
+            border-radius: 12px;
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 0 4px rgba(0, 243, 255, 0.25), 0 0 24px rgba(0, 243, 255, 0.4);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: highlightPulse 1.5s infinite;
+        }
+
+        @keyframes highlightPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(0, 243, 255, 0.25), 0 0 24px rgba(0, 243, 255, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(0, 243, 255, 0.1), 0 0 40px rgba(0, 243, 255, 0.6);
+            }
+        }
+
+        .tut-highlight.hidden {
+            display: none;
+        }
+
+        /* Action lock: dim non-target buttons */
+        .action-locked .action-btn {
+            opacity: 0.25 !important;
+            pointer-events: none !important;
+        }
+
+        .action-locked .action-btn.tut-target-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 700;
+            position: relative;
+        }
+
+        /* NPC thinking animation */
+        .npc-thinking {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .npc-thinking span {
+            width: 6px;
+            height: 6px;
+            background: #bc13fe;
+            border-radius: 50%;
+            animation: thinkBounce 1s infinite;
+        }
+
+        .npc-thinking span:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .npc-thinking span:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes thinkBounce {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-6px)
+            }
+        }
+
+        /* Win/lose banner */
+        .tut-result {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s;
+        }
+
+        .tut-result.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .tut-result h1 {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .tut-result p {
+            color: #a0a0b0;
+            margin-bottom: 32px;
+            font-size: 1.1rem;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        /* Clamp battle container to not go over dialogue */
+        .battle-container {
+            padding-bottom: 180px;
+        }
+
+        /* Skill modal buttons (shared with game.html style) */
+        .skills-container-modal {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .skill-btn-modal {
+            width: 100%;
+            padding: 16px 20px;
+            text-align: left;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            background: rgba(0, 243, 255, 0.04);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: 12px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .skill-btn-modal:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.12);
+            border-color: var(--neon-cyan);
+            transform: translateX(4px);
+        }
+
+        .skill-btn-modal:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .skill-name-modal {
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 4px;
+            font-size: 1.05rem;
+        }
+
+        .skill-desc-modal {
+            font-size: 0.88rem;
+            color: #ccc;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+
+        .skill-footer-modal {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .skill-cd-modal {
+            font-size: 0.78rem;
+            color: #888;
+        }
+
+        .skill-silence-modal {
+            font-size: 0.78rem;
+            color: #ff6b6b;
+            font-weight: 700;
+        }
+
+        @media(max-width:600px) {
+            .npc-text {
+                font-size: 0.9rem;
+            }
+
+            .npc-avatar {
+                width: 52px;
+                height: 52px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Step progress indicator -->
+    <div class="tut-progress" id="tutProgress">
+        <span class="tut-label">教學</span>
+    </div>
+
+    <!-- Highlight box -->
+    <div class="tut-highlight hidden" id="tutHighlight"></div>
+
+    <!-- NPC Dialogue -->
+    <div class="npc-dialogue" id="npcDialogue">
+        <div class="npc-avatar" id="npcAvatar">⚔️</div>
+        <div class="npc-bubble" id="npcBubble">
+            <div class="npc-name" id="npcName">戰士 NPC</div>
+            <div class="npc-text" id="npcText">
+                <div class="npc-thinking"><span></span><span></span><span></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Continue button -->
+    <button class="btn btn-magenta dialogue-continue" id="dialogueContinue" onclick="nextStep()">繼續 ▶</button>
+
+    <!-- Battle Screen -->
+    <div class="battle-container" id="battleContainer" style="display:none;">
+        <!-- Player 1 Area -->
+        <div class="player-area player1" id="player1Area">
+            <div class="player-header glass">
+                <span class="player-name">你</span>
+                <span class="turn-badge hidden" id="p1TurnBadge">你的回合</span>
+            </div>
+            <div class="battle-card glass" id="p1BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p1CharName">-</span>
+                    <span class="battle-char-rarity" id="p1CharRarity">-</span>
+                </div>
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p1ShieldBar" style="width:0%"></div>
+                        <div class="hp-bar" id="p1HpBar" style="width:100%"></div>
+                        <div class="bar-text" id="p1HpText">100/100</div>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p1Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p1Shield">0</span></span>
+                </div>
+                <div class="status-effects" id="p1Status"></div>
+                <div class="passive-info" id="p1Passive"></div>
+                <div class="action-buttons action-locked" id="p1Actions">
+                    <button class="btn action-btn attack-btn" id="btnAttack" onclick="playerAttack()">普攻</button>
+                    <button class="btn action-btn skill-btn-main" id="btnSkill" onclick="playerSkill()">使用技能</button>
+                    <button class="btn action-btn retreat-btn" id="btnRetreat" onclick="playerRetreat()">撤退</button>
+                </div>
+            </div>
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p1Standby"></div>
+            </div>
+        </div>
+
+        <!-- Center -->
+        <div class="battle-center glass">
+            <div class="turn-indicator" id="turnIndicator">回合 <span id="turnCount">1</span></div>
+            <div class="battle-log" id="battleLog"></div>
+        </div>
+
+        <!-- NPC Area -->
+        <div class="player-area player2" id="player2Area">
+            <div class="player-header glass">
+                <span class="player-name" style="color:var(--neon-magenta)">戰士 NPC</span>
+                <span class="turn-badge hidden" id="p2TurnBadge">NPC 回合</span>
+            </div>
+            <div class="battle-card glass" id="p2BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p2CharName">-</span>
+                    <span class="battle-char-rarity" id="p2CharRarity">-</span>
+                </div>
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p2ShieldBar" style="width:0%"></div>
+                        <div class="hp-bar" id="p2HpBar" style="width:100%"></div>
+                        <div class="bar-text" id="p2HpText">100/100</div>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p2Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p2Shield">0</span></span>
+                </div>
+                <div class="status-effects" id="p2Status"></div>
+                <div class="passive-info" id="p2Passive"></div>
+            </div>
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p2Standby"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skill modal -->
+    <div class="modal-overlay" id="skillModal">
+        <div class="modal glass" style="max-width:600px;">
+            <h2>選擇技能</h2>
+            <div id="skillOptions" class="skills-container-modal"></div>
+            <button class="btn" onclick="closeSkillModal()" style="margin-top:20px;width:100%;">取消</button>
+        </div>
+    </div>
+
+    <!-- Result screen -->
+    <div class="tut-result" id="tutResult">
+        <h1 id="resultTitle" class="neon-text"></h1>
+        <p id="resultDesc"></p>
+        <button class="btn btn-magenta" onclick="location.href='index.html'" style="margin-bottom:12px;">回到主選單</button>
+        <button class="btn" onclick="restartTutorial()">重新教學</button>
+    </div>
+
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters.js"></script>
+    <script>
+        // ===== TUTORIAL GAME STATE =====
+        const TUT = {
+            turn: 1,
+            isPlayerTurn: true,
+            phase: 'intro',  // intro | battle | done
+            stepIndex: 0,
+            waitingForAction: null, // 'attack' | 'skill' | 'retreat' | null
+            npcThinkTimer: null,
+            log: [],
+
+            player: {
+                name: '玩家',
+                hp: 200, maxHp: 200,
+                atk: 25, shield: 0,
+                skills: [
+                    { name: '自我治療', desc: '恢復 40 點生命值', cd: 3, currentCd: 0, effect: { type: 'heal', value: 40 } },
+                    { name: '砍一刀', desc: '造成 50 傷害', cd: 2, currentCd: 0, effect: { type: 'damage', value: 50 } }
+                ],
+                standby: [
+                    {
+                        name: '護理師', hp: 180, maxHp: 180, atk: 30, shield: 0, skills: [
+                            { name: '治療', desc: '恢復 60 HP', cd: 4, currentCd: 0, effect: { type: 'heal', value: 60 } }
+                        ]
+                    }
+                ]
+            },
+
+            npc: {
+                name: '戰士 NPC',
+                hp: 150, maxHp: 150,
+                atk: 20, shield: 0,
+                skills: [
+                    { name: '砍一刀', desc: '造成 35 傷害', cd: 3, currentCd: 0, effect: { type: 'damage', value: 35 } }
+                ],
+                standby: []
+            }
+        };
+
+        // ===== TUTORIAL STEPS =====
+        // Each step: { speaker:'npc'|'player'|'system', text, action:'wait'|'attack'|'skill'|'retreat'|null, highlight:elementId|null }
+        const STEPS = [
+            { speaker: 'npc', text: '嘿！你就是那個想學習霓虹牌的新手嗎？我是戰士NPC，今天會帶你體驗實戰教學！', action: 'wait', highlight: null },
+            { speaker: 'npc', text: '先來認識戰場吧！ 左邊是你的區域，右邊是我的區域。中間有戰鬥紀錄，記錄每個回合發生的事。', action: 'wait', highlight: 'battleContainer' },
+            { speaker: 'npc', text: '看看你的角色資訊！血量條（紅色）代表剩餘生命，ATK 是普攻傷害。血量歸零就輸囉！', action: 'wait', highlight: 'p1BattleCard' },
+            { speaker: 'npc', text: '看看備戰區！這裡放著你的後備角色。當戰鬥角色陣亡，可以換上備戰角色繼續戰鬥。', action: 'wait', highlight: 'p1Standby' },
+            { speaker: 'npc', text: 'OK，現在開始！每回合你必須選擇一個行動。先來試試「普攻」吧！點擊「普攻」按鈕攻擊我！', action: 'attack', highlight: 'btnAttack' },
+            { speaker: 'npc', text: '好樣的！普攻會對對手造成你的 ATK 值的傷害。現在換我——小心了！', action: 'wait', highlight: null },
+            { speaker: 'npc', text: '我反擊了！看到你的血量條降低了嗎？這就是對戰的節奏，你攻我也攻。', action: 'wait', highlight: 'p1BattleCard' },
+            { speaker: 'npc', text: '光靠普攻太無聊了。角色還有技能！試試「使用技能」按鈕，選擇一個技能來用看看！', action: 'skill', highlight: 'btnSkill' },
+            { speaker: 'npc', text: '漂亮！技能比普攻更強，但有冷卻回合數（CD）的限制，用了要等幾回合才能再用。', action: 'wait', highlight: null },
+            { speaker: 'npc', text: '換我了……', action: 'wait', highlight: null },
+            { speaker: 'npc', text: '你看到備戰區的角色了嗎？如果你覺得當前角色不適合，可以用「撤退」把他換下來！試試點擊「撤退」！', action: 'retreat', highlight: 'btnRetreat' },
+            { speaker: 'player', text: '原來可以換角色！這讓戰略更豐富了。換好後讓我們繼續對戰，直到一方獲勝！', action: 'wait', highlight: null },
+            { speaker: 'npc', text: '沒錯！消滅所有角色就能獲勝。現在規則你都懂了——讓我們繼續戰鬥吧！自由行動，打敗我！', action: 'battle', highlight: null },
+        ];
+
+        // ===== INIT =====
+        function init() {
+            buildProgressDots();
+            showBattleUI();
+            updateUI();
+            // Start step 0 intro
+            setTimeout(() => startStep(0), 500);
+        }
+
+        function buildProgressDots() {
+            const prog = document.getElementById('tutProgress');
+            prog.innerHTML = '<span class="tut-label">教學</span>';
+            STEPS.forEach((_, i) => {
+                const d = document.createElement('div');
+                d.className = 'tut-step-dot';
+                d.id = `dot-${i}`;
+                prog.appendChild(d);
+            });
+        }
+
+        function showBattleUI() {
+            document.getElementById('battleContainer').style.display = 'flex';
+        }
+
+        // ===== STEP ENGINE =====
+        async function startStep(index) {
+            TUT.stepIndex = index;
+            updateProgress(index);
+
+            if (index >= STEPS.length) {
+                // All tutorial steps done — free battle
+                enterFreeBattle();
+                return;
+            }
+
+            const step = STEPS[index];
+            TUT.waitingForAction = null;
+
+            // Update highlight
+            setHighlight(step.highlight);
+
+            // Show dialogue
+            await showDialogue(step.speaker, step.text);
+
+            if (step.action === 'wait') {
+                showContinue();
+            } else if (step.action === 'attack') {
+                hideContinue();
+                unlockAction('attack');
+            } else if (step.action === 'skill') {
+                hideContinue();
+                unlockAction('skill');
+            } else if (step.action === 'retreat') {
+                hideContinue();
+                if (TUT.player.standby.length === 0) {
+                    // no standby, skip
+                    await shortWait(600);
+                    nextStep();
+                } else {
+                    unlockAction('retreat');
+                }
+            } else if (step.action === 'battle') {
+                hideContinue();
+                setHighlight(null);
+                enterFreeBattle();
+            }
+        }
+
+        function nextStep() {
+            hideContinue();
+            startStep(TUT.stepIndex + 1);
+        }
+
+        function enterFreeBattle() {
+            TUT.phase = 'battle';
+            TUT.waitingForAction = null;
+            setHighlight(null);
+            hideDialogue();
+            hideContinue();
+            unlockAllActions();
+            if (TUT.isPlayerTurn) showPlayerTurn();
+        }
+
+        function updateProgress(index) {
+            STEPS.forEach((_, i) => {
+                const d = document.getElementById(`dot-${i}`);
+                if (!d) return;
+                d.className = 'tut-step-dot' + (i === index ? ' active' : i < index ? ' done' : '');
+            });
+        }
+
+        // ===== DIALOGUE =====
+        let typeTimer = null;
+
+        async function showDialogue(speaker, text) {
+            const dialogue = document.getElementById('npcDialogue');
+            const bubble = document.getElementById('npcBubble');
+            const avatar = document.getElementById('npcAvatar');
+            const nameEl = document.getElementById('npcName');
+            const textEl = document.getElementById('npcText');
+
+            if (speaker === 'npc') {
+                avatar.textContent = '⚔️';
+                avatar.className = 'npc-avatar';
+                nameEl.textContent = '戰士 NPC';
+                bubble.className = 'npc-bubble';
+            } else {
+                avatar.textContent = '🧑';
+                avatar.className = 'npc-avatar player-side';
+                nameEl.textContent = '你';
+                bubble.className = 'npc-bubble player-bubble';
+            }
+
+            dialogue.classList.add('visible');
+
+            // Typewriter
+            return new Promise(resolve => {
+                if (typeTimer) clearInterval(typeTimer);
+                textEl.textContent = '';
+                let i = 0;
+                typeTimer = setInterval(() => {
+                    textEl.textContent += text[i];
+                    i++;
+                    if (i >= text.length) {
+                        clearInterval(typeTimer);
+                        typeTimer = null;
+                        resolve();
+                    }
+                }, 28);
+            });
+        }
+
+        function hideDialogue() {
+            document.getElementById('npcDialogue').classList.remove('visible');
+        }
+
+        function showContinue() {
+            document.getElementById('dialogueContinue').classList.add('show');
+        }
+
+        function hideContinue() {
+            document.getElementById('dialogueContinue').classList.remove('show');
+        }
+
+        // ===== HIGHLIGHT =====
+        function setHighlight(elementId) {
+            const hl = document.getElementById('tutHighlight');
+            if (!elementId) {
+                hl.classList.add('hidden');
+                return;
+            }
+            const el = document.getElementById(elementId);
+            if (!el) { hl.classList.add('hidden'); return; }
+            const r = el.getBoundingClientRect();
+            const PAD = 8;
+            hl.style.left = (r.left - PAD) + 'px';
+            hl.style.top = (r.top - PAD) + 'px';
+            hl.style.width = (r.width + PAD * 2) + 'px';
+            hl.style.height = (r.height + PAD * 2) + 'px';
+            hl.classList.remove('hidden');
+        }
+
+        // ===== ACTION LOCK =====
+        function lockAllActions() {
+            const acts = document.getElementById('p1Actions');
+            acts.classList.add('action-locked');
+            ['btnAttack', 'btnSkill', 'btnRetreat'].forEach(id => {
+                document.getElementById(id)?.classList.remove('tut-target-btn');
+            });
+        }
+
+        function unlockAction(type) {
+            lockAllActions();
+            TUT.waitingForAction = type;
+            const map = { attack: 'btnAttack', skill: 'btnSkill', retreat: 'btnRetreat' };
+            const btn = document.getElementById(map[type]);
+            if (btn) btn.classList.add('tut-target-btn');
+        }
+
+        function unlockAllActions() {
+            const acts = document.getElementById('p1Actions');
+            acts.classList.remove('action-locked');
+            ['btnAttack', 'btnSkill', 'btnRetreat'].forEach(id => {
+                document.getElementById(id)?.classList.remove('tut-target-btn');
+            });
+        }
+
+        // ===== COMBAT =====
+        function playerAttack() {
+            if (TUT.phase === 'intro' && TUT.waitingForAction !== 'attack') return;
+            if (!TUT.isPlayerTurn) return;
+
+            const dmg = TUT.player.atk;
+            TUT.npc.hp = Math.max(0, TUT.npc.hp - dmg);
+            addLog(`你 攻擊 戰士NPC，造成 ${dmg} 傷害！`, 'damage');
+            showFloatingDmg('p2BattleCard', dmg, 'damage');
+            updateUI();
+            endPlayerTurn();
+
+            if (TUT.phase === 'intro') {
+                lockAllActions();
+                hideContinue();
+                setTimeout(() => {
+                    if (checkEndGame()) return;
+                    npcTurnIntro();
+                }, 700);
+            }
+        }
+
+        function playerSkill() {
+            if (TUT.phase === 'intro' && TUT.waitingForAction !== 'skill') return;
+            if (!TUT.isPlayerTurn) return;
+
+            // Open skill modal
+            openSkillModal();
+        }
+
+        function openSkillModal() {
+            const modal = document.getElementById('skillModal');
+            const opts = document.getElementById('skillOptions');
+            opts.innerHTML = '';
+            TUT.player.skills.forEach((skill, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'skill-btn-modal';
+                const onCd = skill.currentCd > 0;
+                btn.disabled = onCd;
+                btn.innerHTML = `
+            <div class="skill-name-modal">${skill.name}</div>
+            <div class="skill-desc-modal">${skill.desc}</div>
+            <div class="skill-footer-modal">
+                <span class="skill-cd-modal">${onCd ? `冷卻中: ${skill.currentCd}` : `冷卻: ${skill.cd}`}</span>
+            </div>`;
+                btn.onclick = () => { closeSkillModal(); useSkill(i); };
+                opts.appendChild(btn);
+            });
+            modal.classList.add('active');
+        }
+
+        function closeSkillModal() {
+            document.getElementById('skillModal').classList.remove('active');
+        }
+
+        function useSkill(index) {
+            const skill = TUT.player.skills[index];
+            skill.currentCd = skill.cd;
+
+            if (skill.effect.type === 'heal') {
+                TUT.player.hp = Math.min(TUT.player.maxHp, TUT.player.hp + skill.effect.value);
+                addLog(`你 使用 [${skill.name}]，恢復 ${skill.effect.value} HP！`, 'heal');
+                showFloatingDmg('p1BattleCard', skill.effect.value, 'heal');
+            } else if (skill.effect.type === 'damage') {
+                const dmg = skill.effect.value;
+                TUT.npc.hp = Math.max(0, TUT.npc.hp - dmg);
+                addLog(`你 使用 [${skill.name}]，造成 ${dmg} 傷害！`, 'damage');
+                showFloatingDmg('p2BattleCard', dmg, 'damage');
+            }
+
+            updateUI();
+            endPlayerTurn();
+
+            if (TUT.phase === 'intro') {
+                lockAllActions();
+                hideContinue();
+                setTimeout(() => {
+                    if (checkEndGame()) return;
+                    npcTurnIntro();
+                }, 700);
+            }
+        }
+
+        function playerRetreat() {
+            if (TUT.phase === 'intro' && TUT.waitingForAction !== 'retreat') return;
+            if (!TUT.isPlayerTurn) return;
+            if (TUT.player.standby.length === 0) {
+                addLog('備戰區沒有角色！', 'status');
+                updateBattleLog();
+                return;
+            }
+
+            // Simple: swap with first standby
+            const oldCard = { name: TUT.player.name, hp: TUT.player.hp, maxHp: TUT.player.maxHp, atk: TUT.player.atk, shield: TUT.player.shield, skills: TUT.player.skills };
+            const next = TUT.player.standby.splice(0, 1)[0];
+            TUT.player.name = next.name;
+            TUT.player.hp = next.hp; TUT.player.maxHp = next.maxHp;
+            TUT.player.atk = next.atk; TUT.player.shield = next.shield;
+            TUT.player.skills = next.skills || [];
+            // Put old battle card back into standby
+            TUT.player.standby.push(oldCard);
+
+            addLog(`你 撤退，${next.name} 上場！`, 'status');
+            updateUI();
+            endPlayerTurn();
+
+            if (TUT.phase === 'intro') {
+                lockAllActions();
+                hideContinue();
+                setTimeout(() => {
+                    if (checkEndGame()) return;
+                    npcTurnIntro();
+                }, 700);
+            }
+        }
+
+        function endPlayerTurn() {
+            TUT.isPlayerTurn = false;
+            TUT.player.skills.forEach(s => { if (s.currentCd > 0) s.currentCd--; });
+            document.getElementById('p1TurnBadge').classList.add('hidden');
+            document.getElementById('p2TurnBadge').classList.remove('hidden');
+
+            if (TUT.phase === 'battle') {
+                lockAllActions();
+                setTimeout(() => {
+                    if (!checkEndGame()) npcFreeBattle();
+                }, 800);
+            }
+        }
+
+        // ===== NPC TURN =====
+        async function npcTurnIntro() {
+            if (checkEndGame()) return;
+            await shortWait(600);
+            doNpcAttack();
+            await shortWait(400);
+            updateUI();
+            endNpcTurn();
+            await shortWait(500);
+            // After NPC attacks in intro, find the next step to show
+            const nextIdx = TUT.stepIndex + 1;
+            if (nextIdx < STEPS.length) {
+                startStep(nextIdx);
+            } else {
+                enterFreeBattle();
+            }
+        }
+        function npcFreeBattle() {
+            if (checkEndGame()) return;
+            // NPC AI: use skill if available, else attack
+            const skill = TUT.npc.skills.find(s => s.currentCd === 0);
+            if (skill && Math.random() < 0.35) {
+                skill.currentCd = skill.cd;
+                const dmg = skill.effect?.value || TUT.npc.atk;
+                TUT.player.hp = Math.max(0, TUT.player.hp - dmg);
+                addLog(`戰士NPC 使用 [${skill.name}]，造成 ${dmg} 傷害！`, 'damage');
+                showFloatingDmg('p1BattleCard', dmg, 'damage');
+            } else {
+                doNpcAttack();
+            }
+            updateUI();
+            endNpcTurn();
+
+            setTimeout(() => {
+                if (!checkEndGame()) showPlayerTurn();
+            }, 600);
+        }
+
+        function doNpcAttack() {
+            const dmg = TUT.npc.atk;
+            TUT.player.hp = Math.max(0, TUT.player.hp - dmg);
+            addLog(`戰士NPC 攻擊，造成 ${dmg} 傷害！`, 'damage');
+            showFloatingDmg('p1BattleCard', dmg, 'damage');
+        }
+
+        function endNpcTurn() {
+            TUT.isPlayerTurn = true;
+            TUT.turn++;
+            TUT.npc.skills.forEach(s => { if (s.currentCd > 0) s.currentCd--; });
+            document.getElementById('p2TurnBadge').classList.add('hidden');
+            document.getElementById('turnCount').textContent = TUT.turn;
+        }
+
+        function showPlayerTurn() {
+            document.getElementById('p1TurnBadge').classList.remove('hidden');
+            unlockAllActions();
+        }
+
+        // ===== CHECK END GAME =====
+        function checkEndGame() {
+            if (TUT.player.hp <= 0) {
+                // Player dead — check standby
+                if (TUT.player.standby.length > 0) return false;
+                showResult(false);
+                return true;
+            }
+            if (TUT.npc.hp <= 0) {
+                showResult(true);
+                return true;
+            }
+            return false;
+        }
+
+        function showResult(playerWon) {
+            TUT.phase = 'done';
+            lockAllActions();
+            hideDialogue();
+            const res = document.getElementById('tutResult');
+            const title = document.getElementById('resultTitle');
+            const desc = document.getElementById('resultDesc');
+            if (playerWon) {
+                title.textContent = '🎉 你贏了！';
+                title.style.color = '#00f3ff';
+                desc.textContent = '恭喜你完成了新手教學！你已掌握普攻、技能、撤退的基本操作。現在可以開始真正的遊戲了！';
+            } else {
+                title.textContent = '💀 你輸了！';
+                title.style.color = '#ff0055';
+                desc.textContent = '不用氣餒！霓虹牌需要策略。善用技能和撤退時機，再試一次吧！';
+            }
+            res.classList.add('show');
+        }
+
+        function restartTutorial() {
+            location.reload();
+        }
+
+        // ===== UI UPDATE =====
+        function updateUI() {
+            // Player
+            const p = TUT.player;
+            document.getElementById('p1CharName').textContent = p.name;
+            updateBar('p1', p.hp, p.maxHp, p.shield);
+            document.getElementById('p1Atk').textContent = p.atk;
+            document.getElementById('p1Shield').textContent = p.shield;
+
+            // Standby
+            const sb = document.getElementById('p1Standby');
+            sb.innerHTML = '';
+            p.standby.forEach(c => {
+                const d = document.createElement('div');
+                d.className = 'standby-card glass';
+                d.textContent = c.name;
+                sb.appendChild(d);
+            });
+
+            // NPC
+            const n = TUT.npc;
+            document.getElementById('p2CharName').textContent = n.name;
+            updateBar('p2', n.hp, n.maxHp, n.shield);
+            document.getElementById('p2Atk').textContent = n.atk;
+            document.getElementById('p2Shield').textContent = n.shield;
+
+            updateBattleLog();
+        }
+
+        function updateBar(prefix, hp, maxHp, shield) {
+            const pct = Math.max(0, Math.min(100, hp / maxHp * 100));
+            document.getElementById(`${prefix}HpBar`).style.width = pct + '%';
+            document.getElementById(`${prefix}HpText`).textContent = `${Math.max(0, hp)} / ${maxHp}`;
+            const sPct = Math.min(100, shield / maxHp * 100);
+            document.getElementById(`${prefix}ShieldBar`).style.width = sPct + '%';
+        }
+
+        function addLog(msg, type) {
+            TUT.log.unshift({ msg, type });
+            if (TUT.log.length > 12) TUT.log.pop();
+        }
+
+        function updateBattleLog() {
+            const logDiv = document.getElementById('battleLog');
+            logDiv.innerHTML = '';
+            TUT.log.forEach(e => {
+                const d = document.createElement('div');
+                d.className = `log-entry log-${e.type}`;
+                d.textContent = e.msg;
+                logDiv.appendChild(d);
+            });
+        }
+
+        // ===== FLOATING DAMAGE NUMBERS =====
+        function showFloatingDmg(cardId, value, type) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            const el = document.createElement('div');
+            el.style.cssText = `
+        position:absolute; z-index:800;
+        font-size:1.8rem; font-weight:800;
+        color:${type === 'heal' ? '#0aff68' : '#ff4444'};
+        text-shadow:0 0 8px currentColor;
+        pointer-events:none;
+        animation: damageNumber 1s ease forwards;
+        top:30%; left:50%; transform:translateX(-50%);
+    `;
+            el.textContent = (type === 'heal' ? '+' : '-') + value;
+            card.style.position = 'relative';
+            card.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        // ===== HELPERS =====
+        function shortWait(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+
+        // Start
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
