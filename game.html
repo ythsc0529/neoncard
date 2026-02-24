@@ -75,6 +75,8 @@
             <div class="turn-indicator" id="turnIndicator">
                 回合 <span id="turnCount">0</span>
             </div>
+            <button class="btn btn-magenta mobile-toggle-btn" id="mobileToggleBtn"
+                onclick="toggleMobileView()">查看對手</button>
             <div class="battle-log" id="battleLog"></div>
         </div>
 
@@ -172,6 +174,21 @@
         // Game initialization
         let selectionPhase = 'p1_draw';
         let selectedBattleCard = null;
+        let isShowingOpponent = false;
+
+        function toggleMobileView() {
+            const container = document.getElementById('battleContainer');
+            const btn = document.getElementById('mobileToggleBtn');
+            isShowingOpponent = !isShowingOpponent;
+
+            if (isShowingOpponent) {
+                container.classList.add('show-opponent-mobile');
+                btn.textContent = '返回我的畫面';
+            } else {
+                container.classList.remove('show-opponent-mobile');
+                btn.textContent = '查看對手';
+            }
+        }
 
         function renderCardInfo(card) {
             let skillsHtml = '';
@@ -298,6 +315,13 @@
         function updateUI() {
             // Update turn indicator
             document.getElementById('turnCount').textContent = GameState.turnCount;
+
+            // Reset mobile view on UI update
+            isShowingOpponent = false;
+            const container = document.getElementById('battleContainer');
+            const toggleBtn = document.getElementById('mobileToggleBtn');
+            if (container) container.classList.remove('show-opponent-mobile');
+            if (toggleBtn) toggleBtn.textContent = '查看對手';
 
             // Update player cards
             updatePlayerCard('player1', 'p1');
