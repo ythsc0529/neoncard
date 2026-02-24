@@ -34,36 +34,88 @@ const Animations = {
         this.container.onclick = null; // Clear click handlers
     },
 
-    // Coin flip animation
+    // Coin flip animation — 3D redesign
     async coinFlip() {
         return new Promise(resolve => {
             this.show();
             const result = Math.random() < 0.5 ? 1 : 2;
 
+            // coinToss3D ends at rotateX(3600deg) — front face showing (even multiples of 360).
+            // We force the coin to show the correct face by setting a final rotation:
+            // Front face (player 1) = rotateX(3600deg), back face (player 2) = rotateX(3780deg).
+            // We do this by overriding the animation end via a CSS custom property on the element,
+            // then applying a final static transform after the animation ends.
+            const finalRotation = result === 1 ? 3600 : 3780; // 3780 = 3600+180 → back face
+
             this.container.innerHTML = `
-                <div style="text-align: center;">
-                    <div class="coin flipping" id="coin">
-                        <span id="coinFace">?</span>
+                <div class="coin-stage">
+                    <!-- Player VS row -->
+                    <div class="coin-vs-row">
+                        <div class="coin-player p1" id="coinP1">玩家 1</div>
+                        <div class="coin-vs-label">VS</div>
+                        <div class="coin-player p2" id="coinP2">玩家 2</div>
                     </div>
-                    <p style="margin-top: 30px; font-size: 1.5rem; opacity: 0;" id="coinResult">
-                        ${result === 1 ? '玩家1' : '玩家2'} 先手！
-                    </p>
+
+                    <!-- 3-D coin -->
+                    <div class="coin-3d-wrap">
+                        <div class="coin-3d tossing" id="coin3d">
+                            <!-- Front face = Player 1 -->
+                            <div class="coin-face coin-front">
+                                <div class="coin-face-rim"></div>
+                                <span class="coin-face-num">1</span>
+                            </div>
+                            <!-- Back face = Player 2 -->
+                            <div class="coin-face coin-back">
+                                <div class="coin-face-rim"></div>
+                                <span class="coin-face-num">2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="coin-result" id="coinResult">
+                        <span class="coin-result-name"
+                              style="color:${result === 1 ? 'var(--neon-cyan)' : 'var(--neon-magenta)'}">
+                            玩家 ${result}
+                        </span>
+                        <span class="coin-result-label">先手出擊！</span>
+                    </div>
                 </div>
             `;
 
-            setTimeout(() => {
-                const face = document.getElementById('coinFace');
-                if (face) face.textContent = result;
-                const res = document.getElementById('coinResult');
-                if (res) res.style.opacity = '1';
-                const coin = document.getElementById('coin');
-                if (coin) coin.classList.remove('flipping');
-            }, 2000);
+            const coinEl = document.getElementById('coin3d');
+            const resultEl = document.getElementById('coinResult');
+            const p1El = document.getElementById('coinP1');
+            const p2El = document.getElementById('coinP2');
 
+            // After the toss animation ends, snap to exact face & fire land glow
+            setTimeout(() => {
+                if (!coinEl) return;
+                // Set inline transform FIRST so there's no snap-back flicker
+                coinEl.style.transform = `rotateX(${finalRotation}deg)`;
+                coinEl.style.transition = 'none'; // no transition for the snap
+                // Small rAF to let the browser commit the inline style before removing the animation
+                requestAnimationFrame(() => {
+                    coinEl.classList.remove('tossing');
+                    coinEl.classList.add('landed');
+                });
+
+                // Highlight winner player badge
+                if (p1El && p2El) {
+                    (result === 1 ? p1El : p2El).classList.add('winner');
+                }
+
+                // Reveal result text slightly after
+                setTimeout(() => {
+                    if (resultEl) resultEl.classList.add('show');
+                }, 150);
+            }, 2400);
+
+            // Auto-close
             setTimeout(() => {
                 this.hide();
                 resolve(result);
-            }, 3500);
+            }, 4000);
         });
     },
 
@@ -108,72 +160,196 @@ const Animations = {
         });
     },
 
-    // Probability roll animation
+    // Probability roll animation — arc-gauge redesign
     async probabilityRoll(chance, description = '') {
         return new Promise(resolve => {
             try {
                 this.show();
-                const success = Math.random() * 100 < chance;
+                // Decide result NOW so the gauge sweep aims for the correct zone
+                const rolled = Math.floor(Math.random() * 100) + 1; // 1-100
+                const success = rolled <= chance;
+
+                // ── SVG arc helpers ──────────────────────────────────────────
+                // Full circle circumference for r=66: 2π×66 ≈ 414.7  → use 419 (slight gap)
+                const R = 66, CX = 110, CY = 110;
+                const CIRC = 2 * Math.PI * R;   // ≈ 414.7
+
+                // dashoffset for a given 0-100 value (0% = full circle hidden → sweeping CW)
+                const offsetFor = v => CIRC - (v / 100) * CIRC;
+
+                // Threshold marker: angle on circle for `chance`%
+                const threshAngle = (chance / 100) * 360 - 90; // start from top
+                const threshRad = (threshAngle * Math.PI) / 180;
+                const tx1 = CX + (R - 12) * Math.cos(threshRad);
+                const ty1 = CY + (R - 12) * Math.sin(threshRad);
+                const tx2 = CX + (R + 12) * Math.cos(threshRad);
+                const ty2 = CY + (R + 12) * Math.sin(threshRad);
+
+                // Arc fill colour: cyan during roll → green or red on result
+                const fillColor = success ? '#0aff68' : '#ff4466';
+                const glowColor = success ? '10,255,104' : '255,68,102';
+
+                // dashoffset for rolled value (animation end point)
+                const endOffset = offsetFor(rolled);
 
                 this.container.innerHTML = `
-                    <div class="probability-container glass">
-                        <div class="probability-title">${description || '機率判定'}</div>
-                        <div class="probability-display" id="probDisplay">
-                            <span id="probNumber">0</span>%
+                    <div class="prob-panel">
+                        <div class="prob-skill-name">機率判定</div>
+                        <div class="prob-header">${description || '擲骰判定'}</div>
+
+                        <div class="prob-gauge-wrap">
+                            <svg width="220" height="220" viewBox="0 0 220 220">
+                                <!-- Background track -->
+                                <circle id="probTrack"
+                                    cx="${CX}" cy="${CY}" r="${R}"
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.07)"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                />
+                                <!-- Fill arc -->
+                                <circle id="probArc"
+                                    cx="${CX}" cy="${CY}" r="${R}"
+                                    fill="none"
+                                    stroke="#00f3ff"
+                                    stroke-width="14"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="${CIRC.toFixed(2)}"
+                                    stroke-dashoffset="${CIRC.toFixed(2)}"
+                                    transform="rotate(-90 ${CX} ${CY})"
+                                    style="filter: drop-shadow(0 0 8px #00f3ff);"
+                                />
+                                <!-- Threshold tick mark -->
+                                <line id="probThresh"
+                                    x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}"
+                                    x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}"
+                                    stroke="var(--neon-gold)"
+                                    stroke-width="3"
+                                    stroke-linecap="round"
+                                    opacity="0"
+                                />
+                                <!-- Threshold label -->
+                                <text id="probThreshLabel"
+                                    x="${CX}" y="200"
+                                    text-anchor="middle"
+                                    fill="rgba(255,215,0,0.7)"
+                                    font-size="11"
+                                    font-family="Outfit, sans-serif"
+                                    font-weight="600"
+                                    letter-spacing="1"
+                                    opacity="0"
+                                >${chance}% 門檻</text>
+                            </svg>
+
+                            <!-- Centre readout -->
+                            <div class="prob-center-text">
+                                <span class="prob-roll-num" id="probNum">--</span>
+                                <span class="prob-roll-label" id="probNumLabel">擲骰中</span>
+                            </div>
                         </div>
-                        <div class="probability-result" id="probResult" style="opacity: 0;">
-                            ${success ? '✓ 成功！' : '✗ 失敗'}
-                        </div>
-                        <div style="margin-top: 10px; color: #888; font-size: 0.9rem;">
-                            目標: < ${chance}%
+
+                        <!-- Threshold info row -->
+                        <div class="prob-threshold">需 ≤ <span>${chance}</span> 方可通過</div>
+
+                        <!-- Result badge (hidden until reveal) -->
+                        <div class="prob-result-badge" id="probBadge">
+                            ${success ? '✓ 判定通過' : '✗ 判定失敗'}
                         </div>
                     </div>
                 `;
 
-                const probElement = document.getElementById('probNumber');
-                if (!probElement) {
+                const arcEl = document.getElementById('probArc');
+                const numEl = document.getElementById('probNum');
+                const labelEl = document.getElementById('probNumLabel');
+                const threshEl = document.getElementById('probThresh');
+                const threshLblEl = document.getElementById('probThreshLabel');
+                const badgeEl = document.getElementById('probBadge');
+                const gaugeWrap = this.container.querySelector('.prob-gauge-wrap');
+
+                if (!arcEl || !numEl) {
                     this.hide();
                     resolve(success);
                     return;
                 }
 
-                let duration = 1500;
-                let startTime = Date.now();
+                // ── Phase 1: Rolling numbers (0 → 1000 ms) ───────────────────
+                const rollDuration = 1000;
+                const rollStart = Date.now();
 
-                const animate = () => {
-                    const elapsed = Date.now() - startTime;
-                    if (elapsed < duration) {
-                        probElement.textContent = Math.floor(Math.random() * 100);
-                        requestAnimationFrame(animate);
+                const rollLoop = () => {
+                    const elapsed = Date.now() - rollStart;
+                    if (elapsed < rollDuration) {
+                        const fakeVal = Math.floor(Math.random() * 100) + 1;
+                        numEl.textContent = fakeVal;
+                        // Animate arc to fake value — use setAttribute for SVG compat
+                        arcEl.setAttribute('stroke-dashoffset', offsetFor(fakeVal));
+                        arcEl.style.transition = 'stroke-dashoffset 0.08s linear';
+                        requestAnimationFrame(rollLoop);
                     } else {
-                        probElement.textContent = success ? Math.floor(Math.random() * (chance - 1)) : Math.floor(Math.random() * (100 - chance)) + chance;
-                        // Use actual random number logic for display if we want to be precise, but simple visual success/fail is better.
-                        // Actually, just show "Pass" or "Fail" text or color.
-                        probElement.textContent = success ? 'PASS' : 'FAIL';
-                        probElement.style.fontSize = '2rem';
+                        // ── Phase 2: Slow-down sweep to real value ──
+                        numEl.textContent = rolled;
+                        arcEl.style.transition =
+                            'stroke-dashoffset 0.55s cubic-bezier(0.22,1,0.36,1), ' +
+                            'stroke 0.35s ease, filter 0.35s ease';
+                        arcEl.setAttribute('stroke-dashoffset', endOffset);
+                        arcEl.style.stroke = fillColor;
+                        arcEl.style.filter = `drop-shadow(0 0 10px ${fillColor})`;
 
-                        const resultEl = document.getElementById('probResult');
-                        if (resultEl) {
-                            resultEl.style.opacity = '1';
-                            resultEl.textContent = success ? '判定通過' : '判定失敗';
-                            resultEl.className = `probability-result ${success ? 'success' : 'fail'}`;
-                            resultEl.style.color = success ? 'var(--neon-green)' : 'var(--neon-red)';
-                            resultEl.style.textShadow = `0 0 10px ${success ? 'var(--neon-green)' : 'var(--neon-red)'}`;
-                            resultEl.style.transform = 'scale(1.2)';
-                            resultEl.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                        }
+                        numEl.className = `prob-roll-num ${success ? 'success-color' : 'fail-color'}`;
+                        labelEl.textContent = rolled <= chance ? '通過' : '未通過';
+
+                        // Show threshold marker
+                        setTimeout(() => {
+                            threshEl.style.transition = 'opacity 0.3s';
+                            threshEl.style.opacity = '1';
+                            threshLblEl.style.transition = 'opacity 0.3s';
+                            threshLblEl.style.opacity = '1';
+                        }, 200);
+
+                        // ── Phase 3: Result badge + particles (after sweep) ──
+                        setTimeout(() => {
+                            // Show badge
+                            badgeEl.className = `prob-result-badge ${success ? 'success' : 'fail'}`;
+                            badgeEl.style.display = 'flex';
+
+                            // Particle burst
+                            const PARTICLE_COUNT = 18;
+                            const pColors = success
+                                ? ['#0aff68', '#00f3ff', '#ffffff', '#80ffb4']
+                                : ['#ff4466', '#ff0055', '#ffcc44', '#ff8888'];
+                            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                                const p = document.createElement('div');
+                                p.className = 'prob-particle';
+                                const angle = (i / PARTICLE_COUNT) * 360;
+                                const dist = 60 + Math.random() * 60;
+                                const rad = (angle * Math.PI) / 180;
+                                const px = Math.cos(rad) * dist;
+                                const py = Math.sin(rad) * dist;
+                                p.style.setProperty('--px', px + 'px');
+                                p.style.setProperty('--py', py + 'px');
+                                p.style.background = pColors[i % pColors.length];
+                                p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
+                                p.style.width = (4 + Math.random() * 6) + 'px';
+                                p.style.height = p.style.width;
+                                gaugeWrap.style.position = 'relative';
+                                gaugeWrap.appendChild(p);
+                                setTimeout(() => p.remove(), 900);
+                            }
+                        }, 600);
                     }
                 };
-                requestAnimationFrame(animate);
+                requestAnimationFrame(rollLoop);
 
+                // ── Auto-close ───────────────────────────────────────────────
                 setTimeout(() => {
                     this.hide();
                     resolve(success);
-                }, 2500);
+                }, 2800);
+
             } catch (e) {
                 console.error("Animation Error:", e);
                 this.hide();
-                resolve(Math.random() * 100 < chance); // Fallback
+                resolve(Math.random() * 100 < chance);
             }
         });
     },

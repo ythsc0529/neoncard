@@ -193,25 +193,98 @@ body {
     }
 }
 
-@keyframes coinFlip {
+@keyframes coinToss3D {
     0% {
-        transform: rotateX(0deg) translateY(0);
+        transform: translateY(0) rotateX(0deg);
     }
 
-    25% {
-        transform: rotateX(900deg) translateY(-150px);
+    15% {
+        transform: translateY(-120px) rotateX(720deg);
     }
 
-    50% {
-        transform: rotateX(1800deg) translateY(-200px);
+    40% {
+        transform: translateY(-180px) rotateX(1800deg);
     }
 
-    75% {
-        transform: rotateX(2700deg) translateY(-100px);
+    70% {
+        transform: translateY(-90px) rotateX(3240deg);
+    }
+
+    85% {
+        transform: translateY(-20px) rotateX(3520deg);
+    }
+
+    95% {
+        transform: translateY(6px) rotateX(3590deg);
     }
 
     100% {
-        transform: rotateX(3600deg) translateY(0);
+        transform: translateY(0) rotateX(3600deg);
+    }
+}
+
+@keyframes coinLandGlow {
+    0% {
+        box-shadow: 0 0 0px var(--neon-gold);
+    }
+
+    40% {
+        box-shadow: 0 0 60px var(--neon-gold), 0 0 120px rgba(255, 215, 0, 0.5);
+    }
+
+    100% {
+        box-shadow: 0 0 30px var(--neon-gold), 0 0 60px rgba(255, 215, 0, 0.25);
+    }
+}
+
+@keyframes coinStageFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.85) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes coinResultSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(24px) scale(0.8);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateY(-4px) scale(1.05);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes coinShine {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 200%;
+    }
+}
+
+@keyframes coinPlayerGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 8px currentColor;
+    }
+
+    50% {
+        box-shadow: 0 0 22px currentColor, 0 0 40px currentColor;
     }
 }
 
@@ -232,6 +305,89 @@ body {
 
     100% {
         transform: translateY(0);
+    }
+}
+
+@keyframes probContainerIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.7) translateY(40px);
+    }
+
+    70% {
+        opacity: 1;
+        transform: scale(1.04) translateY(-4px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes probNeedleSweep {
+    0% {
+        stroke-dashoffset: 419;
+    }
+
+    100% {
+        stroke-dashoffset: var(--needle-end);
+    }
+}
+
+@keyframes probResultPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+        filter: blur(8px);
+    }
+
+    60% {
+        opacity: 1;
+        transform: scale(1.15);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes probParticleFly {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(var(--px), var(--py)) scale(0);
+    }
+}
+
+@keyframes probTitleGlow {
+    0% {
+        opacity: 0;
+        letter-spacing: 6px;
+    }
+
+    100% {
+        opacity: 1;
+        letter-spacing: 2px;
+    }
+}
+
+@keyframes probTrackPulse {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 4px currentColor);
+    }
+
+    50% {
+        filter: drop-shadow(0 0 14px currentColor);
     }
 }
 
@@ -1110,11 +1266,168 @@ body {
 .animation-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.78);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
+    backdrop-filter: blur(6px);
+}
+
+/* ========== COIN FLIP — REDESIGNED ========== */
+.coin-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    animation: coinStageFadeIn 0.4s ease-out both;
+}
+
+.coin-vs-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 36px;
+}
+
+.coin-player {
+    padding: 12px 28px;
+    border-radius: 50px;
+    border: 2px solid currentColor;
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.45;
+    transition: opacity 0.5s, box-shadow 0.5s, transform 0.4s;
+    animation: coinPlayerGlow 2.5s infinite;
+}
+
+.coin-player.p1 {
+    color: var(--neon-cyan);
+}
+
+.coin-player.p2 {
+    color: var(--neon-magenta);
+}
+
+.coin-player.winner {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+.coin-vs-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 3px;
+}
+
+/* 3-D coin wrapper */
+.coin-3d-wrap {
+    perspective: 600px;
+    margin-bottom: 36px;
+}
+
+.coin-3d {
+    width: 140px;
+    height: 140px;
+    position: relative;
+    transform-style: preserve-3d;
+    border-radius: 50%;
+}
+
+.coin-3d.tossing {
+    animation: coinToss3D 2.4s cubic-bezier(0.28, 0.84, 0.42, 1) forwards;
+}
+
+.coin-3d.landed {
+    animation: coinLandGlow 0.7s ease-out forwards;
+}
+
+.coin-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+    overflow: hidden;
+}
+
+.coin-face::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    animation: coinShine 2.4s linear infinite;
+    pointer-events: none;
+}
+
+.coin-front {
+    background: radial-gradient(circle at 35% 35%, #ffe566, #d4a800 55%, #8a6800);
+    border: 4px solid #f5c518;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+    transform: rotateY(0deg);
+}
+
+.coin-back {
+    background: radial-gradient(circle at 65% 35%, #c8a000, #9a7400 55%, #5a4200);
+    border: 4px solid #c8a000;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.2);
+    transform: rotateY(180deg);
+}
+
+.coin-face-num {
+    font-size: 3.4rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.8);
+    line-height: 1;
+    user-select: none;
+}
+
+.coin-face-rim {
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+}
+
+/* Result badge */
+.coin-result {
+    opacity: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.coin-result.show {
+    opacity: 1;
+    animation: coinResultSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.coin-result-name {
+    display: block;
+    font-size: 2rem;
+    text-shadow: 0 0 20px currentColor;
+}
+
+.coin-result-label {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
 }
 
 /* Coin Flip */
@@ -1190,40 +1503,149 @@ body {
     transform: rotateX(-90deg) translateZ(50px);
 }
 
-/* Probability Roll */
-.probability-container {
-    background: var(--glass-bg);
-    padding: 40px 60px;
-    border-radius: 16px;
-    text-align: center;
+/* ========== PROBABILITY ROLL — REDESIGNED ========== */
+.prob-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    animation: probContainerIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    background: rgba(8, 8, 20, 0.92);
+    border: 1px solid rgba(0, 243, 255, 0.18);
+    border-radius: 24px;
+    padding: 36px 48px 32px;
+    box-shadow: 0 0 60px rgba(0, 243, 255, 0.12), 0 24px 60px rgba(0, 0, 0, 0.7);
+    min-width: 320px;
+    position: relative;
+    overflow: hidden;
 }
 
-.probability-title {
-    font-size: 1.2rem;
-    color: var(--text-secondary);
+.prob-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0, 243, 255, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.prob-skill-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: rgba(0, 243, 255, 0.55);
+    margin-bottom: 6px;
+    animation: probTitleGlow 0.5s ease-out both;
+}
+
+.prob-header {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 28px;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    animation: probTitleGlow 0.6s 0.1s ease-out both;
+}
+
+.prob-gauge-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
     margin-bottom: 20px;
 }
 
-.probability-display {
-    font-size: 4rem;
-    font-weight: bold;
+.prob-gauge-wrap svg {
+    overflow: visible;
+}
+
+.prob-center-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.prob-roll-num {
+    font-size: 3.2rem;
+    font-weight: 900;
     color: var(--neon-cyan);
-    min-width: 150px;
-    overflow: hidden;
-    height: 80px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.7);
+    transition: color 0.4s;
 }
 
-.probability-result {
-    margin-top: 20px;
-    font-size: 1.5rem;
-}
-
-.probability-result.success {
+.prob-roll-num.success-color {
     color: var(--neon-green);
+    text-shadow: 0 0 24px rgba(10, 255, 104, 0.8);
 }
 
-.probability-result.fail {
-    color: var(--neon-red);
+.prob-roll-num.fail-color {
+    color: #ff4466;
+    text-shadow: 0 0 24px rgba(255, 0, 85, 0.8);
+}
+
+.prob-roll-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 2px;
+}
+
+.prob-threshold {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+}
+
+.prob-threshold span {
+    color: var(--neon-gold);
+    font-weight: 700;
+}
+
+.prob-result-badge {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    animation: probResultPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.prob-result-badge.success {
+    background: rgba(10, 255, 104, 0.12);
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 30px rgba(10, 255, 104, 0.35), inset 0 0 20px rgba(10, 255, 104, 0.08);
+    text-shadow: 0 0 12px var(--neon-green);
+}
+
+.prob-result-badge.fail {
+    background: rgba(255, 0, 85, 0.12);
+    border: 2px solid #ff4466;
+    color: #ff4466;
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.35), inset 0 0 20px rgba(255, 0, 85, 0.08);
+    text-shadow: 0 0 12px #ff4466;
+}
+
+.prob-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    pointer-events: none;
+    animation: probParticleFly 0.8s ease-out forwards;
 }
 
 /* Card Draw */
