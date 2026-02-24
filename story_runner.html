@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>劇情進行中 - Neon Card Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .vn-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .vn-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.6;
+            z-index: 1;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        .vn-dialogue-area {
+            position: relative;
+            z-index: 10;
+            padding: 20px 40px 40px 40px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
+            height: 30%;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .vn-speaker {
+            font-size: 1.5rem;
+            color: #00ffff;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .vn-text {
+            font-size: 1.2rem;
+            color: #fff;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            flex-grow: 1;
+        }
+
+        .vn-next-indicator {
+            align-self: flex-end;
+            font-size: 1.5rem;
+            color: #00ffff;
+            animation: bounceLeft 1s infinite alternate;
+            opacity: 0;
+        }
+
+        .vn-next-indicator.visible {
+            opacity: 1;
+        }
+
+        @keyframes bounceLeft {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .skip-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .skip-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="vn-container" id="vnContainer" onclick="nextDialogue()">
+        <div class="vn-bg" id="vnBg"></div>
+        <button class="skip-btn" onclick="skipDialogue(event)">跳過劇情</button>
+
+        <div class="vn-dialogue-area">
+            <div class="vn-speaker" id="vnSpeaker"></div>
+            <div class="vn-text" id="vnText"></div>
+            <div class="vn-next-indicator" id="vnNext">▼</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data/story.js"></script>
+    <script>
+        let currentChapterId = localStorage.getItem('story_current_chapter');
+        let currentNodeIndex = parseInt(localStorage.getItem('story_current_node'), 10);
+        let chapter = STORY_CHAPTERS.find(c => c.id === currentChapterId);
+        let node = chapter ? chapter.nodes[currentNodeIndex] : null;
+
+        if (!chapter || !node || node.type !== 'dialogue') {
+            console.error('Invalid story state', { chapter, node });
+            location.href = 'story_menu.html';
+        }
+
+        let currentLine = 0;
+        let isTyping = false;
+        let typingTimer = null;
+        let currentText = '';
+        let targetText = '';
+
+        function renderDialogue() {
+            if (currentLine >= node.conversations.length) {
+                finishNode();
+                return;
+            }
+
+            const dialogue = node.conversations[currentLine];
+            document.getElementById('vnSpeaker').textContent = dialogue.speaker || '';
+
+            // Handle Typewriter effect
+            targetText = dialogue.text || '';
+            currentText = '';
+            document.getElementById('vnText').textContent = '';
+            document.getElementById('vnNext').classList.remove('visible');
+
+            isTyping = true;
+            let charIndex = 0;
+
+            clearInterval(typingTimer);
+            typingTimer = setInterval(() => {
+                if (charIndex < targetText.length) {
+                    currentText += targetText[charIndex];
+                    document.getElementById('vnText').textContent = currentText;
+                    charIndex++;
+                } else {
+                    finishTyping();
+                }
+            }, 30); // Typing speed
+        }
+
+        function finishTyping() {
+            clearInterval(typingTimer);
+            isTyping = false;
+            document.getElementById('vnText').textContent = targetText;
+            document.getElementById('vnNext').classList.add('visible');
+        }
+
+        function nextDialogue(e) {
+            if (isTyping) {
+                // If currently typing, finish instantly
+                finishTyping();
+            } else {
+                // If finished typing, go to next line
+                currentLine++;
+                renderDialogue();
+            }
+        }
+
+        function skipDialogue(e) {
+            if (e) e.stopPropagation(); // prevent clicking vnContainer
+            finishNode();
+        }
+
+        function finishNode() {
+            // Unlock next node
+            unlockNextNode(currentChapterId, currentNodeIndex);
+
+            const nextIndex = currentNodeIndex + 1;
+            if (nextIndex < chapter.nodes.length) {
+                // Determine what next node is and load it
+                localStorage.setItem('story_current_node', nextIndex);
+                const nextNode = chapter.nodes[nextIndex];
+                if (nextNode.type === 'dialogue') {
+                    // Just reload runner properly, or redirect to itself to reset
+                    location.reload();
+                } else if (nextNode.type === 'battle') {
+                    localStorage.setItem('gameMode', 'story');
+                    location.href = 'game.html';
+                }
+            } else {
+                // End of chapter
+                alert('章節完成！');
+                location.href = 'story_menu.html';
+            }
+        }
+
+        // Init
+        if (node.background) {
+            // Apply background if needed
+            // document.getElementById('vnBg').style.backgroundImage = `url(images/bgs/${node.background}.jpg)`;
+            // For now, we don't have images so just change color or let CSS handle class
+            document.getElementById('vnContainer').classList.add(node.background);
+        }
+
+        renderDialogue();
+    </script>
+</body>
+
+</html>

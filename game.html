@@ -162,6 +162,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/data/story.js"></script>
     <script src="js/data/characters_part1.js"></script>
     <script src="js/data/characters_part2.js"></script>
     <script src="js/data/characters_part3.js"></script>
@@ -225,15 +226,29 @@
 
         async function initGame() {
             const mode = localStorage.getItem('gameMode') || 'classic';
-            GameState.init(mode);
 
-            // Coin flip
-            const firstPlayer = await Animations.coinFlip();
-            GameState.firstPlayer = firstPlayer;
-            GameState.currentPlayer = firstPlayer;
+            if (mode === 'story') {
+                const chapterId = localStorage.getItem('story_current_chapter');
+                const nodeIndex = parseInt(localStorage.getItem('story_current_node'), 10);
+                GameState.initStoryMode(chapterId, nodeIndex);
 
-            // Draw phase for Player 1
-            await startDrawPhase('player1');
+                document.getElementById('selectionPhase').classList.remove('hidden');
+                document.getElementById('battleContainer').style.display = 'none';
+
+                selectionPhase = 'p1_draw';
+                document.getElementById('selectionTitle').textContent = `${GameState.player1.name} 選擇首發角色`;
+                renderSelectionCards('player1', GameState.player1.allCards);
+            } else {
+                GameState.init(mode);
+
+                // Coin flip
+                const firstPlayer = await Animations.coinFlip();
+                GameState.firstPlayer = firstPlayer;
+                GameState.currentPlayer = firstPlayer;
+
+                // Draw phase for Player 1
+                await startDrawPhase('player1');
+            }
         }
 
         async function startDrawPhase(playerKey) {
@@ -294,7 +309,17 @@
             if (selectionPhase === 'p1_draw') {
                 GameState.setBattleCard('player1', selectedBattleCard);
                 selectionPhase = 'p2_draw';
-                await startDrawPhase('player2');
+
+                if (GameState.mode === 'story') {
+                    // In story mode, opponent (NPC) automatically selects the first card
+                    const npcPick = 0;
+                    GameState.setBattleCard('player2', npcPick);
+                    GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    startBattle();
+                } else {
+                    document.getElementById('selectionTitle').textContent = `${GameState.player2.name} 選擇首發角色`;
+                    renderSelectionCards('player2', GameState.player2.allCards);
+                }
             } else if (selectionPhase === 'p2_draw') {
                 GameState.setBattleCard('player2', selectedBattleCard);
                 startBattle();
@@ -330,7 +355,12 @@
             // Show/hide action buttons based on current player
             const isP1Turn = GameState.currentPlayer === 1;
             document.getElementById('p1Actions').style.display = isP1Turn ? 'flex' : 'none';
-            document.getElementById('p2Actions').style.display = isP1Turn ? 'none' : 'flex';
+
+            if (GameState.mode === 'story') {
+                document.getElementById('p2Actions').style.display = 'none';
+            } else {
+                document.getElementById('p2Actions').style.display = isP1Turn ? 'none' : 'flex';
+            }
 
             document.getElementById('p1TurnBadge').classList.toggle('hidden', !isP1Turn);
             document.getElementById('p2TurnBadge').classList.toggle('hidden', isP1Turn);
@@ -347,7 +377,7 @@
             if (isP1Turn) {
                 const p1Btns = document.querySelectorAll('#p1Actions .action-btn');
                 p1Btns.forEach(btn => btn.disabled = false);
-            } else {
+            } else if (GameState.mode !== 'story') {
                 const p2Btns = document.querySelectorAll('#p2Actions .action-btn');
                 p2Btns.forEach(btn => btn.disabled = false);
             }
@@ -554,6 +584,12 @@
                 GameState.endTurn();
                 updateUI();
                 updateBattleLog();
+
+                // Trigger AI if it's Player 2's turn in story mode
+                if (GameState.mode === 'story' && GameState.currentPlayer === 2) {
+                    setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+                }
+
             } finally {
                 isProcessing = false;
                 // Buttons will be re-enabled by updateUI based on turn state
@@ -561,9 +597,77 @@
             }
         }
 
+        // --- NPC AI Logic ---
+        async function playAITurn() {
+            if (GameState.winner !== null || GameState.currentPlayer !== 2) return;
+
+            const card = GameState.player2.battleCard;
+            if (!card) return; // Should not happen if replacement works
+
+            // If stunned or sleeping, status effects are already processed by endTurn -> next turn start Of Turn.
+            // Wait, startOfTurn might skip the turn immediately. We need to verify if it's still player 2's turn.
+            if (GameState.currentPlayer !== 2) {
+                // If it skipped to player 1
+                return;
+            }
+
+            const availableSkills = [];
+            if (card.skills) {
+                // Check silence
+                const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                if (!isSilenced) {
+                    card.skills.forEach((skill, idx) => {
+                        if (card.cooldowns[idx] <= 0) {
+                            availableSkills.push(idx);
+                        }
+                    });
+                }
+            }
+
+            let actionType = 'attack';
+            let skillIdx = null;
+
+            if (availableSkills.length > 0) {
+                // 80% chance to use a random available skill, 20% to just attack
+                if (Math.random() < 0.8) {
+                    actionType = 'skill';
+                    skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                } else {
+                    actionType = 'attack';
+                }
+            } else {
+                actionType = 'attack';
+            }
+
+            GameState.addLog(`[NPC] 思考結束，決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
+            updateBattleLog();
+
+            setTimeout(async () => {
+                await doAction(actionType, skillIdx);
+            }, 800);
+        }
+        // --------------------
+
         function promptReplacement(playerKey) {
             return new Promise((resolve) => {
                 const player = GameState[playerKey];
+
+                // --- Story mode AI check for replacements ---
+                if (GameState.mode === 'story' && playerKey === 'player2') {
+                    // NPC auto replaces with the first available standby card
+                    if (player.standbyCards.length > 0) {
+                        setTimeout(() => {
+                            player.battleCard = player.standbyCards.splice(0, 1)[0];
+                            GameState.addLog(`[NPC] ${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
+                            updateUI();
+                            updateBattleLog();
+                            resolve();
+                        }, 1000); // Small delay for visual pacing
+                        return;
+                    }
+                }
+                // --------------------------------------------
+
                 const modal = document.getElementById('replacementModal');
                 const optionsDiv = document.getElementById('replacementOptions');
                 const title = document.getElementById('replacementTitle');
@@ -672,6 +776,34 @@
                 e.target.classList.remove('active');
             }
         };
+
+        function finishStoryBattle() {
+            if (GameState.winner === 1) {
+                unlockNextNode(GameState.currentChapterId, GameState.currentNodeIndex);
+
+                const chapter = STORY_CHAPTERS.find(c => c.id === GameState.currentChapterId);
+                const nextIndex = GameState.currentNodeIndex + 1;
+
+                if (nextIndex < chapter.nodes.length) {
+                    localStorage.setItem('story_current_node', nextIndex);
+                    const nextNode = chapter.nodes[nextIndex];
+                    if (nextNode.type === 'dialogue') {
+                        location.href = 'story_runner.html';
+                    } else if (nextNode.type === 'battle') {
+                        location.reload();
+                    }
+                } else {
+                    alert('章節完成！');
+                    location.href = 'story_menu.html';
+                }
+            } else {
+                if (confirm('戰鬥失敗！要重新挑戰嗎？')) {
+                    location.reload();
+                } else {
+                    location.href = 'story_menu.html';
+                }
+            }
+        }
 
         let isProcessing = false;
 

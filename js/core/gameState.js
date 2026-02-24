@@ -34,6 +34,10 @@ const GameState = {
         this.phase = 'coin_flip';
         this.firstPlayer = null;
         this.winner = null;
+        // Story mode specific
+        this.currentChapterId = null;
+        this.currentNodeIndex = null;
+        this.storyNode = null;
 
         ['player1', 'player2'].forEach(p => {
             this[p].battleCard = null;
@@ -43,6 +47,61 @@ const GameState = {
         });
 
         this.battleLog = [];
+    },
+
+    // Initialize story game
+    initStoryMode(chapterId, nodeIndex) {
+        this.init('story');
+        this.currentChapterId = chapterId;
+        this.currentNodeIndex = nodeIndex;
+
+        // Skip coin flip for story mode, player always goes first
+        this.phase = 'select';
+        this.firstPlayer = 1;
+        this.currentPlayer = 1;
+
+        // Ensure story.js is loaded
+        if (typeof STORY_CHAPTERS === 'undefined') {
+            console.error("STORY_CHAPTERS is not defined. Make sure story.js is loaded.");
+            return;
+        }
+
+        const chapter = STORY_CHAPTERS.find(c => c.id === chapterId);
+        if (!chapter) return;
+
+        this.storyNode = chapter.nodes[nodeIndex];
+        const node = this.storyNode;
+
+        // Update names
+        this.player1.name = node.player.name || '玩家1';
+        this.player2.name = node.enemy.name || '玩家2';
+
+        // Set decks
+        this.setDeckForPlayer('player1', node.player.deck, node.rules?.customStats);
+        this.setDeckForPlayer('player2', node.enemy.deck, node.rules?.customStats);
+    },
+
+    // Helper to set customized deck
+    setDeckForPlayer(playerKey, deckNames, customStats) {
+        const cards = [];
+        deckNames.forEach(name => {
+            const charData = getCharacterByName(name);
+            if (charData) {
+                const instance = createCharacterInstance(charData);
+                // Apply custom stats if any
+                if (customStats && customStats[name]) {
+                    Object.assign(instance, customStats[name]);
+                }
+                cards.push(instance);
+            } else {
+                console.warn(`Character ${name} not found in database.`);
+            }
+        });
+
+        // In story mode, we don't pick 1 out of hand, the entire deck is the hand
+        // Wait, standard game expects player to *select* the battle card initially from `allCards`.
+        // So we populate `allCards`.
+        this[playerKey].allCards = cards;
     },
 
     // Get card count based on mode

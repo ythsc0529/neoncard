@@ -559,14 +559,18 @@ const Animations = {
         return new Promise(resolve => {
             this.show();
 
+            const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
+            const btnAction = isStory ? "finishStoryBattle()" : "location.href='index.html'";
+            const btnText = isStory ? "繼續" : "返回主選單";
+
             this.container.innerHTML = `
                 <div style="text-align: center;">
                     <div style="font-size: 5rem; margin-bottom: 30px;">🏆</div>
                     <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
                         ${winner} 勝利！
                     </div>
-                    <button class="btn btn-gold" style="margin-top: 40px;" onclick="location.href='index.html'">
-                        返回主選單
+                    <button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">
+                        ${btnText}
                     </button>
                 </div>
             `;

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>劇情模式 - Neon Card Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .story-menu-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .chapter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chapter-card {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: rgba(10, 10, 25, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .chapter-card:hover:not(.locked) {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .chapter-card.locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+        }
+
+        .chapter-card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            font-size: 2rem;
+        }
+
+        .chapter-title {
+            font-size: 1.5rem;
+            color: #00ffff;
+            margin: 0 0 10px 0;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+
+        .chapter-desc {
+            color: #aaa;
+            font-size: 1rem;
+            margin: 0 0 15px 0;
+        }
+
+        .node-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .node-btn {
+            background: #2a2a3a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .node-btn:hover:not(:disabled) {
+            background: #00ffff;
+            color: #000;
+        }
+
+        .node-btn.dialogue-node::before {
+            content: '💬 ';
+        }
+
+        .node-btn.battle-node::before {
+            content: '⚔️ ';
+        }
+
+        .node-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #1a1a2a;
+        }
+
+        .node-btn.completed {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="story-menu-container">
+        <div class="top-bar">
+            <button class="btn" style="padding: 10px 20px;" onclick="location.href='index.html'">← 返回主選單</button>
+            <h1 class="neon-text" style="font-size: 2rem; margin: 0;">編年史</h1>
+            <div style="width: 120px;"></div> <!-- placeholder for flex spacing -->
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('main')">主傳</button>
+            <button class="tab-btn" onclick="switchTab('side')">外傳</button>
+        </div>
+
+        <div class="chapter-list" id="chapterList">
+            <!-- 關卡列表由 JS 渲染 -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data/story.js"></script>
+    <script>
+        let currentTab = 'main';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.includes(tab === 'main' ? '主' : '外'));
+            });
+            renderList();
+        }
+
+        function renderList() {
+            const listEl = document.getElementById('chapterList');
+            listEl.innerHTML = '';
+
+            const progress = getStoryProgress();
+
+            const filteredChapters = STORY_CHAPTERS.filter(c => c.type === currentTab);
+
+            if (filteredChapters.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center; color:#888; padding: 50px;">敬請期待...</div>';
+                return;
+            }
+
+            filteredChapters.forEach(chapter => {
+                const card = document.createElement('div');
+                card.className = 'chapter-card';
+
+                // Check if chapter is unlocked (if the first node is unlocked)
+                const isChapterUnlocked = progress.unlockedNodes[`${chapter.id}_0`];
+                if (!isChapterUnlocked) {
+                    card.classList.add('locked');
+                }
+
+                let nodesHtml = '';
+                chapter.nodes.forEach((node, index) => {
+                    const nodeId = `${chapter.id}_${index}`;
+                    const isUnlocked = progress.unlockedNodes[nodeId];
+                    const isCompleted = progress.completedNodes[nodeId];
+
+                    let btnClass = 'node-btn';
+                    if (node.type === 'dialogue') btnClass += ' dialogue-node';
+                    if (node.type === 'battle') btnClass += ' battle-node';
+                    if (isCompleted) btnClass += ' completed';
+
+                    const nodeTitle = node.title || (node.type === 'dialogue' ? `劇情 ${index + 1}` : `戰鬥 ${index + 1}`);
+
+                    nodesHtml += `
+                        <button class="${btnClass}" 
+                                ${!isUnlocked && !isCompleted ? 'disabled' : ''} 
+                                onclick="startNode('${chapter.id}', ${index})">
+                            ${nodeTitle}
+                        </button>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <h2 class="chapter-title">第 ${chapter.chapter_number} 章：${chapter.title}</h2>
+                    <p class="chapter-desc">${chapter.description || ''}</p>
+                    <div class="node-list">
+                        ${nodesHtml}
+                    </div>
+                `;
+
+                listEl.appendChild(card);
+            });
+        }
+
+        function startNode(chapterId, nodeIndex) {
+            // Store target in localStorage to let runner know what to play
+            localStorage.setItem('story_current_chapter', chapterId);
+            localStorage.setItem('story_current_node', nodeIndex);
+
+            const chapter = STORY_CHAPTERS.find(c => c.id === chapterId);
+            const node = chapter.nodes[nodeIndex];
+
+            if (node.type === 'dialogue') {
+                location.href = 'story_runner.html';
+            } else if (node.type === 'battle') {
+                // Prepare gamestate for story mode battle
+                localStorage.setItem('gameMode', 'story');
+                location.href = 'game.html';
+            }
+        }
+
+        // Init
+        renderList();
+    </script>
+</body>
+
+</html>
