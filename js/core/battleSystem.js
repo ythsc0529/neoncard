@@ -424,6 +424,18 @@ const BattleSystem = {
             return false;
         }
 
+        // Check speed cost
+        if (skill.speedCost && skill.speedCost > 0) {
+            const currentSpeed = attacker.resources?.speed || 0;
+            if (currentSpeed < skill.speedCost) {
+                GameState.addLog(`速度不足！需要 ${skill.speedCost} 速度（目前 ${currentSpeed}）`, 'status');
+                return false;
+            }
+            // Deduct speed cost
+            attacker.resources.speed = currentSpeed - skill.speedCost;
+            GameState.addLog(`消耗 ${skill.speedCost} 速度（剩餘 ${attacker.resources.speed}）`, 'status');
+        }
+
         // Set cooldown
         attacker.cooldowns[skillIndex] = skill.cd + 1;
 
