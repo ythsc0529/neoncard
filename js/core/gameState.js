@@ -299,12 +299,21 @@ const GameState = {
         // Process turn interval passives (every X turns)
         this.processTurnIntervalPassives(card);
 
-        // Reduce cooldowns
+        // Reduce cooldowns for active card
         if (card.cooldowns) {
             Object.keys(card.cooldowns).forEach(k => {
                 if (card.cooldowns[k] > 0) card.cooldowns[k]--;
             });
         }
+
+        // Also reduce cooldowns for standby cards
+        player.standbyCards.forEach(standbyCard => {
+            if (standbyCard.cooldowns) {
+                Object.keys(standbyCard.cooldowns).forEach(k => {
+                    if (standbyCard.cooldowns[k] > 0) standbyCard.cooldowns[k]--;
+                });
+            }
+        });
     },
 
     // Process passive abilities
