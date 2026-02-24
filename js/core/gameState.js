@@ -314,8 +314,10 @@ const GameState = {
         // Allow through if trigger matches, or is a 'passive' type, or certain special triggers
         // that need to fall through to let specific cases handle them
         if (effect.trigger !== trigger && effect.trigger !== 'passive') {
-            // Allow on_skill/on_skill_count/on_skill_success to fall through so case handlers can filter
-            if (!['on_skill_success', 'on_skill', 'on_skill_count'].includes(trigger)) return;
+            // Allow on_skill/on_skill_count/on_skill_success to fall through ONLY if the passive
+            // itself is triggered by one of those events (not e.g. on_death passives).
+            const skillTriggers = ['on_skill_success', 'on_skill', 'on_skill_count'];
+            if (!skillTriggers.includes(trigger) || !skillTriggers.includes(effect.trigger)) return;
         }
 
         switch (effect.action) {
