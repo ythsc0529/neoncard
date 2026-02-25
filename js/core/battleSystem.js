@@ -68,10 +68,12 @@ const BattleSystem = {
 
                     // Check 垃圾 passive - scale on dodge (animation already shown via probabilityRoll)
                     if (defender.passive?.effect?.action === 'dodge_scale') {
-                        GameState.addLog(`${defender.name} 被動觸發，能力翻倍！`, 'skill');
-                        defender.maxHp = Math.floor(defender.maxHp * (defender.passive.effect.hp_mult || 2));
-                        defender.hp = Math.floor(defender.hp * (defender.passive.effect.hp_mult || 2));
-                        defender.atk = Math.floor(defender.atk * (defender.passive.effect.atk_mult || 2));
+                        const atkGain = defender.passive.effect.atk || 10;
+                        const dodgeGain = defender.passive.effect.dodge || 5;
+                        defender.atk += atkGain;
+                        defender.resources = defender.resources || {};
+                        defender.resources.dodge_chance_bonus = (defender.resources.dodge_chance_bonus || 0) + dodgeGain;
+                        GameState.addLog(`${defender.name} 觸發猛攻，ATK +${atkGain}，閃避率 +${dodgeGain}%！`, 'skill');
                     }
 
                     return { damage: 0, dodged: true };
@@ -286,8 +288,8 @@ const BattleSystem = {
         // E-Ren passive: Update ATK based on HP loss
         if (defender.passive?.effect?.action === 'buff_atk_per_hp') {
             const hpLost = defender.maxHp - defender.hp;
-            const step = defender.passive.effect.hp_step || 10;
-            const gainPerStep = defender.passive.effect.atk_gain || 10;
+            const step = defender.passive.effect.ratio || defender.passive.effect.hp_step || 10;
+            const gainPerStep = defender.passive.effect.atk || defender.passive.effect.atk_gain || 10;
             const newBonus = Math.floor(hpLost / step) * gainPerStep;
 
             const oldBonus = defender.resources.atk_bonus_hp || 0;
@@ -376,6 +378,18 @@ const BattleSystem = {
 
         if (damage > 0) {
             GameState.addLog(`${defender.name} 受到 ${damage} 傷害`, 'damage');
+
+            // Handle shield_on_next_damage status (鳳凰-焰)
+            const shieldOnNextDmg = attacker.statusEffects?.find(e => e.type === 'shield_on_next_damage');
+            if (shieldOnNextDmg) {
+                const shieldGain = Math.floor(damage * (shieldOnNextDmg.percent || 80) / 100);
+                attacker.shield += shieldGain;
+                shieldOnNextDmg.hits--;
+                if (shieldOnNextDmg.hits <= 0) {
+                    attacker.statusEffects = attacker.statusEffects.filter(e => e !== shieldOnNextDmg);
+                }
+                GameState.addLog(`${attacker.name} 焰發動，獲得 ${shieldGain} 護盾！`, 'skill');
+            }
         }
 
         return { damage, dodged: false, blocked: false };
@@ -394,6 +408,8 @@ const BattleSystem = {
         if (card.passive?.effect?.trigger === 'on_hit' && card.passive.effect.action === 'dodge_chance') {
             dodge = Math.max(dodge, card.passive.effect.chance);
         }
+
+        dodge += (card.resources?.dodge_chance_bonus || 0);
 
         // Check status effects
         if (card.statusEffects) {
@@ -540,7 +556,11 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_chance':
-                    if (await Animations.probabilityRoll(effect.chance, '技能命中判定')) {
+                    let chance = effect.chance;
+                    if (attacker.name === '庫裡面' && attacker.resources?.three_point_rate !== undefined) {
+                        chance = attacker.resources.three_point_rate;
+                    }
+                    if (await Animations.probabilityRoll(chance, '技能命中判定')) {
                         await this.applyDamage(attacker, defender, effect.damage);
                         GameState.processPassive(attacker, 'on_skill_success', { skillName: skill.name });
                     } else {
@@ -553,7 +573,7 @@ const BattleSystem = {
                     if (effect.success.includes(dRes)) {
                         let dDmg = 0;
                         if (effect.damage_type === 'current_hp_percent') {
-                            dDmg = Math.floor(defender.hp * effect.value / 100);
+                            dDmg = Math.floor(attacker.hp * effect.value / 100);
                         } else {
                             dDmg = effect.value || 0;
                         }
@@ -909,17 +929,27 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_weighted': // 球-概率, 羽球-殺球
-                    let totalWeight = effect.options.reduce((sum, o) => sum + o.chance, 0);
-                    let weightedRoll = Math.random() * totalWeight;
-                    let selectedDamage = effect.options[0].damage;
-                    for (const opt of effect.options) {
-                        if (weightedRoll < opt.chance) {
-                            selectedDamage = opt.damage;
-                            break;
+                    if (effect.options.length === 2 && (attacker.name === '羽球' || attacker.name === '球')) {
+                        const opt1 = effect.options[0];
+                        const opt2 = effect.options[1];
+                        if (await Animations.probabilityRoll(opt1.chance, '機率判定')) {
+                            await this.applyDamage(attacker, defender, opt1.damage);
+                        } else {
+                            await this.applyDamage(attacker, defender, opt2.damage);
                         }
-                        weightedRoll -= opt.chance;
+                    } else {
+                        let totalWeight = effect.options.reduce((sum, o) => sum + o.chance, 0);
+                        let weightedRoll = Math.random() * totalWeight;
+                        let selectedDamage = effect.options[0].damage;
+                        for (const opt of effect.options) {
+                            if (weightedRoll < opt.chance) {
+                                selectedDamage = opt.damage;
+                                break;
+                            }
+                            weightedRoll -= opt.chance;
+                        }
+                        await this.applyDamage(attacker, defender, selectedDamage);
                     }
-                    await this.applyDamage(attacker, defender, selectedDamage);
                     break;
                 case 'damage_or_stun': // 周接輪-蕭邦的夜曲
                     if (await Animations.probabilityRoll(effect.chance, '技能判定')) {
@@ -954,15 +984,6 @@ const BattleSystem = {
                 case 'damage_buff_atk': // 李白-吟詩
                     await this.applyDamage(attacker, defender, effect.damage);
                     attacker.atk += effect.atk;
-                    // Track for passive
-                    attacker.resources.poem_count = (attacker.resources.poem_count || 0) + 1;
-                    if (attacker.resources.poem_count >= 3) {
-                        attacker.maxHp += 100;
-                        attacker.hp += 100;
-                        attacker.atk += 10;
-                        attacker.resources.poem_count = 0;
-                        GameState.addLog(`${attacker.name} 靜夜思觸發，能力大幅提升！`, 'skill');
-                    }
                     GameState.addLog(`${attacker.name} ATK +${effect.atk}`, 'skill');
                     break;
                 case 'damage_instant_kill': // 草泥馬-吐口水
@@ -1782,14 +1803,8 @@ const BattleSystem = {
                     break;
 
                 case 'shield_on_damage': // Phoenix (鳳凰)
-                    // Deal damage then gain shield based on damage
-                    // Need to capture actual damage dealt? applyDamage returns {damage}
-                    const shieldRes = await this.applyDamage(attacker, defender, attacker.atk);
-                    if (shieldRes && shieldRes.damage > 0) {
-                        const shieldGain = Math.floor(shieldRes.damage * (effect.percent || 100) / 100);
-                        attacker.shield += shieldGain;
-                        GameState.addLog(`${attacker.name} 獲得 ${shieldGain} 護盾`, 'skill');
-                    }
+                    attacker.statusEffects.push({ type: 'shield_on_next_damage', name: '焰', percent: effect.percent || 80, hits: 1 });
+                    GameState.addLog(`${attacker.name} 下次攻擊將轉換為護盾`, 'skill');
                     break;
 
                 case 'convert_damage_to_atk': // 琉璃-魅惑 (bug fix: apply as status effect to convert incoming damage)

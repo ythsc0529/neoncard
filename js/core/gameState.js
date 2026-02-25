@@ -297,6 +297,9 @@ const GameState = {
                         if (effect.type === 'buff_atk_temp') {
                             card.atk -= (effect.value || 0);
                             this.addLog(`${card.name} 攻擊增益結束`, 'status');
+                        } else if (effect.type === 'debuff_atk') {
+                            card.atk += (effect.value || 0);
+                            this.addLog(`${card.name} 攻擊下降結束`, 'status');
                         }
                         keep = false;
                     }
@@ -412,10 +415,25 @@ const GameState = {
                 this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${recovery} HP 並提升攻擊`, 'skill');
                 break;
             case 'buff_max_hp_atk':
-                card.maxHp += (effect.hp || 0);
-                card.hp += (effect.hp || 0);
-                card.atk += (effect.atk || 0);
-                this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限提升並提升攻擊`, 'skill');
+                if (effect.trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] >= effect.count) {
+                            card.maxHp += (effect.hp || 0);
+                            card.hp += (effect.hp || 0);
+                            card.atk += (effect.atk || 0);
+                            card.resources[countKey] = 0;
+                            this.addLog(`${card.name} 被動 [${card.passive.name}] 觸發！效果大幅提升`, 'skill');
+                        }
+                    }
+                } else {
+                    card.maxHp += (effect.hp || 0);
+                    card.hp += (effect.hp || 0);
+                    card.atk += (effect.atk || 0);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限提升並提升攻擊`, 'skill');
+                }
                 break;
             case 'heal':
                 card.hp = Math.min(card.maxHp, card.hp + effect.value);
