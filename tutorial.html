@@ -367,6 +367,16 @@
             font-weight: 700;
         }
 
+        @media(max-width: 900px) {
+
+            /* Override global mobile hiding - tutorial needs both players always visible */
+            .player-area:not(.active-turn),
+            .player-area.active-turn,
+            .player-area {
+                display: flex !important;
+            }
+        }
+
         @media(max-width:600px) {
             .npc-text {
                 font-size: 0.9rem;

@@ -246,8 +246,10 @@
                 GameState.firstPlayer = firstPlayer;
                 GameState.currentPlayer = firstPlayer;
 
-                // Draw phase for Player 1
-                await startDrawPhase('player1');
+                // Draw phase for the first player
+                const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';
+                selectionPhase = firstPlayerKey + '_draw';
+                await startDrawPhase(firstPlayerKey);
             }
         }
 
@@ -306,22 +308,29 @@
         document.getElementById('confirmSelection').onclick = async function () {
             if (selectedBattleCard === null) return;
 
-            if (selectionPhase === 'p1_draw') {
-                GameState.setBattleCard('player1', selectedBattleCard);
-                selectionPhase = 'p2_draw';
+            const currentPlayerKey = selectionPhase.startsWith('p1') || selectionPhase.startsWith('player1') ? 'player1' : 'player2';
+            const otherPlayerKey = currentPlayerKey === 'player1' ? 'player2' : 'player1';
 
-                if (GameState.mode === 'story') {
-                    // In story mode, opponent (NPC) automatically selects the first card
-                    const npcPick = 0;
-                    GameState.setBattleCard('player2', npcPick);
-                    GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
-                    startBattle();
-                } else {
-                    document.getElementById('selectionTitle').textContent = `${GameState.player2.name} 選擇首發角色`;
-                    renderSelectionCards('player2', GameState.player2.allCards);
-                }
-            } else if (selectionPhase === 'p2_draw') {
-                GameState.setBattleCard('player2', selectedBattleCard);
+            GameState.setBattleCard(currentPlayerKey, selectedBattleCard);
+
+            if (GameState.mode === 'story' && currentPlayerKey === 'player1') {
+                // In story mode, opponent (NPC) automatically selects the first card
+                const npcPick = 0;
+                GameState.setBattleCard('player2', npcPick);
+                GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                startBattle();
+                return;
+            }
+
+            // In classic mode, check if both players have selected their cards
+            const firstPlayerKey = GameState.firstPlayer === 1 ? 'player1' : 'player2';
+
+            if (currentPlayerKey === firstPlayerKey) {
+                // First player has chosen, now second player's turn
+                selectionPhase = otherPlayerKey + '_draw';
+                await startDrawPhase(otherPlayerKey);
+            } else {
+                // Second player has chosen, start battle
                 startBattle();
             }
         };
