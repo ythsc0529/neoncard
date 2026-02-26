@@ -27,8 +27,10 @@ const GameState = {
     battleLog: [],
 
     // Initialize new game
-    init(mode = 'classic') {
+    init(mode = 'classic', type = 'pvp', difficulty = 'normal') {
         this.mode = mode;
+        this.type = type;
+        this.difficulty = difficulty;
         this.turnCount = 0;
         this.currentPlayer = 1;
         this.phase = 'coin_flip';
@@ -193,7 +195,7 @@ const GameState = {
             }
 
             if (chance > 0 && Math.random() * 100 < chance) {
-                card.hp = 1;
+                card.hp = effect.revive_hp !== undefined ? effect.revive_hp : card.maxHp;
                 card.reviveCount = (card.reviveCount || 0) + 1;
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！`, 'status');
 

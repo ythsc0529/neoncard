@@ -427,6 +427,45 @@ body {
     }
 }
 
+@keyframes aiThinking {
+
+    0%,
+    20% {
+        color: rgba(255, 255, 255, 0);
+        text-shadow: none;
+    }
+
+    40% {
+        color: var(--neon-cyan);
+        text-shadow: 0 0 5px var(--neon-cyan);
+    }
+
+    60%,
+    100% {
+        color: rgba(255, 255, 255, 0);
+        text-shadow: none;
+    }
+}
+
+.thinking-dots {
+    display: inline-block;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.thinking-dots span {
+    animation: aiThinking 1.4s infinite;
+    animation-fill-mode: both;
+}
+
+.thinking-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.thinking-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
 /* ========== UTILITY CLASSES ========== */
 .glass {
     background: var(--glass-bg);

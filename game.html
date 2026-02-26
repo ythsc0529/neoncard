@@ -84,6 +84,10 @@
         <div class="player-area player2" id="player2Area">
             <div class="player-header glass">
                 <span class="player-name">玩家2</span>
+                <span class="thinking-indicator hidden" id="npcThinking"
+                    style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
+                    思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+                </span>
                 <span class="turn-badge hidden" id="p2TurnBadge">你的回合</span>
             </div>
 
@@ -226,6 +230,8 @@
 
         async function initGame() {
             const mode = localStorage.getItem('gameMode') || 'classic';
+            const type = localStorage.getItem('gameType') || 'pvp';
+            const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
 
             if (mode === 'story') {
                 const chapterId = localStorage.getItem('story_current_chapter');
@@ -239,17 +245,36 @@
                 document.getElementById('selectionTitle').textContent = `${GameState.player1.name} 選擇首發角色`;
                 renderSelectionCards('player1', GameState.player1.allCards);
             } else {
-                GameState.init(mode);
+                GameState.init(mode, type, difficulty);
 
                 // Coin flip
                 const firstPlayer = await Animations.coinFlip();
                 GameState.firstPlayer = firstPlayer;
                 GameState.currentPlayer = firstPlayer;
 
-                // Draw phase for the first player
-                const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';
-                selectionPhase = firstPlayerKey + '_draw';
-                await startDrawPhase(firstPlayerKey);
+                if (type === 'pve') {
+                    // Draw cards silently for NPC
+                    const npcCards = GameState.drawCards('player2', GameState.getCardCount());
+                    if (difficulty === 'hard') {
+                        GameState.player2.name = 'NPC (困難)';
+                    } else if (difficulty === 'easy') {
+                        GameState.player2.name = 'NPC (簡單)';
+                    } else {
+                        GameState.player2.name = 'NPC';
+                    }
+
+                    // NPC selects a random card
+                    GameState.setBattleCard('player2', Math.floor(Math.random() * GameState.getCardCount()));
+
+                    // Player 1 draw, regardless of firstPlayer
+                    selectionPhase = 'player1_draw';
+                    await startDrawPhase('player1');
+                } else {
+                    // Draw phase for the first player
+                    const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';
+                    selectionPhase = firstPlayerKey + '_draw';
+                    await startDrawPhase(firstPlayerKey);
+                }
             }
         }
 
@@ -313,11 +338,15 @@
 
             GameState.setBattleCard(currentPlayerKey, selectedBattleCard);
 
-            if (GameState.mode === 'story' && currentPlayerKey === 'player1') {
-                // In story mode, opponent (NPC) automatically selects the first card
-                const npcPick = 0;
-                GameState.setBattleCard('player2', npcPick);
-                GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+            if ((GameState.mode === 'story' || GameState.type === 'pve') && currentPlayerKey === 'player1') {
+                if (GameState.mode === 'story') {
+                    // In story mode, opponent (NPC) automatically selects the first card
+                    const npcPick = 0;
+                    GameState.setBattleCard('player2', npcPick);
+                    GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                } else {
+                    GameState.addLog(`[NPC] ${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                }
                 startBattle();
                 return;
             }
@@ -344,11 +373,22 @@
             updateUI();
             GameState.addLog('戰鬥開始！', 'skill');
             updateBattleLog();
+
+            // Trigger AI if it's Player 2's turn in story or pve
+            if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+            }
         }
 
         function updateUI() {
             // Update turn indicator
             document.getElementById('turnCount').textContent = GameState.turnCount;
+
+            // Update player names
+            const p1NameElem = document.querySelector('#player1Area .player-name');
+            const p2NameElem = document.querySelector('#player2Area .player-name');
+            if (p1NameElem) p1NameElem.textContent = GameState.player1.name;
+            if (p2NameElem) p2NameElem.textContent = GameState.player2.name;
 
             // Reset mobile view on UI update
             isShowingOpponent = false;
@@ -365,7 +405,7 @@
             const isP1Turn = GameState.currentPlayer === 1;
             document.getElementById('p1Actions').style.display = isP1Turn ? 'flex' : 'none';
 
-            if (GameState.mode === 'story') {
+            if (GameState.mode === 'story' || GameState.type === 'pve') {
                 document.getElementById('p2Actions').style.display = 'none';
             } else {
                 document.getElementById('p2Actions').style.display = isP1Turn ? 'none' : 'flex';
@@ -386,7 +426,7 @@
             if (isP1Turn) {
                 const p1Btns = document.querySelectorAll('#p1Actions .action-btn');
                 p1Btns.forEach(btn => btn.disabled = false);
-            } else if (GameState.mode !== 'story') {
+            } else if (GameState.mode !== 'story' && GameState.type !== 'pve') {
                 const p2Btns = document.querySelectorAll('#p2Actions .action-btn');
                 p2Btns.forEach(btn => btn.disabled = false);
             }
@@ -594,8 +634,8 @@
                 updateUI();
                 updateBattleLog();
 
-                // Trigger AI if it's Player 2's turn in story mode
-                if (GameState.mode === 'story' && GameState.currentPlayer === 2) {
+                // Trigger AI if it's Player 2's turn in story mode or PvE
+                if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                     setTimeout(playAITurn, 1200); // Wait a bit before AI acts
                 }
 
@@ -620,40 +660,104 @@
                 return;
             }
 
-            const availableSkills = [];
-            if (card.skills) {
-                // Check silence
-                const isSilenced = card.statusEffects.some(e => e.type === 'silence');
-                if (!isSilenced) {
-                    card.skills.forEach((skill, idx) => {
-                        if (card.cooldowns[idx] <= 0) {
-                            availableSkills.push(idx);
-                        }
-                    });
-                }
-            }
+            // Show thinking indicator
+            const thinkingUI = document.getElementById('npcThinking');
+            if (thinkingUI) thinkingUI.classList.remove('hidden');
 
-            let actionType = 'attack';
-            let skillIdx = null;
-
-            if (availableSkills.length > 0) {
-                // 80% chance to use a random available skill, 20% to just attack
-                if (Math.random() < 0.8) {
-                    actionType = 'skill';
-                    skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
-                } else {
-                    actionType = 'attack';
-                }
-            } else {
-                actionType = 'attack';
-            }
-
-            GameState.addLog(`[NPC] 思考結束，決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
-            updateBattleLog();
+            // Simulate thinking time (random between 1 to 2.5 seconds)
+            const thinkTime = Math.floor(Math.random() * 1500) + 1000;
 
             setTimeout(async () => {
-                await doAction(actionType, skillIdx);
-            }, 800);
+                const availableSkills = [];
+                if (card.skills) {
+                    // Check silence
+                    const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    if (!isSilenced) {
+                        card.skills.forEach((skill, idx) => {
+                            if (card.cooldowns[idx] <= 0) {
+                                availableSkills.push(idx);
+                            }
+                        });
+                    }
+                }
+
+                const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
+
+                let actionType = 'attack';
+                let skillIdx = null;
+
+                // Smart AI Decisions based on difficulty
+                if (difficulty === 'hard') {
+                    // Try to retreat if low HP and have healthy standby
+                    const hpPercent = card.hp / card.maxHp;
+                    if (hpPercent < 0.3 && GameState.player2.standbyCards.length > 0) {
+                        const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.6);
+                        if (healthyStandbys.length > 0 && Math.random() < 0.8) { // 80% retreat chance when low HP
+                            // Find the one with highest HP
+                            let bestIdx = 0;
+                            let maxHp = 0;
+                            GameState.player2.standbyCards.forEach((c, i) => {
+                                if (c.hp > maxHp) { maxHp = c.hp; bestIdx = i; }
+                            });
+                            actionType = 'retreat';
+                            skillIdx = bestIdx;
+                        }
+                    }
+
+                    if (actionType !== 'retreat') {
+                        if (availableSkills.length > 0) {
+                            // Hard mode prioritizes skills whenever possible
+                            actionType = 'skill';
+                            // Prioritize healing/shield if low HP (e.g., skill name contains keywords)
+                            if (hpPercent < 0.5) {
+                                const defensiveSkills = availableSkills.filter(idx =>
+                                    card.skills[idx].desc.includes('保護') ||
+                                    card.skills[idx].desc.includes('恢復') ||
+                                    card.skills[idx].desc.includes('護盾') ||
+                                    card.skills[idx].desc.includes('無敵')
+                                );
+                                if (defensiveSkills.length > 0) {
+                                    skillIdx = defensiveSkills[Math.floor(Math.random() * defensiveSkills.length)];
+                                } else {
+                                    skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                                }
+                            } else {
+                                skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                            }
+                        } else {
+                            actionType = 'attack';
+                        }
+                    }
+                } else if (difficulty === 'easy') {
+                    // Easy mode: Never retreats. 50% chance to forget to use skills.
+                    if (availableSkills.length > 0 && Math.random() < 0.5) {
+                        actionType = 'skill';
+                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                    } else {
+                        actionType = 'attack';
+                    }
+                }
+
+                if (thinkingUI) thinkingUI.classList.add('hidden');
+
+                if (actionType === 'retreat') {
+                    GameState.addLog(`[NPC] 認為情勢不利，選擇撤換角色為 ${GameState.player2.standbyCards[skillIdx].name}`, 'status');
+                } else {
+                    GameState.addLog(`[NPC] 決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
+                }
+                updateBattleLog();
+
+                setTimeout(async () => {
+                    if (actionType === 'retreat') {
+                        BattleSystem.retreat('player2', skillIdx);
+                        updateUI();
+                        GameState.endTurn();
+                        updateUI();
+                    } else {
+                        await doAction(actionType, skillIdx);
+                    }
+                }, 400); // Short delay before executing to make log visible
+            }, thinkTime);
         }
         // --------------------
 
@@ -661,12 +765,28 @@
             return new Promise((resolve) => {
                 const player = GameState[playerKey];
 
-                // --- Story mode AI check for replacements ---
-                if (GameState.mode === 'story' && playerKey === 'player2') {
-                    // NPC auto replaces with the first available standby card
+                // --- Story / PvE mode AI check for replacements ---
+                if ((GameState.mode === 'story' || GameState.type === 'pve') && playerKey === 'player2') {
+                    const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
+
                     if (player.standbyCards.length > 0) {
                         setTimeout(() => {
-                            player.battleCard = player.standbyCards.splice(0, 1)[0];
+                            let pickIdx = 0;
+
+                            // Hard mode picks the best character (highest combined HP+ATK)
+                            if (difficulty === 'hard') {
+                                let maxScore = 0;
+                                player.standbyCards.forEach((c, idx) => {
+                                    const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
+                                    const score = c.hp + (baseAtk * 10);
+                                    if (score > maxScore) {
+                                        maxScore = score;
+                                        pickIdx = idx;
+                                    }
+                                });
+                            }
+
+                            player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
                             GameState.addLog(`[NPC] ${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
                             updateUI();
                             updateBattleLog();

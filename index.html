@@ -24,12 +24,31 @@
     <!-- Mode Selection Modal -->
     <div class="modal-overlay" id="modeModal">
         <div class="modal glass">
-            <h2>選擇模式</h2>
-            <div class="modal-buttons">
-                <button class="btn" onclick="startGame('quick')">快速模式 (3張牌)</button>
-                <button class="btn btn-magenta" onclick="startGame('classic')">經典模式 (7張牌)</button>
+            <h2 id="modeModalTitle">選擇對戰模式</h2>
+
+            <div class="modal-buttons" id="mainModeContainer">
+                <button class="btn btn-primary" onclick="showSubMenu('pve')">單人模式 (對戰電腦)</button>
+                <button class="btn btn-magenta" onclick="showSubMenu('pvp')">雙人對戰 (本地)</button>
                 <button class="btn" disabled>連線模式 (開發中)</button>
                 <button class="btn" onclick="closeModeModal()" style="margin-top: 20px; opacity: 0.7;">返回</button>
+            </div>
+
+            <div class="modal-buttons hidden" id="pveTypeContainer">
+                <button class="btn" onclick="selectPvEType('quick')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="selectPvEType('classic')">經典模式 (7張牌)</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
+            </div>
+
+            <div class="modal-buttons hidden" id="pveDiffContainer">
+                <button class="btn" onclick="startGame(selectedPvEType, 'pve', 'easy')">簡單</button>
+                <button class="btn btn-danger" onclick="startGame(selectedPvEType, 'pve', 'hard')">困難</button>
+                <button class="btn" onclick="showSubMenu('pve')" style="margin-top: 20px; opacity: 0.7;">返回</button>
+            </div>
+
+            <div class="modal-buttons hidden" id="pvpTypeContainer">
+                <button class="btn" onclick="startGame('quick', 'pvp')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="startGame('classic', 'pvp')">經典模式 (7張牌)</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
             </div>
         </div>
     </div>
@@ -38,7 +57,7 @@
     <div class="tutorial-overlay hidden" id="tutorialOverlay">
         <div class="tutorial-box glass">
             <h2 class="tutorial-title" id="tutorialTitle">歡迎來到霓虹牌！</h2>
-            <p class="tutorial-text" id="tutorialText">這是一款雙人對戰卡牌遊戲。讓我們開始學習基本規則吧！</p>
+            <p class="tutorial-text" id="tutorialText">這是一款對戰卡牌遊戲。讓我們開始學習基本規則吧！</p>
             <div class="tutorial-buttons">
                 <button class="btn" id="tutorialPrev" onclick="prevTutorial()">上一步</button>
                 <button class="btn btn-magenta" id="tutorialNext" onclick="nextTutorial()">下一步</button>
@@ -112,6 +131,9 @@
                 <ul
                     style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
                     <li>全面實裝了包含 32 名角色的第一波大型平衡性更新。</li>
+                    <li>新增全新<strong>單人對戰模式 (PvE)</strong>，隨時可以找電腦進行卡牌對決。</li>
+                    <li>實裝「<strong>AI 難度差異系統</strong>」。現在困難模式的 NPC 將懂得：優先施放技能自保、殘血時主動撤退換健康隊友、以及陣亡換人時會挑選最強角色上場。</li>
+                    <li>新增對戰中電腦思考時的「思考中...」特效。</li>
                     <li>修復了多樣技能描述與實際發動效果不一致的問題。</li>
                     <li>針對多項強大被動技能加上「觸發次數限制」，防止無限循環發生。</li>
                 </ul>
@@ -124,8 +146,36 @@
     </div>
 
     <script>
+        let selectedPvEType = 'classic';
+
         function showModeSelection() {
+            showSubMenu('main');
             document.getElementById('modeModal').classList.add('active');
+        }
+
+        function showSubMenu(menu) {
+            document.getElementById('mainModeContainer').classList.add('hidden');
+            document.getElementById('pveTypeContainer').classList.add('hidden');
+            document.getElementById('pveDiffContainer').classList.add('hidden');
+            document.getElementById('pvpTypeContainer').classList.add('hidden');
+
+            if (menu === 'main') {
+                document.getElementById('modeModalTitle').textContent = '選擇對戰模式';
+                document.getElementById('mainModeContainer').classList.remove('hidden');
+            } else if (menu === 'pve') {
+                document.getElementById('modeModalTitle').textContent = '單人模式 - 選擇規則';
+                document.getElementById('pveTypeContainer').classList.remove('hidden');
+            } else if (menu === 'pvp') {
+                document.getElementById('modeModalTitle').textContent = '雙人對戰 - 選擇規則';
+                document.getElementById('pvpTypeContainer').classList.remove('hidden');
+            }
+        }
+
+        function selectPvEType(type) {
+            selectedPvEType = type;
+            document.getElementById('pveTypeContainer').classList.add('hidden');
+            document.getElementById('pveDiffContainer').classList.remove('hidden');
+            document.getElementById('modeModalTitle').textContent = '單人模式 - 選擇難度';
         }
 
         function closeModeModal() {
@@ -140,8 +190,10 @@
             document.getElementById('updateModal').classList.remove('active');
         }
 
-        function startGame(mode) {
+        function startGame(mode, type = 'pvp', difficulty = 'normal') {
             localStorage.setItem('gameMode', mode);
+            localStorage.setItem('gameType', type);
+            localStorage.setItem('pveDifficulty', difficulty);
             location.href = 'game.html';
         }
 
