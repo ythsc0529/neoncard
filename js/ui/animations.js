@@ -362,43 +362,81 @@ const Animations = {
                 const result = Math.floor(Math.random() * (max - min + 1)) + min;
 
                 this.container.innerHTML = `
-                    <div class="probability-container glass">
-                        <div class="probability-title">${description || '隨機數值'}</div>
-                        <div class="probability-display" id="randDisplay" style="font-family: 'Courier New', monospace;">
-                            <span id="randNumber">${min}</span>
+                    <div class="rand-panel">
+                        <div class="rand-skill-name">數值判定</div>
+                        <div class="rand-header">${description || '隨機數值生成'}</div>
+
+                        <div class="rand-display-wrap">
+                            <div class="rand-brackets">[</div>
+                            <div class="rand-number-box">
+                                <span class="rand-number" id="randNumber">00</span>
+                            </div>
+                            <div class="rand-brackets">]</div>
                         </div>
-                        <div class="probability-result" id="randResult" style="opacity: 0;">
-                            結果: ${result}
+
+                        <div class="rand-range-info">範圍：${min} - ${max}</div>
+                        
+                        <div class="rand-result-badge" id="randBadge">
+                            數值確立
                         </div>
                     </div>
                 `;
 
                 const el = document.getElementById('randNumber');
-                if (!el) {
+                const badgeEl = document.getElementById('randBadge');
+                const wrapEl = this.container.querySelector('.rand-display-wrap');
+
+                if (!el || !badgeEl || !wrapEl) {
                     this.hide();
                     resolve(result);
                     return;
                 }
 
-                let duration = 1500;
+                // Phase 1: Rapid rolling
+                let duration = 1200;
                 let startTime = Date.now();
 
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     if (elapsed < duration) {
-                        // Slow down effect: only update every few frames as we get closer?
-                        // Simple random update for now
-                        el.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
+                        // High speed rolling
+                        const fakeVal = Math.floor(Math.random() * (max - min + 1)) + min;
+                        // pad to at least 2 chars if possible to keep width roughly stable
+                        el.textContent = fakeVal.toString().padStart(2, '0');
                         requestAnimationFrame(animate);
                     } else {
-                        el.textContent = result;
-                        el.style.color = 'var(--neon-gold)';
-                        el.style.transform = 'scale(1.5)';
-                        el.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                        el.style.display = 'inline-block';
+                        // Final result
+                        el.textContent = result.toString().padStart(2, '0');
 
-                        const resultEl = document.getElementById('randResult');
-                        if (resultEl) resultEl.style.opacity = '1';
+                        // Add glow and scale
+                        el.classList.add('rand-final');
+                        wrapEl.classList.add('rand-locked');
+
+                        // Show badge and particles
+                        setTimeout(() => {
+                            badgeEl.classList.add('show');
+
+                            // Particle burst
+                            const PARTICLE_COUNT = 12;
+                            const pColors = ['#ffd700', '#ffb700', '#ffffff', '#ffea00'];
+                            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                                const p = document.createElement('div');
+                                p.className = 'prob-particle'; // reuse prob-particle css
+                                const angle = (i / PARTICLE_COUNT) * 360;
+                                const dist = 40 + Math.random() * 40;
+                                const rad = (angle * Math.PI) / 180;
+                                const px = Math.cos(rad) * dist;
+                                const py = Math.sin(rad) * dist;
+                                p.style.setProperty('--px', px + 'px');
+                                p.style.setProperty('--py', py + 'px');
+                                p.style.background = pColors[i % pColors.length];
+                                p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
+                                p.style.width = (3 + Math.random() * 5) + 'px';
+                                p.style.height = p.style.width;
+                                wrapEl.appendChild(p);
+                                setTimeout(() => p.remove(), 900);
+                            }
+                        }, 200);
                     }
                 };
                 requestAnimationFrame(animate);
@@ -406,7 +444,7 @@ const Animations = {
                 setTimeout(() => {
                     this.hide();
                     resolve(result);
-                }, 2500);
+                }, 2800);
             } catch (e) {
                 console.error("Animation Error:", e);
                 this.hide();

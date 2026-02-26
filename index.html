@@ -16,6 +16,8 @@
             <button class="btn menu-btn btn-magenta" onclick="location.href='tutorial.html'">新手教學</button>
             <button class="btn menu-btn btn-primary" onclick="location.href='story_menu.html'">劇情模式</button>
             <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
+            <button class="btn menu-btn" style="border-color: var(--neon-green); color: var(--neon-green);"
+                onclick="showUpdateModal()">版本更新</button>
         </div>
     </div>
 
@@ -44,6 +46,83 @@
         </div>
     </div>
 
+    <!-- Update Modal -->
+    <div class="modal-overlay" id="updateModal">
+        <div class="modal glass"
+            style="max-width: 800px; max-height: 80vh; text-align: left; display: flex; flex-direction: column;">
+            <h2 style="text-align: center; margin-bottom: 20px;">v1.1.0 平衡性更新</h2>
+            <div class="update-content"
+                style="color: var(--text-primary); line-height: 1.6; overflow-y: auto; padding-right: 15px; font-size: 1.1rem;">
+                <h3 style="color: var(--neon-green); margin-top: 10px; margin-bottom: 10px;">🟢 增強角色 (Buffs)</h3>
+                <ul
+                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
+                    <li><strong style="color: var(--text-primary);">迪斯查</strong>：體質增強，基礎生命值提升 (1 -> 50)，技能「免疫」敘述更清晰。
+                    </li>
+                    <li><strong style="color: var(--text-primary);">蘇賽德</strong>：技能「全員玉碎」傷害大幅提升 (30 -> 50)。</li>
+                    <li><strong style="color: var(--text-primary);">廚師</strong>：體質增強，基礎生命值提升 (150 -> 200)。</li>
+                    <li><strong style="color: var(--text-primary);">英國紳士</strong>：體質大增，基礎生命值 (80 -> 180) 與攻擊力 (10 ->
+                        35)，站場能力大幅強化。</li>
+                    <li><strong style="color: var(--text-primary);">鳳凰</strong>：由於浴火重生特性，基礎生命值提升 (100 -> 150)。</li>
+                    <li><strong style="color: var(--text-primary);">大吉</strong>：祈福靈驗，新增強力技能「大吉領紅茶」(抽出三張紅茶牌)。</li>
+                    <li><strong style="color: var(--text-primary);">12了</strong>：體質增強，基礎生命值提升 (12 -> 80)。</li>
+                    <li><strong style="color: var(--text-primary);">拳</strong>：超拳技能與被動爆擊倍率大幅強化 (1.3倍)。</li>
+                    <li><strong style="color: var(--text-primary);">草東街</strong>：體質增強，基礎生命值提升 (150 -> 200)。</li>
+                    <li><strong style="color: var(--text-primary);">婕媞</strong>：主力技能「顆秒」冷卻時間移除 (1 -> 0)。</li>
+                    <li><strong style="color: var(--text-primary);">王欸等</strong>：技能「大跳」新增增加攻擊力效果。</li>
+                    <li><strong style="color: var(--text-primary);">比二蓋紙</strong>：成為大富翁，基礎生命值提升 (200 -> 250)，被動發動次數增加至 3
+                        次。</li>
+                    <li><strong style="color: var(--text-primary);">摳P</strong>：被動「垃圾不分藍綠」重製，現在每次施放技能後會增加少量攻擊力。</li>
+                    <li><strong style="color: var(--text-primary);">可疑草叢</strong>：太可疑了，新增保命與拖延技能「我很可疑」(暈眩自己兩回合)。</li>
+                    <li><strong style="color: var(--text-primary);">李白 / 李太白</strong>：傳奇詩人體質雙雙加強，基礎生命值提升 (400 ->
+                        600)，李白本身攻擊力提升 (30 -> 50)。</li>
+                    <li><strong style="color: var(--text-primary);">很亮的魚</strong>：體質增強，基礎生命值提升 (250 -> 300)。</li>
+                </ul>
+
+                <h3 style="color: var(--neon-pink); margin-top: 20px; margin-bottom: 10px;">🔴 削弱角色 (Nerfs)</h3>
+                <ul
+                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
+                    <li><strong style="color: var(--text-primary);">超級坦克</strong>：過於強勢，技能「裝甲」增加 1 回合冷卻時間。</li>
+                    <li><strong style="color: var(--text-primary);">美秀吉團</strong>：被動「大老婆」限制整場戰鬥觸發次數為 1 次。</li>
+                    <li><strong style="color: var(--text-primary);">阿共</strong>：被動「共機擾台」復活機率限制為 1 次。</li>
+                    <li><strong style="color: var(--text-primary);">Peter</strong>：「一階」與「二階」招式冷卻時間增加，延長進化所需時間。</li>
+                    <li><strong style="color: var(--text-primary);">怕瘦團</strong>：被動「大寶」恢復血量減少 (50 -> 30)。</li>
+                    <li><strong style="color: var(--text-primary);">賈伯斯max</strong>：體質大砍，基礎生命值 (570 -> 400) 與攻擊力 (70 ->
+                        50) 下降。</li>
+                    <li><strong style="color: var(--text-primary);">賴韋禎</strong>：被動「🤚」過於靈活，閃避機率下調 (60% -> 35%)。</li>
+                </ul>
+
+                <h3 style="color: var(--neon-cyan); margin-top: 20px; margin-bottom: 10px;">⚡ 平衡性調整 (Adjustments)</h3>
+                <ul
+                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
+                    <li><strong style="color: var(--text-primary);">護理師</strong>：攻擊力適度下調 (30 -> 20)，但技能「砍一刀」傷害提升 (10 ->
+                        30)。</li>
+                    <li><strong style="color: var(--text-primary);">瘋狗騎士</strong>：基礎生命值下調 (500 -> 400)，但攻擊力提升 (5 ->
+                        20)。同時調整技能冷卻時間與相關倍率。</li>
+                    <li><strong style="color: var(--text-primary);">抽卡時間</strong>：基礎生命值提升 (200 -> 230)，但移除了副作用技能「賣血時間」。
+                    </li>
+                    <li><strong style="color: var(--text-primary);">拳王</strong>：被動文字說明更新與效果標準化，爆擊倍率為2.0倍。</li>
+                    <li><strong style="color: var(--text-primary);">Ray生我夢</strong>：基礎生命值提升 (320 ->
+                        400)，一二技能的冷卻時間與強大負面效果做了相對應的平衡。</li>
+                    <li><strong style="color: var(--text-primary);">王世堅情</strong>：被動「有出息」大幅重製，現在低於 20% 血量時可以刷新所有技能一次。
+                    </li>
+                </ul>
+
+                <h3 style="color: var(--neon-gold); margin-top: 20px; margin-bottom: 10px;">🛠️ 系統與遊戲調整 (System Updates)
+                </h3>
+                <ul
+                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
+                    <li>全面實裝了包含 32 名角色的第一波大型平衡性更新。</li>
+                    <li>修復了多樣技能描述與實際發動效果不一致的問題。</li>
+                    <li>針對多項強大被動技能加上「觸發次數限制」，防止無限循環發生。</li>
+                </ul>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: center;">
+                <button class="btn" style="border-color: var(--neon-green); color: var(--neon-green);"
+                    onclick="closeUpdateModal()">了解！</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function showModeSelection() {
             document.getElementById('modeModal').classList.add('active');
@@ -51,6 +130,14 @@
 
         function closeModeModal() {
             document.getElementById('modeModal').classList.remove('active');
+        }
+
+        function showUpdateModal() {
+            document.getElementById('updateModal').classList.add('active');
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.remove('active');
         }
 
         function startGame(mode) {
@@ -102,9 +189,12 @@
             }
         }
 
-        // Close modal on outside click
+        // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', function (e) {
             if (e.target === this) closeModeModal();
+        });
+        document.getElementById('updateModal').addEventListener('click', function (e) {
+            if (e.target === this) closeUpdateModal();
         });
     </script>
 </body>
