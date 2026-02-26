@@ -255,7 +255,9 @@
                 if (type === 'pve') {
                     // Draw cards silently for NPC
                     const npcCards = GameState.drawCards('player2', GameState.getCardCount());
-                    if (difficulty === 'hard') {
+                    if (difficulty === 'hell') {
+                        GameState.player2.name = 'NPC (地獄)';
+                    } else if (difficulty === 'hard') {
                         GameState.player2.name = 'NPC (困難)';
                     } else if (difficulty === 'easy') {
                         GameState.player2.name = 'NPC (簡單)';
@@ -687,7 +689,76 @@
                 let skillIdx = null;
 
                 // Smart AI Decisions based on difficulty
-                if (difficulty === 'hard') {
+                if (difficulty === 'hell') {
+                    // Try to retreat if low HP and have healthy standby
+                    const hpPercent = card.hp / card.maxHp;
+                    const opponentHpPercent = GameState.player1.battleCard ? GameState.player1.battleCard.hp / GameState.player1.battleCard.maxHp : 1;
+
+                    // More aggressive retreat: 100% chance if HP < 35% and opponent is not close to dying
+                    if (hpPercent < 0.35 && opponentHpPercent > 0.2 && GameState.player2.standbyCards.length > 0) {
+                        const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.5);
+                        if (healthyStandbys.length > 0) {
+                            let bestIdx = 0;
+                            let maxScore = 0;
+                            GameState.player2.standbyCards.forEach((c, i) => {
+                                const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
+                                const score = c.hp + (baseAtk * 10);
+                                if (score > maxScore) { maxScore = score; bestIdx = i; }
+                            });
+                            actionType = 'retreat';
+                            skillIdx = bestIdx;
+                        }
+                    }
+
+                    if (actionType !== 'retreat') {
+                        const expectedAtk = typeof card.atk === 'object' ? Math.floor((card.atk.min + card.atk.max) / 2) : card.atk;
+                        const opponentCard = GameState.player1.battleCard;
+                        const totalOpponentHp = opponentCard ? (opponentCard.hp + opponentCard.shield) : 9999;
+
+                        // Categorize available skills
+                        const defensiveSkills = availableSkills.filter(idx =>
+                            card.skills[idx].desc.includes('保護') ||
+                            card.skills[idx].desc.includes('恢復') ||
+                            card.skills[idx].desc.includes('護盾') ||
+                            card.skills[idx].desc.includes('無敵') ||
+                            card.skills[idx].desc.includes('生命')
+                        );
+                        const offensiveSkills = availableSkills.filter(idx =>
+                            !defensiveSkills.includes(idx) && (
+                                card.skills[idx].desc.includes('傷害') ||
+                                card.skills[idx].desc.includes('攻擊') ||
+                                card.skills[idx].desc.includes('暈眩') ||
+                                card.skills[idx].desc.includes('中毒') ||
+                                card.skills[idx].desc.includes('燃燒')
+                            )
+                        );
+                        const otherSkills = availableSkills.filter(idx => !defensiveSkills.includes(idx) && !offensiveSkills.includes(idx));
+
+                        // 1. Kill confirmed with normal attack & we aren't about to die
+                        if (totalOpponentHp <= expectedAtk && hpPercent > 0.3) {
+                            actionType = 'attack';
+                        }
+                        // 2. High priority: Defensive skills when HP is low
+                        else if (hpPercent < 0.65 && defensiveSkills.length > 0) {
+                            actionType = 'skill';
+                            skillIdx = defensiveSkills[Math.floor(Math.random() * defensiveSkills.length)];
+                        }
+                        // 3. Offensive skills when opponent has enough HP to warrant it
+                        else if (offensiveSkills.length > 0 && totalOpponentHp > expectedAtk) {
+                            actionType = 'skill';
+                            skillIdx = offensiveSkills[Math.floor(Math.random() * offensiveSkills.length)];
+                        }
+                        // 4. Other skills (buffs, etc.) with a high chance
+                        else if (otherSkills.length > 0 && Math.random() < 0.8) {
+                            actionType = 'skill';
+                            skillIdx = otherSkills[Math.floor(Math.random() * otherSkills.length)];
+                        }
+                        // 5. Default to attack (e.g., HP is high so we skip defensive skills, or no skills left)
+                        else {
+                            actionType = 'attack';
+                        }
+                    }
+                } else if (difficulty === 'hard') {
                     // Try to retreat if low HP and have healthy standby
                     const hpPercent = card.hp / card.maxHp;
                     if (hpPercent < 0.3 && GameState.player2.standbyCards.length > 0) {
@@ -773,8 +844,8 @@
                         setTimeout(() => {
                             let pickIdx = 0;
 
-                            // Hard mode picks the best character (highest combined HP+ATK)
-                            if (difficulty === 'hard') {
+                            // Hard & Hell mode picks the best character (highest combined HP+ATK)
+                            if (difficulty === 'hard' || difficulty === 'hell') {
                                 let maxScore = 0;
                                 player.standbyCards.forEach((c, idx) => {
                                     const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;

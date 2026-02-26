@@ -654,9 +654,18 @@ const GameState = {
                 if (trigger === 'on_turn_start') {
                     card.resources.apple = (card.resources.apple || 0) + 1;
                     const appleCount = card.resources.apple;
-                    // Shield = apples × 35 (not cumulative add, set directly)
-                    card.shield = appleCount * (effect.shield_per || 35);
+                    const appleCap = effect.apple_cap || 8;
+                    const shieldPer = effect.shield_per || 50;
+                    // Shield caps at apple_cap apples (no further stacking beyond cap)
+                    const effectiveApples = Math.min(appleCount, appleCap);
+                    card.shield = effectiveApples * shieldPer;
                     this.addLog(`${card.name} 蘋果 +1 (共${appleCount})，護盾設為 ${card.shield}`, 'skill');
+                    // 生生不息：蘋果超過上限時每回合回復HP
+                    if (appleCount > appleCap) {
+                        const regenAmount = effect.regen_per_turn || 10;
+                        card.hp = Math.min(card.maxHp, card.hp + regenAmount);
+                        this.addLog(`${card.name} 【生生不息】恢復 ${regenAmount} HP`, 'heal');
+                    }
                 }
                 break;
 
