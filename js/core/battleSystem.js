@@ -150,6 +150,13 @@ const BattleSystem = {
             if (extraTaken.hits <= 0) defender.statusEffects = defender.statusEffects.filter(e => e !== extraTaken);
         }
 
+        // Check vulnerable status (易傷 from 藤條)
+        const vulnerable = defender.statusEffects.find(e => e.type === 'vulnerable');
+        if (vulnerable && !vulnerable.consumed_this_hit) {
+            damage = Math.floor(damage * (1 + (vulnerable.factor || 50) / 100));
+            GameState.addLog(`${defender.name} 處於易傷狀態，受到 ${vulnerable.factor}% 額外傷害`, 'status');
+        }
+
         // Check damage reduction (from status effects - percent)
         const reduction = defender.statusEffects.find(e => e.type === 'damage_reduction');
         if (reduction) {
@@ -1773,7 +1780,7 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_multi':
-                    for(let i=0; i<effect.hits; i++){
+                    for (let i = 0; i < effect.hits; i++) {
                         await this.applyDamage(attacker, defender, effect.damage);
                     }
                     break;
@@ -1826,8 +1833,8 @@ const BattleSystem = {
                     GameState.addLog(`${attacker.name} 恢復並獲得再生效果`, 'heal');
                     break;
                 case 'damage_multi_chance':
-                    for(let i=0; i<effect.hits; i++){
-                        if(await Animations.probabilityRoll(effect.chance, '連擊判定')){
+                    for (let i = 0; i < effect.hits; i++) {
+                        if (await Animations.probabilityRoll(effect.chance, '連擊判定')) {
                             await this.applyDamage(attacker, defender, effect.damage);
                         } else {
                             break;
@@ -1864,7 +1871,7 @@ const BattleSystem = {
                     break;
                 case 'clear_enemy_dodge':
                     defender.statusEffects = defender.statusEffects.filter(e => e.type !== 'dodge' && e.type !== 'dodge_reflect');
-                    if(defender.resources) defender.resources.dodge = 0;
+                    if (defender.resources) defender.resources.dodge = 0;
                     GameState.addLog(`${defender.name} 的閃避效果被清除了`, 'skill');
                     break;
                 case 'double_next_attack':
@@ -1880,8 +1887,8 @@ const BattleSystem = {
                     const avgHp = Math.floor(totalHp / 2);
                     attacker.hp = avgHp;
                     defender.hp = avgHp;
-                    if(attacker.hp > attacker.maxHp) attacker.maxHp = attacker.hp;
-                    if(defender.hp > defender.maxHp) defender.maxHp = defender.hp;
+                    if (attacker.hp > attacker.maxHp) attacker.maxHp = attacker.hp;
+                    if (defender.hp > defender.maxHp) defender.maxHp = defender.hp;
                     GameState.addLog(`雙方生命值被重新分配了！`, 'skill');
                     break;
                 case 'peak_state':
@@ -1932,26 +1939,26 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_doubling':
-                    for(let i=0; i<effect.attacks; i++){
+                    for (let i = 0; i < effect.attacks; i++) {
                         await this.applyDamage(attacker, defender, effect.start_damage * Math.pow(2, i));
                     }
                     break;
                 case 'debuff_enemy_stats_percent':
-                    defender.maxHp = Math.floor(defender.maxHp * ((100-effect.percent)/100));
-                    if(defender.hp > defender.maxHp) defender.hp = defender.maxHp;
-                    defender.atk = Math.floor(defender.atk * ((100-effect.percent)/100));
+                    defender.maxHp = Math.floor(defender.maxHp * ((100 - effect.percent) / 100));
+                    if (defender.hp > defender.maxHp) defender.hp = defender.maxHp;
+                    defender.atk = Math.floor(defender.atk * ((100 - effect.percent) / 100));
                     GameState.addLog(`${defender.name} 屬性大幅下降`, 'status');
                     break;
                 case 'remove_random_standby_both':
                     {
                         const p1Standby = GameState.player1.standbyCards;
                         const p2Standby = GameState.player2.standbyCards;
-                        if(p1Standby.length > 0) {
+                        if (p1Standby.length > 0) {
                             const idx = Math.floor(Math.random() * p1Standby.length);
                             const rm = p1Standby.splice(idx, 1)[0];
                             GameState.addLog(`玩家1的 ${rm.name} 被空間坍方吞噬了！`, 'damage');
                         }
-                        if(p2Standby.length > 0) {
+                        if (p2Standby.length > 0) {
                             const idx = Math.floor(Math.random() * p2Standby.length);
                             const rm = p2Standby.splice(idx, 1)[0];
                             GameState.addLog(`玩家2的 ${rm.name} 被空間坍方吞噬了！`, 'damage');
@@ -1963,8 +1970,8 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} 受到黑洞影響，${effect.turns}回後將被吞噬`, 'skill');
                     break;
                 case 'set_stats':
-                    if(effect.hp) { attacker.hp = effect.hp; attacker.maxHp = effect.hp; }
-                    if(effect.atk !== undefined) { attacker.atk = effect.atk; }
+                    if (effect.hp) { attacker.hp = effect.hp; attacker.maxHp = effect.hp; }
+                    if (effect.atk !== undefined) { attacker.atk = effect.atk; }
                     GameState.addLog(`${attacker.name} 轉換型態`, 'skill');
                     break;
                 case 'immune_enemy_actions':
@@ -1981,7 +1988,7 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} 受到侵蝕`, 'skill');
                     break;
                 case 'transform_chance':
-                    if(await Animations.probabilityRoll(effect.chance, '變形判定')) {
+                    if (await Animations.probabilityRoll(effect.chance, '變形判定')) {
                         await this.evolveCharacter(attacker, effect.target);
                     }
                     break;
@@ -1990,8 +1997,8 @@ const BattleSystem = {
                     GameState.addLog(`${attacker.name} 下次攻擊吸血`, 'skill');
                     break;
                 case 'damage_max_hp_chance':
-                    if(await Animations.probabilityRoll(effect.chance, '判定')) {
-                        await this.applyDamage(attacker, defender, Math.floor(defender.maxHp * (effect.percent/100)));
+                    if (await Animations.probabilityRoll(effect.chance, '判定')) {
+                        await this.applyDamage(attacker, defender, Math.floor(defender.maxHp * (effect.percent / 100)));
                     } else {
                         await this.applyDamage(attacker, defender, effect.damage);
                     }
@@ -2008,7 +2015,7 @@ const BattleSystem = {
                             const idx = Math.floor(Math.random() * oppState.standbyCards.length);
                             const oldCard = oppState.standbyCards[idx];
                             const tk = getCharacterByName(effect.target);
-                            if(tk) {
+                            if (tk) {
                                 oppState.standbyCards[idx] = createCharacterInstance(tk);
                                 GameState.addLog(`對手的 ${oldCard.name} 被變成了 ${effect.target}`, 'skill');
                             }
@@ -2038,7 +2045,7 @@ const BattleSystem = {
                     break;
                 case 'summon_chance_scaling':
                     let curSmCh = attacker.resources.summon_chance || effect.base_chance;
-                    if(await Animations.probabilityRoll(curSmCh, '召喚判定')) {
+                    if (await Animations.probabilityRoll(curSmCh, '召喚判定')) {
                         const targetChar = getCharacterByName(effect.target);
                         if (targetChar) {
                             const inst = createCharacterInstance(targetChar);
@@ -2052,14 +2059,14 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_enemy_max_hp_percent':
-                    await this.applyDamage(attacker, defender, Math.floor(defender.maxHp * (effect.percent/100)));
+                    await this.applyDamage(attacker, defender, Math.floor(defender.maxHp * (effect.percent / 100)));
                     break;
                 case 'consume_believers_heal':
                     {
                         const ownerP = GameState.currentPlayer === 1 ? 'player1' : 'player2';
                         let consumed = 0;
                         GameState[ownerP].standbyCards = GameState[ownerP].standbyCards.filter(c => {
-                            if(c.name === '信徒' || c.tags?.includes('believer')) { consumed++; return false; }
+                            if (c.name === '信徒' || c.tags?.includes('believer')) { consumed++; return false; }
                             return true;
                         });
                         if (consumed > 0) {
@@ -2126,7 +2133,7 @@ const BattleSystem = {
                     attacker.shield += effect.shield;
                     GameState.addLog(`暈眩對手並獲得護盾`, 'skill');
                     break;
-                case 'summon_chance_once': 
+                case 'summon_chance_once':
                     if (await Animations.probabilityRoll(effect.chance, '召喚判定')) {
                         const targetChar = getCharacterByName(effect.target);
                         if (targetChar) {
@@ -2153,8 +2160,8 @@ const BattleSystem = {
                         const c2 = allCharsList[Math.floor(Math.random() * allCharsList.length)];
                         const p1Obj = GameState.player1.battleCard;
                         const p2Obj = GameState.player2.battleCard;
-                        if(p1Obj) await this.evolveCharacter(p1Obj, c1.name);
-                        if(p2Obj) await this.evolveCharacter(p2Obj, c2.name);
+                        if (p1Obj) await this.evolveCharacter(p1Obj, c1.name);
+                        if (p2Obj) await this.evolveCharacter(p2Obj, c2.name);
                         GameState.addLog(`量子糾纏改變了現實...`, 'skill');
                     }
                     break;
@@ -2171,9 +2178,9 @@ const BattleSystem = {
                         const oppState = GameState.getOpponent();
                         const count = oppState.standbyCards.length;
                         oppState.standbyCards = [];
-                        for(let i=0; i<count; i++){
+                        for (let i = 0; i < count; i++) {
                             const dC = drawRandomCharacter();
-                            if(dC) oppState.standbyCards.push(createCharacterInstance(dC));
+                            if (dC) oppState.standbyCards.push(createCharacterInstance(dC));
                         }
                         GameState.addLog(`對手的備戰區被重新洗牌了`, 'skill');
                     }
@@ -2181,13 +2188,13 @@ const BattleSystem = {
                 case 'draw_extra_if_common':
                     const pState = GameState.getCurrentPlayer();
                     const d1 = drawRandomCharacter();
-                    if(d1) {
+                    if (d1) {
                         const inst1 = createCharacterInstance(d1);
                         pState.standbyCards.push(inst1);
                         GameState.addLog(`抽到了 ${inst1.name}`, 'skill');
                         if (inst1.rarity === 'COMMON') {
                             const d2 = drawRandomCharacter();
-                            if(d2) {
+                            if (d2) {
                                 const inst2 = createCharacterInstance(d2);
                                 pState.standbyCards.push(inst2);
                                 GameState.addLog(`額外抽到了 ${inst2.name}`, 'skill');
@@ -2205,7 +2212,7 @@ const BattleSystem = {
                     break;
                 case 'heal_missing_hp_percent':
                     const missing = attacker.maxHp - attacker.hp;
-                    attacker.hp += Math.floor(missing * (effect.percent/100));
+                    attacker.hp += Math.floor(missing * (effect.percent / 100));
                     break;
                 case 'consume_burden_shield_damage':
                     const burden = attacker.resources.burden || 0;
@@ -2229,7 +2236,7 @@ const BattleSystem = {
                     break;
                 case 'whip_strike':
                     await this.applyDamage(attacker, defender, effect.damage);
-                    if(await Animations.probabilityRoll(effect.chance, '判定')) {
+                    if (await Animations.probabilityRoll(effect.chance, '判定')) {
                         defender.statusEffects.push({ type: 'stun', name: '暈眩', turns: 1 });
                         GameState.addLog(`附加了暈眩`, 'skill');
                     }
@@ -2258,8 +2265,224 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} 陷入亢奮狀態`, 'skill');
                     break;
                 case 'stack_defense_dodge':
-                    attacker.resources.dodge = (attacker.resources.dodge || 0) + effect.dodge;
-                    attacker.resources.defense_stacks = (attacker.resources.defense_stacks || 0) + effect.reduction;
+                    attacker.resources.dodge = (attacker.resources.dodge || 0) + (effect.dodge || 0);
+                    attacker.resources.defense_stacks = (attacker.resources.defense_stacks || 0) + (effect.reduction || 0);
+                    break;
+
+                // --- NEWLY IMPLEMENTED SKILL EFFECTS ---
+
+                case 'shield_and_regen': // 亞克-VI 絕對力場
+                    attacker.shield += effect.initial || 0;
+                    attacker.statusEffects.push({ type: 'shield_dot', name: '持續護盾', value: effect.regen || 40, turns: effect.turns || 3 });
+                    GameState.addLog(`${attacker.name} 獲得 ${effect.initial} 護盾並開始每回合恢復護盾`, 'skill');
+                    break;
+
+                case 'show_off': // 小資-抽獎 (炫耀效果)
+                    attacker.statusEffects.push({ type: 'show_off', name: '炫耀', dodge_chance: effect.dodge_chance || 35, turns: effect.turns || 2 });
+                    attacker.resources.dodge = (attacker.resources.dodge || 0) + (effect.dodge_chance || 35);
+                    GameState.addLog(`${attacker.name} 獲得「炫耀」效果 (${effect.dodge_chance}%閃避，成功後延長)`, 'skill');
+                    break;
+
+                case 'draw_and_resource': // 包牌俠-相公
+                    {
+                        const drOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        for (let i = 0; i < (effect.count || 1); i++) {
+                            const dC = drawRandomCharacter();
+                            if (dC) {
+                                const inst = createCharacterInstance(dC);
+                                GameState.addToStandby(drOwner, inst);
+                                GameState.addLog(`${attacker.name} 抽到了 ${inst.name}`, 'skill');
+                                await Animations.drawCards([inst]);
+                            }
+                        }
+                        if (effect.resource && effect.value) {
+                            attacker.resources[effect.resource] = (attacker.resources[effect.resource] || 0) + effect.value;
+                        }
+                    }
+                    break;
+
+                case 'buff_atk_mult_chance_range': // 概率學-概率學概論
+                    {
+                        const rollChance = Math.floor(Math.random() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
+                        if (await Animations.probabilityRoll(rollChance, '強化判定')) {
+                            attacker.atk = Math.floor(attacker.atk * (effect.mult || 3));
+                            GameState.addLog(`${attacker.name} 攻擊力提升到 ${attacker.atk}！`, 'skill');
+                        } else {
+                            GameState.addLog(`強化失敗`, 'status');
+                        }
+                    }
+                    break;
+
+                case 'debuff_enemy_atk_half_chance_range': // 概率學-概率為100
+                    {
+                        const rollChance = Math.floor(Math.random() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
+                        if (await Animations.probabilityRoll(rollChance, '削弱判定')) {
+                            defender.atk = Math.floor(defender.atk / 2);
+                            GameState.addLog(`${defender.name} 攻擊力減半！`, 'status');
+                        }
+                    }
+                    break;
+
+                case 'debuff_atk_percent': // 老黑-震
+                    {
+                        const debuffAmt = Math.floor(defender.atk * ((effect.value || effect.percent || 60) / 100));
+                        defender.statusEffects.push({ type: 'debuff_atk', name: '削弱', value: debuffAmt, turns: effect.turns || 3 });
+                        defender.atk = Math.max(0, defender.atk - debuffAmt);
+                        GameState.addLog(`${defender.name} 攻擊力降低 ${effect.value || effect.percent}%`, 'status');
+                    }
+                    break;
+
+                case 'damage_and_curable_burn_percent': // 火哥-噴火
+                    await this.applyDamage(attacker, defender, effect.damage || 0);
+                    {
+                        const burnPct = effect.burn_percent || 8;
+                        const cureCh = effect.cure_chance || 40;
+                        defender.statusEffects.push({ type: 'curable_burn_percent', name: '著火', burn_percent: burnPct, cure_chance: cureCh, permanent: true });
+                        GameState.addLog(`${defender.name} 著火了！每回合承受${burnPct}%當前血量的傷害`, 'status');
+                    }
+                    break;
+
+                case 'breakthrough_counter': // 受傷-突破 passive handled in gameState
+                    GameState.addLog(`${attacker.name} 突破值增加`, 'skill');
+                    break;
+
+                case 'buff_atk_and_reduction': // 巔峰-全盛時期
+                    attacker.atk += effect.atk || 0;
+                    attacker.statusEffects.push({ type: 'damage_reduction', name: '全盛', value: effect.reduction || 15, turns: effect.turns || 3 });
+                    GameState.addLog(`${attacker.name} 進入全盛狀態！ATK +${effect.atk}，減傷 ${effect.reduction}%`, 'skill');
+                    break;
+
+                case 'damage_summon_specific': // 堯冥-打籃球
+                    await this.applyDamage(attacker, defender, effect.damage || 0);
+                    {
+                        const spChar = getCharacterByName(effect.target);
+                        if (spChar) {
+                            const spInst = createCharacterInstance(spChar);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', spInst);
+                            GameState.addLog(`${attacker.name} 召喚了 ${effect.target}`, 'skill');
+                            await Animations.drawCards([spInst]);
+                        }
+                    }
+                    break;
+
+                case 'apply_burn_dot': // 魔王-魔焰
+                    defender.statusEffects.push({ type: 'burn', name: '灼燒', damage: effect.damage || 30, turns: effect.turns || 4 });
+                    GameState.addLog(`${defender.name} 受到灼燒 (${effect.damage}/回合，${effect.turns}回合)`, 'status');
+                    break;
+
+                case 'consume_named_standby_heal': // 魔王-啄食
+                    {
+                        const ownerPKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        const targetName = effect.target;
+                        let consumed = 0;
+                        GameState[ownerPKey].standbyCards = GameState[ownerPKey].standbyCards.filter(c => {
+                            if (c.name === targetName) { consumed++; return false; }
+                            return true;
+                        });
+                        if (consumed > 0) {
+                            attacker.hp = Math.min(attacker.maxHp, attacker.hp + consumed * (effect.heal_per || 15));
+                            GameState.addLog(`消耗了 ${consumed} 個 ${targetName}，恢復 ${consumed * effect.heal_per} HP`, 'heal');
+                        } else {
+                            GameState.addLog(`沒有 ${targetName} 可以消耗`, 'status');
+                        }
+                    }
+                    break;
+
+                case 'damage_self_max_hp_percent': // 塔盾玩家-烈陽鎧甲
+                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * ((effect.percent || 10) / 100)));
+                    break;
+
+                case 'set_enemy_atk_zero_timed': // 開發者-程式改寫
+                    defender.statusEffects.push({ type: 'atk_zero', name: '格式清空', turns: effect.turns || 3, original_atk: defender.atk });
+                    defender.atk = 0;
+                    GameState.addLog(`${defender.name} 攻擊力被清零！${effect.turns}回合`, 'status');
+                    break;
+
+                case 'summon_and_buff_per_type': // 被信仰之人-被信仰 (handled in gameState passive)
+                    GameState.addLog(`召喚信眾...`, 'skill');
+                    break;
+
+                case 'buff_next_attack_lifesteal': // 骷髏王-吸收
+                    attacker.nextAttackMult = (attacker.nextAttackMult || 0) + Math.floor((effect.mult - 1) * 100);
+                    attacker.nextAttackLifesteal = (effect.mult || 1.25) * 100;
+                    GameState.addLog(`${attacker.name} 下次攻擊×${effect.mult}並吸血`, 'skill');
+                    break;
+
+                case 'whip_strike_vulnerable': // 藤條-鞭打
+                    {
+                        const whipDmg = Math.floor(defender.maxHp * ((effect.percent || 4) / 100));
+                        await this.applyDamage(attacker, defender, whipDmg);
+                        defender.statusEffects.push({ type: 'vulnerable', name: '易傷', factor: effect.vulnerable_factor || 50, turns: effect.vulnerable_turns || 1 });
+                        GameState.addLog(`${defender.name} 受到鞭打並獲得易傷效果`, 'status');
+                    }
+                    break;
+
+                case 'transform_both_standby_random': // 不平凡-註定平凡
+                    {
+                        const p1Sb = GameState.player1.standbyCards;
+                        const p2Sb = GameState.player2.standbyCards;
+                        const tbTarget = getCharacterByName(effect.target);
+                        if (tbTarget) {
+                            if (p1Sb.length > 0) {
+                                const idx1 = Math.floor(Math.random() * p1Sb.length);
+                                p1Sb[idx1] = createCharacterInstance(tbTarget);
+                                GameState.addLog(`玩家1備戰區一張牌變成了 ${effect.target}`, 'skill');
+                            }
+                            if (p2Sb.length > 0) {
+                                const idx2 = Math.floor(Math.random() * p2Sb.length);
+                                p2Sb[idx2] = createCharacterInstance(tbTarget);
+                                GameState.addLog(`玩家2備戰區一張牌變成了 ${effect.target}`, 'skill');
+                            }
+                        }
+                    }
+                    break;
+
+                case 'draw_extra_if_common_loop': // UR卡-根本抽不到
+                    {
+                        let keepDrawing = true;
+                        let safetyLimit = 10;
+                        while (keepDrawing && safetyLimit-- > 0) {
+                            const dC = drawRandomCharacter();
+                            if (dC) {
+                                const inst = createCharacterInstance(dC);
+                                GameState.getCurrentPlayer().standbyCards.push(inst);
+                                GameState.addLog(`抽到了 ${inst.name}`, 'skill');
+                                await Animations.drawCards([inst]);
+                                keepDrawing = (inst.rarity === 'COMMON');
+                            } else {
+                                keepDrawing = false;
+                            }
+                        }
+                    }
+                    break;
+
+                case 'set_damage_reduction': // 盾哥、機槍哥 passive (handled at passive level)
+                    attacker.resources.defense_stacks = (attacker.resources.defense_stacks || 0) + (effect.value || 0);
+                    GameState.addLog(`${attacker.name} 獲得永久減傷`, 'skill');
+                    break;
+
+                case 'damage_atk_mult': // 巔峰-巔峰一拳
+                    await this.applyDamage(attacker, defender, Math.floor(attacker.atk * (effect.mult || 2)));
+                    break;
+
+                case 'buff_max_hp_atk': // 數值怪-疊數值
+                    attacker.maxHp += (effect.hp || 0);
+                    attacker.hp += (effect.hp || 0);
+                    attacker.atk += (effect.atk || 0);
+                    GameState.addLog(`${attacker.name} 疊數值！HP上限 +${effect.hp}, ATK +${effect.atk}`, 'skill');
+                    break;
+
+                case 'heal_max_hp_percent': // 黃蓋-耐打
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + Math.floor(attacker.maxHp * ((effect.percent || 50) / 100)));
+                    GameState.addLog(`${attacker.name} 恢復 ${effect.percent}% 最大生命值`, 'heal');
+                    break;
+
+                case 'damage_chance': // 曲線-曲率
+                    if (await Animations.probabilityRoll(effect.chance, '技能判定')) {
+                        await this.applyDamage(attacker, defender, effect.damage);
+                    } else {
+                        GameState.addLog('技能失敗', 'status');
+                    }
                     break;
 
                 case 'spend_resource_evolve': // 賈伯斯-創業
