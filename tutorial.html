@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>霓虹牌 - 新手教學</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/theme.js"></script>
     <style>
         /* ===== TUTORIAL SPECIFIC STYLES ===== */
         body {
@@ -392,6 +392,7 @@
 </head>
 
 <body>
+    <!-- Theme Toggle Removed -->
 
     <!-- Step progress indicator -->
     <div class="tut-progress" id="tutProgress">
@@ -403,7 +404,17 @@
 
     <!-- NPC Dialogue -->
     <div class="npc-dialogue" id="npcDialogue">
-        <div class="npc-avatar" id="npcAvatar">⚔️</div>
+        <div class="npc-avatar" id="npcAvatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" style="width: 24px; height: 24px;">
+                <path d="m14 14-4.5 4.5a2.12 2.12 0 0 1-3 0 2.12 2.12 0 0 1 0-3L11 11"></path>
+                <path d="m11.5 5.5-2 2"></path>
+                <path d="m15.5 9.5-2 2"></path>
+                <path d="M19.5 4.5 15 9"></path>
+                <path d="m5.5 18.5 2-2"></path>
+                <path d="M10 14h4v4"></path>
+            </svg>
+        </div>
         <div class="npc-bubble" id="npcBubble">
             <div class="npc-name" id="npcName">戰士 NPC</div>
             <div class="npc-text" id="npcText">
@@ -674,7 +685,7 @@
             const textEl = document.getElementById('npcText');
 
             if (speaker === 'npc') {
-                avatar.textContent = '⚔️';
+                avatar.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;"><path d="m14 14-4.5 4.5a2.12 2.12 0 0 1-3 0 2.12 2.12 0 0 1 0-3L11 11"></path><path d="m11.5 5.5-2 2"></path><path d="m15.5 9.5-2 2"></path><path d="M19.5 4.5 15 9"></path><path d="m5.5 18.5 2-2"></path><path d="M10 14h4v4"></path></svg>';
                 avatar.className = 'npc-avatar';
                 nameEl.textContent = '戰士 NPC';
                 bubble.className = 'npc-bubble';

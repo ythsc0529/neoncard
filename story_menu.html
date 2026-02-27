@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>劇情模式 - Neon Card Game</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/theme.js"></script>
     <style>
         .story-menu-container {
             width: 100%;
@@ -103,24 +104,43 @@
             background: #2a2a3a;
             border: 1px solid #444;
             color: #fff;
-            padding: 8px 15px;
+            padding: 8px 15px 8px 24px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
             transition: all 0.2s;
+            position: relative;
         }
 
         .node-btn:hover:not(:disabled) {
-            background: #00ffff;
-            color: #000;
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        .node-btn::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
         }
 
         .node-btn.dialogue-node::before {
-            content: '💬 ';
+            background: var(--neon-cyan);
+            box-shadow: 0 0 5px var(--neon-cyan);
         }
 
         .node-btn.battle-node::before {
-            content: '⚔️ ';
+            background: var(--neon-magenta);
+            box-shadow: 0 0 5px var(--neon-magenta);
+            border-radius: 1px;
+            /* Square for battle */
+            transform: translateY(-50%) rotate(45deg);
         }
 
         .node-btn:disabled {
@@ -130,8 +150,8 @@
         }
 
         .node-btn.completed {
-            background: rgba(0, 255, 0, 0.2);
-            border-color: #00ff00;
+            background: rgba(10, 255, 104, 0.1);
+            border-color: var(--neon-green);
         }
 
         .top-bar {
@@ -144,6 +164,7 @@
 </head>
 
 <body>
+    <!-- Theme Toggle Removed -->
     <div class="story-menu-container">
         <div class="top-bar">
             <button class="btn" style="padding: 10px 20px;" onclick="location.href='index.html'">← 返回主選單</button>
