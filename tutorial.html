@@ -588,6 +588,18 @@
             buildProgressDots();
             showBattleUI();
             updateUI();
+
+            // Add keyboard support for continuing dialogue
+            document.addEventListener('keydown', function (e) {
+                if (e.code === 'Space' || e.code === 'Enter') {
+                    const btn = document.getElementById('dialogueContinue');
+                    if (btn && btn.classList.contains('show')) {
+                        e.preventDefault();
+                        nextStep();
+                    }
+                }
+            });
+
             // Start step 0 intro
             setTimeout(() => startStep(0), 500);
         }

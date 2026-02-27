@@ -179,6 +179,31 @@
             <!-- Content injected via JS -->
         </div>
     </div>
+    <!-- Story Battle End Modals -->
+    <div class="modal-overlay" id="storyCompleteModal">
+        <div class="modal">
+            <h2 class="neon-text" style="text-shadow: 0 0 15px rgba(255, 0, 85, 0.4); color: var(--neon-pink);">章節完成
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">防線已突破，新的劇情已解鎖！</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center;">
+                <button class="btn btn-magenta" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.2rem; padding: 15px 30px;">返回故事大廳</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="storyFailModal">
+        <div class="modal">
+            <h2 class="neon-text" style="text-shadow: 0 0 15px rgba(255, 0, 0, 0.4); color: #ff4444;">戰鬥失敗</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">反抗軍被擊潰，是否要重新挑戰？</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 15px;">
+                <button class="btn btn-magenta" onclick="location.reload()"
+                    style="font-size: 1.1rem; padding: 10px 20px;">再次挑戰</button>
+                <button class="btn" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.1rem; padding: 10px 20px;">撤退</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/data/story.js"></script>
@@ -1120,15 +1145,10 @@
                         location.reload();
                     }
                 } else {
-                    alert('章節完成！');
-                    location.href = 'story_menu.html';
+                    document.getElementById('storyCompleteModal').classList.add('active');
                 }
             } else {
-                if (confirm('戰鬥失敗！要重新挑戰嗎？')) {
-                    location.reload();
-                } else {
-                    location.href = 'story_menu.html';
-                }
+                document.getElementById('storyFailModal').classList.add('active');
             }
         }
 

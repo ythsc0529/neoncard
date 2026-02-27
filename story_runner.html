@@ -59,6 +59,18 @@
             font-weight: bold;
         }
 
+        .vn-location {
+            font-size: 1rem;
+            color: #aaeebb;
+            margin-bottom: 10px;
+            font-style: italic;
+            border-bottom: 1px solid rgba(170, 238, 187, 0.3);
+            padding-bottom: 5px;
+            display: inline-block;
+            align-self: flex-start;
+            text-shadow: 0 0 5px rgba(170, 238, 187, 0.5);
+        }
+
         .vn-text {
             font-size: 1.2rem;
             color: #fff;
@@ -116,9 +128,23 @@
         <button class="skip-btn" onclick="skipDialogue(event)">跳過劇情</button>
 
         <div class="vn-dialogue-area">
+            <div class="vn-location" id="vnLocation" style="display: none;"></div>
             <div class="vn-speaker" id="vnSpeaker"></div>
             <div class="vn-text" id="vnText"></div>
             <div class="vn-next-indicator" id="vnNext">▼</div>
+        </div>
+    </div>
+
+    <!-- Chapter Complete Modal -->
+    <div class="modal-overlay" id="chapterCompleteModal">
+        <div class="modal">
+            <h2 class="neon-text" style="text-shadow: 0 0 15px rgba(255, 0, 85, 0.4); color: var(--neon-pink);">章節完成
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">新的劇情與挑戰已解鎖！</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center;">
+                <button class="btn btn-magenta" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.2rem; padding: 15px 30px;">返回故事大廳</button>
+            </div>
         </div>
     </div>
 
@@ -141,6 +167,11 @@
         let currentText = '';
         let targetText = '';
 
+        if (currentNodeIndex === 0 && currentLine === 0) {
+            localStorage.removeItem('story_current_location');
+        }
+        let savedLocation = localStorage.getItem('story_current_location') || '';
+
         function renderDialogue() {
             if (currentLine >= node.conversations.length) {
                 finishNode();
@@ -148,6 +179,43 @@
             }
 
             const dialogue = node.conversations[currentLine];
+
+            // 嘗試解析地點資訊
+            if (dialogue.speaker === '系統' && dialogue.text.includes('地點：')) {
+                const locMatch = dialogue.text.match(/地點：([^\n]+)/);
+                if (locMatch) {
+                    savedLocation = locMatch[1].trim();
+                } else {
+                    savedLocation = dialogue.text.replace('地點：', '').trim();
+                }
+                localStorage.setItem('story_current_location', savedLocation);
+            } else if (dialogue.speaker === '系統' && dialogue.text === '怪人谷的日常') {
+                savedLocation = '怪人谷';
+                localStorage.setItem('story_current_location', savedLocation);
+            } else if (dialogue.speaker === '系統' && dialogue.text.includes('回到至高數據塔')) {
+                savedLocation = '虛擬第 1 區 —— 「至高數據塔（The Ivory Spire）」';
+                localStorage.setItem('story_current_location', savedLocation);
+            }
+
+            // 顯示位置如果尚未設定，但 chapter有提供 (例如 第一章 預設值)
+            if (!savedLocation) {
+                if (chapter.id === 'main_1') savedLocation = '虛擬第 7 區 —— 「破碎程式碼荒原」';
+                else if (chapter.id === 'main_2') savedLocation = '虛擬第 8 區 —— 「手搖飲流域（The Sugar-Ice Valley）」';
+                else if (chapter.id === 'main_3') savedLocation = '虛擬第 1 區 —— 「至高數據塔（The Ivory Spire）」';
+                else if (chapter.id === 'main_4') savedLocation = '虛擬第 4 區 —— 「草東街（The Melancholy Street）」';
+                else if (chapter.id === 'main_5') savedLocation = '虛擬第 9 區 —— 「資源回收筒（The Recycle Bin）」';
+                else if (chapter.id === 'main_6') savedLocation = '虛擬第 9 區 —— 「資源回收筒」與「至高數據塔」的交界';
+                localStorage.setItem('story_current_location', savedLocation);
+            }
+
+            const locationEl = document.getElementById('vnLocation');
+            if (locationEl && savedLocation) {
+                locationEl.textContent = `📍 所在區域：${savedLocation}`;
+                locationEl.style.display = 'block';
+            } else if (locationEl) {
+                locationEl.style.display = 'none';
+            }
+
             document.getElementById('vnSpeaker').textContent = dialogue.speaker || '';
 
             // Handle Typewriter effect
@@ -212,8 +280,7 @@
                 }
             } else {
                 // End of chapter
-                alert('章節完成！');
-                location.href = 'story_menu.html';
+                document.getElementById('chapterCompleteModal').classList.add('active');
             }
         }
 
@@ -224,6 +291,18 @@
             // For now, we don't have images so just change color or let CSS handle class
             document.getElementById('vnContainer').classList.add(node.background);
         }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                const modal = document.getElementById('chapterCompleteModal');
+                if (modal && modal.classList.contains('active')) {
+                    location.href = 'story_menu.html';
+                    return;
+                }
+                e.preventDefault();
+                nextDialogue();
+            }
+        });
 
         renderDialogue();
     </script>
