@@ -6,7 +6,9 @@ const ALL_CHARACTERS = [
     ...CHARACTERS_PART1,
     ...CHARACTERS_PART2,
     ...CHARACTERS_PART3,
-    ...CHARACTERS_PART4
+    ...CHARACTERS_PART4,
+    ...CHARACTERS_PART5,
+    ...CHARACTERS_PART6
 ];
 
 // Create lookup maps
