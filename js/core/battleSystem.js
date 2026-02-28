@@ -352,6 +352,11 @@ const BattleSystem = {
                 defender.maxHp += defender.passive.effect.value;
                 defender.hp += defender.passive.effect.value;
             }
+            if (defender.passive.effect.action === 'add_resource') {
+                if (!defender.resources) defender.resources = {};
+                defender.resources[defender.passive.effect.resource] = (defender.resources[defender.passive.effect.resource] || 0) + defender.passive.effect.value;
+                GameState.addLog(`${defender.name} 被動觸發，獲得 ${defender.passive.effect.value} 點 ${defender.passive.effect.resource}`, 'skill');
+            }
             // Note: dodge_scale handled in dodge block, or here if it implies "on hit attempt"? 
             // "每閃避一次" (every time dodged) - handled in dodge block.
         }
@@ -480,6 +485,32 @@ const BattleSystem = {
                 } else {
                     GameState.addLog(`${attacker.name} 溺水未觸發 (${currentDrownChance}%)`, 'status');
                 }
+            } else if (onSkillPassive.action === 'random_effect') {
+                await Animations.showSkillName(Animations.getCardEl(attacker), '抽取被動');
+                const buffRoll = Math.floor(Math.random() * 4);
+                switch (buffRoll) {
+                    case 0:
+                        attacker.atk += 20;
+                        GameState.addLog('被動觸發：獲得攻擊力！ATK +20', 'skill');
+                        break;
+                    case 1:
+                        attacker.hp = Math.min(attacker.maxHp, attacker.hp + 50);
+                        GameState.addLog('被動觸發：獲得血量！HP +50', 'heal');
+                        break;
+                    case 2:
+                        attacker.statusEffects.push({ type: 'multi_attack', name: '666', hits: 2, turns: 1 });
+                        GameState.addLog('被動觸發：獲得666！下次攻擊連續攻擊1次', 'skill');
+                        break;
+                    case 3:
+                        const suibian = getCharacterByName('隨便你');
+                        if (suibian) {
+                            const inst = createCharacterInstance(suibian);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addLog('被動觸發：召喚了隨便你', 'skill');
+                            await Animations.drawCards([inst]);
+                        }
+                        break;
+                }
             } else {
                 GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
             }
@@ -599,7 +630,7 @@ const BattleSystem = {
                     Animations.showHeal(Animations.getCardEl(attacker), effect.value);
                     break;
                 case 'heal_max_hp_percent':
-                    const hAmt = Math.floor(attacker.maxHp * effect.value / 100);
+                    const hAmt = Math.floor(attacker.maxHp * (effect.value || effect.percent || 0) / 100);
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + hAmt);
                     GameState.addLog(`${attacker.name} 恢復 ${hAmt} HP`, 'heal');
                     Animations.showHeal(Animations.getCardEl(attacker), hAmt);
@@ -1721,8 +1752,8 @@ const BattleSystem = {
                     break;
                 case 'immune_hits':
                 case 'immune_hits_turns':
-                    attacker.statusEffects.push({ type: 'immunity', name: '絕對防禦', hits: effect.hits, turns: effect.turns || 99 });
-                    GameState.addLog(`${attacker.name} 獲得 ${effect.hits} 次免疫`, 'skill');
+                    attacker.statusEffects.push({ type: 'immunity', name: '絕對防禦', hits: effect.hits || 99, turns: effect.turns || 99 });
+                    GameState.addLog(`${attacker.name} 獲得 ${effect.hits || 99} 次免疫`, 'skill');
                     break;
                 case 'damage_trade_max_hp_percent':
                     const loss = Math.floor(attacker.maxHp * (effect.hp_loss_percent / 100));
@@ -2033,11 +2064,12 @@ const BattleSystem = {
                     }
                     break;
                 case 'mady_moment':
-                    attacker.hp = attacker.maxHp;
-                    attacker.atk += effect.atk;
-                    attacker.skills.forEach(s => s.cd = 0);
-                    attacker.cooldowns.fill(0);
-                    GameState.addLog(`Mady時間！`, 'skill');
+                    attacker.shield += effect.self_shield || 0;
+                    attacker.atk += effect.self_atk || 0;
+                    attacker.statusEffects.push({ type: 'regen', name: 'Mady恢復', heal: effect.self_regen, turns: effect.self_turns });
+                    defender.atk = Math.max(0, defender.atk + (effect.enemy_atk || 0));
+                    defender.statusEffects.push({ type: 'miss_chance', name: '失誤', chance: effect.enemy_miss, turns: effect.enemy_turns });
+                    GameState.addLog(`Mady時間！獲得全面強化，對手受到削弱`, 'skill');
                     break;
                 case 'apply_atheism':
                     defender.statusEffects.push({ type: 'atheism', name: '無神論', turns: effect.turns });
@@ -2203,16 +2235,26 @@ const BattleSystem = {
                     }
                     break;
                 case 'summon_gacha_damage':
-                    const gc = getRandomFromCategory(effect.category);
-                    if (gc) {
-                        const inst = createCharacterInstance(gc);
-                        GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
-                        GameState.addLog(`抽到了 ${inst.name}`, 'skill');
+                    {
+                        const targetName = effect.targets[Math.floor(Math.random() * effect.targets.length)];
+                        const gc = getCharacterByName(targetName);
+                        if (gc) {
+                            const inst = createCharacterInstance(gc);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addLog(`抽到了 ${inst.name}`, 'skill');
+                            await Animations.drawCards([inst]);
+                        }
+                        if (effect.damage) {
+                            await this.applyDamage(attacker, defender, effect.damage);
+                        }
                     }
                     break;
                 case 'heal_missing_hp_percent':
                     const missing = attacker.maxHp - attacker.hp;
-                    attacker.hp += Math.floor(missing * (effect.percent / 100));
+                    const healAmt = Math.floor(missing * (effect.percent / 100));
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+                    GameState.addLog(`${attacker.name} 恢復了 ${healAmt} 點生命值`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), healAmt);
                     break;
                 case 'consume_burden_shield_damage':
                     const burden = attacker.resources.burden || 0;
@@ -2472,10 +2514,7 @@ const BattleSystem = {
                     GameState.addLog(`${attacker.name} 疊數值！HP上限 +${effect.hp}, ATK +${effect.atk}`, 'skill');
                     break;
 
-                case 'heal_max_hp_percent': // 黃蓋-耐打
-                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + Math.floor(attacker.maxHp * ((effect.percent || 50) / 100)));
-                    GameState.addLog(`${attacker.name} 恢復 ${effect.percent}% 最大生命值`, 'heal');
-                    break;
+                // case 'heal_max_hp_percent': previously duplicated, merged above
 
                 case 'damage_chance': // 曲線-曲率
                     if (await Animations.probabilityRoll(effect.chance, '技能判定')) {
