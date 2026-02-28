@@ -22,6 +22,7 @@
             position: relative;
             width: 100%;
             height: 100%;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
@@ -43,9 +44,11 @@
         .vn-dialogue-area {
             position: relative;
             z-index: 10;
-            padding: 20px 40px 40px 40px;
+            padding: 20px 40px calc(40px + env(safe-area-inset-bottom)) 40px;
             background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
-            height: 30%;
+            min-height: 30%;
+            max-height: 65%;
+            height: auto;
             display: flex;
             flex-direction: column;
             cursor: pointer;
@@ -77,6 +80,7 @@
             line-height: 1.6;
             white-space: pre-wrap;
             flex-grow: 1;
+            overflow-y: auto;
         }
 
         .vn-next-indicator {
@@ -117,6 +121,24 @@
 
         .skip-btn:hover {
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .vn-dialogue-area {
+                padding: 15px 20px calc(30px + env(safe-area-inset-bottom)) 20px;
+            }
+
+            .vn-speaker {
+                font-size: 1.3rem;
+            }
+
+            .vn-text {
+                font-size: 1.05rem;
+            }
+
+            .vn-location {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
