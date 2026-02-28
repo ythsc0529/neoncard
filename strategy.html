@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 攻略專區 (Strategy Zone)</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/theme.js"></script>
+    <style>
+        .strategy-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            font-family: var(--font-heading);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab-btn.active {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .strategy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .strategy-card h3 {
+            color: var(--neon-cyan);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .strategy-card p {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .strategy-card ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .strategy-card li {
+            margin-bottom: 8px;
+        }
+
+        .strategy-card li strong {
+            color: var(--text-primary);
+        }
+
+        .highlight-gold {
+            color: var(--neon-gold);
+        }
+
+        .highlight-magenta {
+            color: var(--neon-magenta);
+        }
+
+        .highlight-pink {
+            color: var(--neon-pink);
+        }
+
+        .highlight-green {
+            color: var(--neon-green);
+        }
+
+        .character-example {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 2px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Theme Toggle Removed as per previous updates -->
+
+    <div class="strategy-container">
+        <div class="header">
+            <h1 class="neon-text" style="font-size: 2.5rem; text-align: center; width: 100%;">霓虹牌 深度攻略專區</h1>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 30px;">
+            <button class="btn" onclick="location.href='index.html'">← 返回主選單</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('basic')">遊戲基本觀念</button>
+            <button class="tab-btn" onclick="switchTab('combo')">組合技與聯動</button>
+            <button class="tab-btn" onclick="switchTab('characters')">各定位角色攻略</button>
+            <button class="tab-btn" onclick="switchTab('character-details')">全角色深度解析</button>
+        </div>
+
+        <!-- 遊戲基本觀念 -->
+        <div id="basic" class="tab-content active glass">
+            <div class="strategy-card">
+                <h3>1. 卡牌分類與稀有度</h3>
+                <p>角色卡牌依強度和獲取難度分為多種稀有度，不同稀有度通常代表著技能的複雜性或數值的強度：</p>
+                <ul>
+                    <li><strong>一般 (Common)</strong> <span class="highlight-gold">白色</span> -
+                        基礎卡牌，技能多為基礎的攻擊或防禦，適合新手熟悉遊戲節奏。</li>
+                    <li><strong>稀有 (Rare)</strong> <span class="highlight-cyan">青色</span> -
+                        擁有特定的小型戰術或輔助能力，例如增加護盾、抽牌或小幅妨礙對手。</li>
+                    <li><strong>史詩 (Epic)</strong> <span class="highlight-magenta">紫色</span> -
+                        開始具有強大且穩定的技能機制，例如血量低時反殺、強力免疫或固定高額傷害。</li>
+                    <li><strong>傳說 (Legendary)</strong> <span class="highlight-gold"
+                            style="color:var(--neon-gold)">金色</span> - 擁有極具破壞性或翻盤能力的單體角色，往往能以一己之力改變戰局。</li>
+                    <li><strong>神話 (Mythic)</strong> <span class="highlight-pink">粉色</span> -
+                        具備遊戲中最強力的數值爆發或是最刁鑽的機制（如死亡一波帶走、復活、強制鎖血斬殺等）。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3>2. 戰鬥區 vs 備戰區的替換時機</h3>
+                <p>遊戲的一大核心是「替換（撤退）」。每回合你只能在<strong>【普攻】</strong>、<strong>【技能】</strong>或<strong>【撤退換人】</strong>中擇一。</p>
+                <ul>
+                    <li><strong>規避致命傷害：</strong> 當預防對手即將施放高冷卻的爆發技能時，換上滿血或有減傷能力的角色來扛傷害。</li>
+                    <li><strong>冷卻時間 (CD) 管理：</strong> 備戰區的角色<strong>仍然會計算技能冷卻</strong>。因此，施放完大招後，立即退居幕後等 CD 是高手必備的技巧。
+                    </li>
+                    <li><strong>殘血保留價值：</strong> 不要輕易讓角色陣亡。即便只剩 1 滴血，退到備戰區後，也能在關鍵時刻出來騙對手一回合的強力單體技能。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3>3. 核心異常狀態詳解與應對</h3>
+                <p>了解並妥善運用異常狀態，是取得勝利的捷徑：</p>
+                <ul>
+                    <li><strong class="highlight-magenta">沉默 (Silence)</strong>: 對方無法使用技能，只能普攻或撤退。<em>應對：</em>
+                        趁機換上防禦力低但技能強大的角色，或是利用這段時間累積優勢。</li>
+                    <li><strong class="highlight-pink">中毒/燃燒 (Poison/Burn)</strong>: 每回合受到固定或百分比的持續傷害。<em>應對：</em>
+                        血量見底時盡快換人，避免白白送頭。</li>
+                    <li><strong class="highlight-cyan">睡眠/沉睡 (Sleep)</strong>: 無法行動。<em>應對：</em>
+                        屬於強控，但通常伴有自然甦醒機率。如果對手處於睡眠，這是安全的輸出空檔。</li>
+                    <li><strong class="highlight-gold">致盲 (Blind)</strong>: 普攻有機率未命中。<em>應對：</em> 在致盲期間依賴「技能」輸出而非普攻。
+                    </li>
+                    <li><strong class="highlight-green">免疫與護盾 (Immunity & Shield)</strong>:
+                        免疫能抵擋固定次數的任意傷害（包含斬殺）。<em>應對：</em> 用多次段數的小傷害（如多段普攻或低費技能）去破壞免疫，將大招留到破防後。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 組合技與聯動 -->
+        <div id="combo" class="tab-content glass">
+            <div class="strategy-card">
+                <h3>1. 特殊召喚機制的聯動</h3>
+                <p>部分角色不適合單打獨鬥，但搭配特定的夥伴就能產生質變的羈絆效果：</p>
+                <ul>
+                    <li><strong>法特體系：</strong> <span class="character-example">有斯勒斯</span> 的技能可以強制將強大且本身難以直接抽到的 <span
+                            class="character-example">法特</span> 加入手牌。確保有斯勒斯存活並施放羈絆，是這個戰術的核心。</li>
+                    <li><strong>無限分身流：</strong> <span class="character-example">不嘻嘻</span> 可以召喚多隻 <span
+                            class="character-example">嘻嘻</span>。利用嘻嘻的機制來牽制對手，而不嘻嘻本身可以找時機自爆拉低對手血線。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3>2. 資源疊加與轉換 (Resource Scaling)</h3>
+                <p>遊戲中引入了「獨特資源/狀態」的觀念，這些角色需要時間發育：</p>
+                <ul>
+                    <li><strong>食物疊加流：</strong> <span class="character-example">廚師</span>
+                        會隨著不斷「煮」累積食物資源，食物越多，其大招「吃我的食物啦」傷害越高。這需要隊友幫忙爭取在場上的疊加時間。</li>
+                    <li><strong>血量/攻擊互換流：</strong> <span class="character-example">嘻嘻</span>
+                        透過不斷犧牲部分的自身數值來獲取另一項極端數值。長期在場上存活的話，能刻意養成一隻防禦極高或攻擊極恐怖的怪物。</li>
+                    <li><strong>受擊疊血流：</strong> <span class="character-example">瘋狗騎士</span>
+                        的被動「疊加」使其每受擊一次就能永久增加最大生命。面對攻擊段數多但單次傷害低的對手時，可以刻意用他去扛，後期會變成無法跨越的血牛。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3>3. 毒瘤拖延戰術 (Stall & DoT)</h3>
+                <p>利用持續性傷害與強大回復力，生生把對手耗死的無賴打法：</p>
+                <ul>
+                    <li><strong>護盾與中毒共振：</strong> 讓 <span class="character-example">花店老闆</span> 或 <span
+                            class="character-example">結膜炎</span> 等角色先幫對手掛上持續兩回合以上的 Dot（持續傷害）。</li>
+                    <li><strong>無縫接軌防禦：</strong> 接著換上擁有強力防護手段的角色如 <span class="character-example">小圓盾</span> 或 <span
+                            class="character-example">超級坦克</span>。對手就算攻擊也會被護盾抵銷，而自身每回合還要扣血，最終被磨死。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 各定位角色攻略 -->
+        <div id="characters" class="tab-content glass">
+            <div class="strategy-card">
+                <h3 class="highlight-cyan">🛡️ 坦克與防禦型 (Tanks)</h3>
+                <p>主要作用為吸收成噸的傷害、拖延對手爆發技能的 CD，或提供強大的生存增益。</p>
+                <ul>
+                    <li><span class="character-example">超級坦克</span> <strong>[神話]</strong>:
+                        遊戲中血量最為恐怖的存在。不斷施放「裝甲」增加血量上限，並在對手絕望之際使用「致命一擊」造成自身最大生命值的恐怖真實傷害。</li>
+                    <li><span class="character-example">玻璃心</span> <strong>[一般]</strong>: 雖然血量極低，但他的「大走心」以極低的 CD
+                        換取無差別的強大輸出。可以視為「自殺式襲擊者」，用來換掉對手難纏的主力。</li>
+                    <li><span class="character-example">伊魯帕恩</span> <strong>[傳說]</strong>:
+                        標準的肉盾。「堅韌」提供長達3回合的減傷。重點在於血量見底時的「血祭」，血量越低傷害越毀滅，對手會極其害怕將其打至殘血。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3 class="highlight-pink">⚔️ 爆發與刺客型 (Burst DPS)</h3>
+                <p>旨在抓準對手的空檔，在 1 到 2 回合內灌入足以致命的海量傷害。</p>
+                <ul>
+                    <li><span class="character-example">暴擊騎士</span> <strong>[神話]</strong>: 強調算血的恐怖存在。「處刑」對於低於 30%
+                        血量的對手是直接秒殺，而爆擊技能更是秒脆皮的神技。</li>
+                    <li><span class="character-example">暗夜騎士</span> <strong>[稀有]</strong>: 賭徒的最愛。普攻傷害浮動極大
+                        (1-75)。善用他的「概率學」，運氣好能直接讓對手游戲結束。</li>
+                    <li><span class="character-example">鯊魚鞋子</span> <strong>[傳說]</strong>: 拖越多回合越強的怪物。他的「後期」技能傷害隨回合數倍增。
+                    </li>
+                </ul>
+            </div>
+
+            <div class="strategy-card">
+                <h3 class="highlight-magenta">🔮 控制與特殊機制型 (Utilities / Control)</h3>
+                <p>打破對手節奏，或為己方帶來奇異的優勢。</p>
+                <ul>
+                    <li><span class="character-example">夏天與你</span> <strong>[神話]</strong>:
+                        強大的牽制者。「太難聽」能長時間封印對手技能。死亡後還能為隊伍補充大量手牌資源，是完美的戰術核心。</li>
+                    <li><span class="character-example">冰淇淋</span> <strong>[史詩]</strong>:
+                        極度難以處理的牛皮糖。「起死回生」讓他擁有逆天的復活機率，復活後還能用「破釜沉舟」和「美食反彈」反咬一口，對手打他也不是，不打也不是。</li>
+                    <li><span class="character-example">魔眼</span> <strong>[神話]</strong>:
+                        剋制高血量坦克的殺手。「弱點破解」直接扣除對手最大生命值的百分比，並且自帶「洞察」封鎖技能，是坦打流的剋星。</li>
+                </ul>
+            </div>
+
+            <div class="strategy-card"
+                style="border-color: var(--neon-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);">
+                <h3 class="highlight-gold">🏆 對戰核心守則總結</h3>
+                <p style="font-weight: bold; text-align: center; font-size: 1.1rem; line-height: 2;">
+                    「不要執著於單一張牌的強大。」<br>
+                    「計算 CD，分配傷害，適時撤退。」<br>
+                    「霓虹牌是一場雙人博弈，情報與預判永遠大於運氣。」
+                </p>
+            </div>
+        </div>
+
+        <!-- 全角色深度解析 -->
+        <div id="character-details" class="tab-content glass">
+            <!-- 神話頂點 -->
+            <div class="strategy-card" style="border-top: 3px solid var(--neon-pink);">
+                <h3 class="highlight-pink" style="border-bottom: none;"><span style="font-size: 1.8rem;">✨ 神話級 (Mythic)
+                        頂點解析</span></h3>
+
+                <!-- 超級坦克 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🛡️ 超級坦克</h4>
+                    <p><strong>定位：</strong> 極限拖延、後期真傷核彈。<br>
+                        <strong>核心思路：</strong> 他的戰鬥不是為了造成傷害，而是為了「活著」。開局後盡可能隱藏在備戰區，當對手爆發技能交出或進入消耗戰時上場。<br>
+                        <strong>操作細節：</strong> 前期無腦施放 <code>裝甲 (CD: 1)</code> 狂疊最大生命值。當對手認為你只是個肉包時，算準血量，一發
+                        <code>致命一擊 (CD: 8)</code> 打出自身最大生命值 50% 的巨額真實傷害。<br>
+                        <strong>天敵：</strong> 害怕擁有扣除最大生命值（如暴擊騎士被動）、封鎖技能（魔眼）、或是直接看%數斬殺的角色。
+                    </p>
+                </div>
+
+                <!-- 魔眼 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">👁️ 魔眼</h4>
+                    <p><strong>定位：</strong> 反制核心、針對高血量坦克的刺客。<br>
+                        <strong>核心思路：</strong> 專治各種不服與花裡胡哨的機制。<br>
+                        <strong>操作細節：</strong> <code>洞察 (CD: 3)</code> 是一個神技，當你預判對手的核心大招要轉好時，換上魔眼施放洞察直接封印對手。接著配合
+                        <code>弱點破解 (CD: 5)</code> 造成對手「最大生命值 30%」的傷害，血越多的坦克死得越快。<br>
+                        <strong>天敵：</strong> 自身血盾較薄，極度害怕像是「暗夜騎士」這類純數值平A爆裂或是具有「免疫」護盾的角色。
+                    </p>
+                </div>
+
+                <!-- 夏天與你 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🎵 夏天與你</h4>
+                    <p><strong>定位：</strong> 戰術牽制、資源補給核心。<br>
+                        <strong>核心思路：</strong> 在生與死之間都能發揮巨大價值的輔助型神話。<br>
+                        <strong>操作細節：</strong> 存活時，利用 <code>太難聽 (CD: 4)</code> 長達 2 回合的沉默噁心對手，並利用 <code>有盈利</code>
+                        保持血線。當戰局不利時，他大可光榮赴死——被動 <code>意志傳承</code> 死亡後直接抽三張牌，能為下一位上場的主力提供滿滿的資源與選擇。<br>
+                        <strong>備註：</strong> 不要為了保他而放棄主攻節奏，他的死亡往往是吹響反攻的號角。
+                    </p>
+                </div>
+
+                <!-- 暴擊騎士 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 10px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">⚔️ 暴擊騎士</h4>
+                    <p><strong>定位：</strong> 極限斬殺、單體毀滅者。<br>
+                        <strong>核心思路：</strong> 算血是這隻角色的必修課。<br>
+                        <strong>操作細節：</strong> 絕不輕易暴露在場上吃傷害。平時在備戰區等 CD，一旦對手血量被磨至 30% 左右，立刻切換上場施放 <code>處刑 (CD: 1)</code>
+                        直接無視護盾斬殺。如果斬殺線未到，<code>爆擊 (CD: 3)</code> 2.5倍的傷害搭配 <code>吸血</code> 也能瞬間拉開血量差距。<br>
+                        <strong>天敵：</strong> 擁有「免疫」次數盾的對手（如迪斯查），會完美擋下致命的斬殺。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 傳說與體系核心 -->
+            <div class="strategy-card" style="border-top: 3px solid var(--neon-gold);">
+                <h3 class="highlight-gold" style="border-bottom: none;"><span style="font-size: 1.8rem;">🌟 傳說級
+                        (Legendary) 與體系核心</span></h3>
+
+                <!-- 英國紳士 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🫖 英國紳士</h4>
+                    <p><strong>定位：</strong> 減傷之王、銅牆鐵壁。<br>
+                        <strong>操作細節：</strong> 他有兩種強大的保命手段，<code>以柔克剛 (90%減傷)</code> 和
+                        <code>皇室 (免疫並將傷害 80% 轉化為最大生命)</code>。會玩的紳士懂得交錯使用這兩個技能，當對手開大招時施放皇室，不僅不扣血反而變厚。搭配 <code>喝茶</code>
+                        跳過對方回合，能輕易將戰局拖入自己的節奏。<br>
+                        <strong>弱點：</strong> 缺乏主動高爆發手段，容易被帶有持續扣%血異常狀態的角色剋制。
+                    </p>
+                </div>
+
+                <!-- 鯊魚鞋子 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 10px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🦈 鯊魚鞋子</h4>
+                    <p><strong>定位：</strong> 隨著回合數膨脹的未爆彈。<br>
+                        <strong>操作細節：</strong> 核心技能 <code>後期 (CD: 4)</code> 傷害為「2 × 回合數」。在遊戲前 10 回合他非常弱，但當戰局被拖延到 30 回合甚至
+                        50 回合後，他一出場就能造成高達 60-100 的無成本點殺。配搭有極強保命能力的隊友（如花店老闆、超級坦克）保駕護航是必要的。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 平民神卡 -->
+            <div class="strategy-card" style="border-top: 3px solid var(--neon-cyan);">
+                <h3 class="highlight-cyan" style="border-bottom: none;"><span style="font-size: 1.8rem;">💎 特殊機制平民神卡
+                        (Hidden Gems)</span></h3>
+
+                <!-- 冰淇淋 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🍦 冰淇淋 (史詩)</h4>
+                    <p><strong>定位：</strong> 反常理的敢死小隊。<br>
+                        <strong>操作細節：</strong> 最極端的操作是看準時機施放 <code>破釜沉舟</code>，將自己血量強制降至
+                        1，並將扣除的血量依比例對對手造成毀滅性打擊。打完之後大可讓他去死，因為他擁有 <code>起死回生</code> 被動，高機率不斷復活。復活後立刻再接 <code>美食反彈</code>
+                        反彈 200% 傷害，是令人極度頭痛的存在。
+                    </p>
+                </div>
+
+                <!-- 廚師 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">👨‍🍳 廚師 (稀有)</h4>
+                    <p><strong>定位：</strong> 資源累積型重砲。<br>
+                        <strong>操作細節：</strong> 他的強度完全取決於 <code>食物</code> 資源量。<code>煮 (CD: 0)</code>
+                        可以每回合無損發動，前期如果對手給的壓力不大，就一直煮。等到儲備了 10~15 份食物，再一發 <code>吃我的食物啦</code>
+                        根據倍率轟殺對手。建議搭配有護盾或回血的輔助角色來確保他有命可以一直煮。
+                    </p>
+                </div>
+
+                <!-- 瘋狗騎士 -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 10px;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.3rem;">🐾 瘋狗騎士 (史詩)</h4>
+                    <p><strong>定位：</strong> 越打越硬的受虐狂。<br>
+                        <strong>操作細節：</strong> 被動 <code>疊加</code>
+                        每受擊一次就會永久提升最大生命值。面對那些「攻擊力雖低但段數多」或是「有持續小額傷害」的角色（如鯊魚鞋子的兩段啃咬），果斷換上瘋狗騎士去挨打。等到最大血量膨脹到一個可怕的數字後，施展
+                        <code>絕殺 (CD: 8)</code> 打出 60% 最大生命的傷害收尾。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+
+            // Add active class to clicked button
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

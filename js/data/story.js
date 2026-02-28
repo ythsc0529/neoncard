@@ -149,6 +149,12 @@ const STORY_CHAPTERS = [
                 enemy: {
                     name: '虛無軍團',
                     deck: ['莉安娜', '艾倫', '吸血蝙蝠'] // '吸血蝙蝠'可以依賴戰鬥中的死亡喚醒等能力，給個基礎池
+                },
+                rules: {
+                    customStats: {
+                        '莉安娜': { hp: 200, maxHp: 200, atk: 40 },
+                        '艾倫': { hp: 200, maxHp: 200, atk: 25 }
+                    }
                 }
             },
             // 節點 5：對話 - 結盟與陰影
@@ -515,11 +521,6 @@ const STORY_CHAPTERS = [
                 enemy: {
                     name: '至高裁決與亂入者',
                     deck: ['Peter pro', 'L型戰機', 'K型戰機', '鯊魚鞋子']
-                },
-                rules: {
-                    customStats: {
-                        'Peter pro': { hp: 1700, maxHp: 1700, atk: 250 }
-                    }
                 }
             },
             // 節點 6：對話 - 戰場失控

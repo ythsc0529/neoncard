@@ -154,14 +154,14 @@ const GameState = {
     },
 
     // Remove dead cards
-    handleDeath(playerKey) {
+    async handleDeath(playerKey) {
         const player = this[playerKey];
         if (player.battleCard && player.battleCard.hp <= 0) {
             const deadCard = player.battleCard;
             deadCard.deathCount++;
 
             // Check for passive on_death effects
-            const revived = this.checkRevive(deadCard);
+            const revived = await this.checkRevive(deadCard);
 
             if (!revived) {
                 this.processPassive(deadCard, 'on_death');
@@ -174,7 +174,7 @@ const GameState = {
     },
 
     // Check if character can revive
-    checkRevive(card) {
+    async checkRevive(card) {
         if (!card.passive || card.passive.effect.trigger !== 'on_death') {
             // Check for 阿共 or other passives that might trigger on death but have trigger: passive
             if (card.passive?.effect?.action === 'no_attack_dot_revive' || card.passive?.effect?.action === 'revive_chance' || card.passive?.effect?.action === 'revive_decaying_chance') {
@@ -192,10 +192,17 @@ const GameState = {
             let currentChance = card.resources.revive_chance_current;
             if (currentChance === undefined) currentChance = effect.initial_chance || 100;
             const minChance = effect.min_chance || 40;
-            if (currentChance >= minChance && Math.random() * 100 < currentChance) {
+
+            let rollSuccess = true;
+            if (currentChance < 100) {
+                rollSuccess = await Animations.probabilityRoll(currentChance, `${card.name} 復活判定`);
+            }
+
+            if (currentChance >= minChance && rollSuccess) {
                 card.hp = effect.hp || 30;
                 card.resources.revive_chance_current = Math.max(minChance, currentChance - (effect.decay || 10));
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活！(概率: ${currentChance}%)`, 'status');
+                await Animations.reviveEffect(card.name);
                 return true;
             }
             return false;
@@ -215,10 +222,16 @@ const GameState = {
                 return false;
             }
 
-            if (chance > 0 && Math.random() * 100 < chance) {
+            let rollSuccess = true;
+            if (chance > 0 && chance < 100) {
+                rollSuccess = await Animations.probabilityRoll(chance, `${card.name} 復活判定`);
+            }
+
+            if (chance > 0 && rollSuccess) {
                 card.hp = effect.revive_hp !== undefined ? effect.revive_hp : (effect.hp !== undefined ? effect.hp : card.maxHp);
                 card.reviveCount = (card.reviveCount || 0) + 1;
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！`, 'status');
+                await Animations.reviveEffect(card.name);
 
                 if (effect.action === 'draw_revive_limited') {
                     // Draw cards to standby (not overwrite allCards)

@@ -464,9 +464,17 @@
             if (isP1Turn) {
                 const p1Btns = document.querySelectorAll('#p1Actions .action-btn:not(.view-skill-btn)');
                 p1Btns.forEach(btn => btn.disabled = false);
+                if (GameState.player1.battleCard && GameState.player1.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
+                    const attackBtn = document.querySelector('#p1Actions .attack-btn');
+                    if (attackBtn) attackBtn.disabled = true;
+                }
             } else if (!isPvE) {
                 const p2Btns = document.querySelectorAll('#p2Actions .action-btn:not(.view-skill-btn)');
                 p2Btns.forEach(btn => btn.disabled = false);
+                if (GameState.player2.battleCard && GameState.player2.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
+                    const attackBtn = document.querySelector('#p2Actions .attack-btn');
+                    if (attackBtn) attackBtn.disabled = true;
+                }
             }
 
             // View skill btn is always enabled if it's visible
@@ -758,7 +766,7 @@
                 for (const p of playersToCheck) {
                     const card = GameState[p].battleCard;
                     if (card && card.hp <= 0) {
-                        const died = GameState.handleDeath(p);
+                        const died = await GameState.handleDeath(p);
                         if (died) {
                             GameState.addLog(`${card.name} 被擊敗！`, 'damage');
                             updateUI();
@@ -953,6 +961,28 @@
                         skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
                     } else {
                         actionType = 'attack';
+                    }
+                } else {
+                    // Default logic for 'normal' difficulty
+                    if (availableSkills.length > 0 && Math.random() < 0.6) {
+                        actionType = 'skill';
+                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                    } else {
+                        actionType = 'attack';
+                    }
+                }
+
+                // If character cannot attack, force skill if available
+                if (actionType === 'attack' && card.passive?.effect?.action === 'no_attack_dot_revive') {
+                    if (availableSkills.length > 0) {
+                        actionType = 'skill';
+                        // Pick any available skill
+                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                    } else {
+                        // If no skills available and can't attack, just skip turn by trying to do an empty action or retreat if possible
+                        // Here we just map it back to attack which will be blocked and skip effectively by passing the turn.
+                        // Since normalAttack already blocks 'no_attack_dot_revive' logging "Cannot attack", 
+                        // it won't crash, but it's an elegant way to skip a turn natively.
                     }
                 }
 

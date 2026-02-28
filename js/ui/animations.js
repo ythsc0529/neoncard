@@ -584,6 +584,46 @@ const Animations = {
         });
     },
 
+    // Revive animation
+    async reviveEffect(charName) {
+        return new Promise(resolve => {
+            this.show();
+
+            this.container.innerHTML = `
+                <div style="text-align: center;">
+                    <div class="revive-effect">
+                        <div style="font-size: 5rem; margin-bottom: 20px; animation: float 2s infinite ease-in-out;">👼</div>
+                        <div style="font-size: 2.5rem; color: var(--neon-gold); text-shadow: 0 0 20px var(--neon-gold); font-weight: bold;">
+                            ${charName} 復活了！
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Adding a small float animation style just for this if not defined globally
+            const style = document.createElement('style');
+            style.id = 'revive-anim-style';
+            if (!document.getElementById('revive-anim-style')) {
+                style.innerHTML = `
+                    @keyframes float {
+                        0% { transform: translateY(0px); }
+                        50% { transform: translateY(-15px); }
+                        100% { transform: translateY(0px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Screen shake for impact
+            this.shake();
+
+            setTimeout(() => {
+                this.hide();
+                resolve();
+            }, 2500); // Display for 2.5 seconds
+        });
+    },
+
     // Screen shake
     shake() {
         document.body.style.animation = 'shake 0.3s';
