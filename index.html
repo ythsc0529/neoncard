@@ -258,6 +258,17 @@
             }
         }
 
+        // Update Modal Auto-Show Logic
+        const APP_VERSION = '1.2.0'; // Update this string when releasing a new version
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const lastSeenVersion = localStorage.getItem('lastSeenVersion');
+            if (lastSeenVersion !== APP_VERSION) {
+                showUpdateModal();
+                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            }
+        });
+
         // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', function (e) {
             if (e.target === this) closeModeModal();

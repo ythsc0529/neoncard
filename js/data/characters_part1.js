@@ -1,5 +1,4 @@
 // ========== NEON CARD GAME - CHARACTER DATABASE ==========
-// All 195+ characters from 角色.html
 
 const RARITY = {
     COMMON: { name: '一般', color: '#ffffff', probability: 40 },
