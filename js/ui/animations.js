@@ -35,10 +35,11 @@ const Animations = {
     },
 
     // Coin flip animation — 3D redesign
-    async coinFlip() {
+    async coinFlip(forcedResult = null) {
         return new Promise(resolve => {
             this.show();
-            const result = Math.random() < 0.5 ? 1 : 2;
+            // If forcedResult is provided, use it. Otherwise, use Window.GameRNG or Math.random
+            const result = forcedResult !== null ? forcedResult : (window.GameRNG ? (window.GameRNG.nextBoolean() ? 1 : 2) : (Math.random() < 0.5 ? 1 : 2));
 
             // coinToss3D ends at rotateX(3600deg) — front face showing (even multiples of 360).
             // We force the coin to show the correct face by setting a final rotation:

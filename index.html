@@ -35,8 +35,18 @@
             <div class="modal-buttons" id="mainModeContainer">
                 <button class="btn btn-primary" onclick="showSubMenu('pve')">單人模式 (對戰電腦)</button>
                 <button class="btn btn-magenta" onclick="showSubMenu('pvp')">雙人對戰 (本地)</button>
-                <button class="btn" disabled>連線模式 (開發中)</button>
+                <button class="btn btn-gold" onclick="showSubMenu('online')">多人連線 (Online)</button>
                 <button class="btn" onclick="closeModeModal()" style="margin-top: 20px; opacity: 0.7;">返回</button>
+            </div>
+
+            <div class="modal-buttons hidden" id="onlineTypeContainer">
+                <button class="btn btn-gold" onclick="startOnlineGame('host')">建立房間 (自己當主機)</button>
+                <div style="margin: 10px 0; color: var(--text-secondary);">或者</div>
+                <input type="text" id="joinRoomId" placeholder="輸入 4 碼連線代碼"
+                    style="padding: 10px; font-size: 1.2rem; text-align: center; border-radius: 5px; border: 1px solid var(--neon-cyan); background: rgba(0,0,0,0.5); color: white; width: 80%; margin: 0 auto 10px auto; text-transform: uppercase;"
+                    maxlength="6">
+                <button class="btn btn-cyan" onclick="startOnlineGame('join')">加入房間</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
             </div>
 
             <div class="modal-buttons hidden" id="pveTypeContainer">
@@ -162,6 +172,22 @@
         </div>
     </div>
 
+    <!-- Network Lobby Modal -->
+    <div class="modal-overlay" id="lobbyModal">
+        <div class="modal glass" style="text-align: center;">
+            <h2 id="lobbyTitle" class="neon-text" style="color: var(--neon-cyan);">連線大廳</h2>
+            <p id="lobbyStatus" style="margin: 20px 0; font-size: 1.2rem; color: var(--text-secondary);">初始化網路中...</p>
+            <div id="lobbyRoomCode"
+                style="font-size: 3rem; font-weight: bold; letter-spacing: 5px; color: var(--neon-gold); margin: 20px 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);"
+                class="hidden"></div>
+            <button class="btn" onclick="cancelLobby()" style="margin-top: 20px; opacity: 0.8;">取消連線</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="js/core/rng.js"></script>
+    <script src="js/core/networkManager.js"></script>
     <script>
         let selectedPvEType = 'classic';
 
@@ -175,6 +201,7 @@
             document.getElementById('pveTypeContainer').classList.add('hidden');
             document.getElementById('pveDiffContainer').classList.add('hidden');
             document.getElementById('pvpTypeContainer').classList.add('hidden');
+            if (document.getElementById('onlineTypeContainer')) document.getElementById('onlineTypeContainer').classList.add('hidden');
 
             if (menu === 'main') {
                 document.getElementById('modeModalTitle').textContent = '選擇對戰模式';
@@ -185,6 +212,9 @@
             } else if (menu === 'pvp') {
                 document.getElementById('modeModalTitle').textContent = '雙人對戰 - 選擇規則';
                 document.getElementById('pvpTypeContainer').classList.remove('hidden');
+            } else if (menu === 'online') {
+                document.getElementById('modeModalTitle').textContent = '多人連線 - PVP';
+                document.getElementById('onlineTypeContainer').classList.remove('hidden');
             }
         }
 
@@ -212,6 +242,28 @@
             localStorage.setItem('gameType', type);
             localStorage.setItem('pveDifficulty', difficulty);
             location.href = 'game.html';
+        }
+
+        // --- Network Lobby Logic ---
+        function startOnlineGame(role) {
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', role);
+
+            if (role === 'join') {
+                const roomCode = document.getElementById('joinRoomId').value.trim().toUpperCase();
+                if (!roomCode) {
+                    alert('請輸入連線代碼！');
+                    return;
+                }
+                localStorage.setItem('roomId', roomCode);
+            }
+
+            location.href = 'game.html';
+        }
+
+        function cancelLobby() {
+            document.getElementById('lobbyModal').classList.remove('active');
         }
 
         // Tutorial System

@@ -2155,6 +2155,18 @@ body {
         padding-bottom: calc(40px + env(safe-area-inset-bottom));
     }
 
+    /* Flipped perspective for Host on Mobile */
+    .battle-container.flip-perspective .player-area.player1 {
+        order: 2;
+        padding-bottom: calc(40px + env(safe-area-inset-bottom));
+    }
+
+    .battle-container.flip-perspective .player-area.player2 {
+        order: 0;
+        padding-bottom: 10px;
+        /* Reset */
+    }
+
     .battle-log {
         max-height: 100px;
     }

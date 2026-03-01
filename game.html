@@ -17,6 +17,21 @@
     <!-- Animation Overlay -->
     <div class="animation-overlay hidden" id="animationOverlay"></div>
 
+    <!-- Network Waiting Overlay -->
+    <div class="modal-overlay hidden" id="networkWaitingOverlay"
+        style="z-index: 1000; background: rgba(0, 0, 0, 0.85);">
+        <div class="modal glass" style="text-align: center;">
+            <h2 id="networkWaitingTitle" class="neon-text" style="color: var(--neon-cyan);">連線大廳</h2>
+            <p id="networkWaitingText" style="margin: 20px 0; font-size: 1.2rem; color: var(--text-secondary);">
+                初始化網路中...</p>
+            <div id="networkRoomCode"
+                style="font-size: 3rem; font-weight: bold; letter-spacing: 5px; color: var(--neon-gold); margin: 20px 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);"
+                class="hidden"></div>
+            <button class="btn" onclick="location.href='index.html'"
+                style="margin-top: 20px; opacity: 0.8;">取消連線</button>
+        </div>
+    </div>
+
     <!-- Card Selection Phase -->
     <div class="selection-phase hidden" id="selectionPhase">
         <h2 class="selection-title" id="selectionTitle">玩家1 抽牌階段</h2>
@@ -32,6 +47,10 @@
         <div class="player-area player1" id="player1Area">
             <div class="player-header glass">
                 <span class="player-name">玩家1</span>
+                <span class="thinking-indicator hidden" id="p1Thinking"
+                    style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
+                    思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+                </span>
                 <span class="turn-badge hidden" id="p1TurnBadge">你的回合</span>
             </div>
 
@@ -79,6 +98,10 @@
             <div class="turn-indicator" id="turnIndicator">
                 回合 <span id="turnCount">0</span>
             </div>
+
+            <button class="btn btn-gold emoji-btn hidden" id="p1EmojiBtn" onclick="openEmojiMenu()"
+                style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem;">💬 表情</button>
+
             <button class="btn btn-magenta mobile-toggle-btn" id="mobileToggleBtn"
                 onclick="toggleMobileView()">查看對手</button>
             <div class="battle-log" id="battleLog"></div>
@@ -88,7 +111,7 @@
         <div class="player-area player2" id="player2Area">
             <div class="player-header glass">
                 <span class="player-name">玩家2</span>
-                <span class="thinking-indicator hidden" id="npcThinking"
+                <span class="thinking-indicator hidden" id="p2Thinking"
                     style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
                     思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
                 </span>
@@ -205,7 +228,44 @@
         </div>
     </div>
 
+    <!-- Emoji Picker Modal -->
+    <div class="modal-overlay" id="emojiModal" onclick="this.classList.remove('active')">
+        <div class="modal glass" style="max-width: 400px; padding: 20px;" onclick="event.stopPropagation()">
+            <h3 style="margin-bottom: 15px; text-align: center; color: var(--neon-cyan);">發送表情</h3>
+            <div
+                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 2.5rem; text-align: center;">
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('😀')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">😀
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤡')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤡
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🥵')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🥵
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤝')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤝
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('😎')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">😎
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤔')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤔
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('👎')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">👎
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🔥')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🔥
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="js/core/rng.js"></script>
+    <script src="js/core/networkManager.js"></script>
     <script src="js/data/story.js"></script>
     <script src="js/data/characters_part1.js"></script>
     <script src="js/data/characters_part2.js"></script>
@@ -275,6 +335,17 @@
             const type = localStorage.getItem('gameType') || 'pvp';
             const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
 
+            // Show emoji button for online mode
+            if (mode === 'online') {
+                document.getElementById('p1EmojiBtn').classList.remove('hidden');
+
+                // Expose emoji function to global Animations object
+                window.Animations = window.Animations || {};
+                window.Animations.showEmoji = function (emoji, playerKey) {
+                    showEmojiAnimation(emoji, playerKey);
+                };
+            }
+
             if (mode === 'story') {
                 const chapterId = localStorage.getItem('story_current_chapter');
                 const nodeIndex = parseInt(localStorage.getItem('story_current_node'), 10);
@@ -286,6 +357,119 @@
                 selectionPhase = 'p1_draw';
                 document.getElementById('selectionTitle').textContent = `${GameState.player1.name} 選擇首發角色`;
                 renderSelectionCards('player1', GameState.player1.allCards);
+            } else if (mode === 'online') {
+                window.localOnlineRole = localStorage.getItem('onlineRole');
+                const role = window.localOnlineRole;
+                const overlay = document.getElementById('networkWaitingOverlay');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('active');
+
+                NetManager.onConnected = async () => {
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    GameState.init('online', 'pvp', 'normal');
+
+                    if (role === 'host') {
+                        // Host defines first player using RNG
+                        const firstPlayer = window.GameRNG.nextBoolean() ? 1 : 2;
+                        NetManager.sendState({ type: 'first_player', firstPlayer });
+                        GameState.firstPlayer = firstPlayer;
+                        GameState.currentPlayer = firstPlayer;
+
+                        // Play synced coin flip
+                        await Animations.coinFlip(firstPlayer);
+
+                        // BOTH players draw deterministically from seed
+                        GameState.drawCards('player1', GameState.getCardCount());
+                        GameState.drawCards('player2', GameState.getCardCount());
+
+                        // ALL players pick simultaneously
+                        const localPlayerKey = 'player1';
+                        selectionPhase = localPlayerKey + '_draw';
+                        await startDrawPhase(localPlayerKey, false); // false = don't redraw
+                    }
+                };
+
+                NetManager.onDataReceived = (action) => {
+                    handleRemoteAction(action);
+                };
+
+                NetManager.onPeerStateChange = async (state) => {
+                    if (state.type === 'first_player' && role === 'join') {
+                        // CRITICAL FIX: Joiner must also consume 1 random number from GameRNG 
+                        // so that its RNG state perfectly matches the Host's state for the upcoming card draws!
+                        window.GameRNG.nextBoolean();
+
+                        GameState.firstPlayer = state.firstPlayer;
+                        GameState.currentPlayer = state.firstPlayer;
+
+                        // Play synced coin flip
+                        await Animations.coinFlip(state.firstPlayer);
+
+                        // BOTH players draw deterministically from seed
+                        GameState.drawCards('player1', GameState.getCardCount());
+                        GameState.drawCards('player2', GameState.getCardCount());
+
+                        const localPlayerKey = 'player2';
+                        selectionPhase = localPlayerKey + '_draw';
+                        await startDrawPhase(localPlayerKey, false); // false = don't redraw
+                    } else if (state.type === 'thinking') {
+                        // Show opponent thinking
+                        const opponentThinkingId = role === 'host' ? 'p2Thinking' : 'p1Thinking';
+                        const thinkingUI = document.getElementById(opponentThinkingId);
+                        if (thinkingUI) {
+                            if (state.isThinking) {
+                                thinkingUI.classList.remove('hidden');
+                                thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                            } else {
+                                thinkingUI.classList.add('hidden');
+                            }
+                        }
+                    }
+                };
+
+                NetManager.onDisconnected = () => {
+                    alert('連線已中斷。對方已離開。');
+                    location.href = 'index.html';
+                };
+
+                if (role === 'host') {
+                    // Host Player is Player 1
+                    document.getElementById('networkWaitingTitle').textContent = '連線大廳';
+                    document.getElementById('networkWaitingText').textContent = '請將此代碼交給朋友，等待加入...';
+                    const codeLabel = document.getElementById('networkRoomCode');
+                    codeLabel.classList.remove('hidden');
+                    codeLabel.textContent = '生成中...';
+
+                    // Force show overlay just in case
+                    document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                    document.getElementById('networkWaitingOverlay').classList.add('active');
+
+                    try {
+                        const roomId = await NetManager.initHost();
+                        codeLabel.textContent = roomId;
+                    } catch (err) {
+                        alert('無法建立連線: ' + err);
+                        location.href = 'index.html';
+                    }
+                } else if (role === 'join') {
+                    // Joined Player is Player 2
+                    const roomId = localStorage.getItem('roomId');
+                    document.getElementById('networkWaitingTitle').textContent = '連線大廳';
+                    document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]...`;
+
+                    // Force show overlay just in case
+                    document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                    document.getElementById('networkWaitingOverlay').classList.add('active');
+
+                    try {
+                        await NetManager.joinRoom(roomId);
+                    } catch (err) {
+                        alert('無法連線至房間: ' + err);
+                        location.href = 'index.html';
+                    }
+                }
+
             } else {
                 GameState.init(mode, type, difficulty);
 
@@ -322,9 +506,15 @@
             }
         }
 
-        async function startDrawPhase(playerKey) {
+        async function startDrawPhase(playerKey, doDraw = true) {
             const cardCount = GameState.getCardCount();
-            const cards = GameState.drawCards(playerKey, cardCount);
+            let cards;
+
+            if (doDraw) {
+                cards = GameState.drawCards(playerKey, cardCount);
+            } else {
+                cards = GameState[playerKey].allCards;
+            }
 
             document.getElementById('selectionPhase').classList.remove('hidden');
             document.getElementById('battleContainer').style.display = 'none';
@@ -374,6 +564,55 @@
                 selectedBattleCard !== null ? '已選擇戰鬥角色' : '請選擇一張牌作為戰鬥角色';
         }
 
+        function renderWaitingForOpponentSelection() {
+            document.getElementById('selectionPhase').classList.add('hidden');
+            const overlay = document.getElementById('networkWaitingOverlay');
+            document.getElementById('networkWaitingTitle').textContent = '等待對手...';
+            document.getElementById('networkWaitingText').textContent = '對手正在選擇出戰角色';
+            document.getElementById('networkRoomCode').classList.add('hidden');
+            overlay.classList.add('active');
+        }
+
+        function handleRemoteAction(action) {
+            const opponentKey = NetManager.isHost ? 'player2' : 'player1';
+            const localKey = NetManager.isHost ? 'player1' : 'player2';
+
+            if (action.type === 'select_initial') {
+                GameState.setBattleCard(opponentKey, action.cardIdx);
+
+                // Both players selected
+                if (GameState.player1.battleCard && GameState.player2.battleCard) {
+                    document.getElementById('networkWaitingOverlay').classList.remove('active');
+                    startBattle();
+                }
+            } else if (action.type === 'do_action') {
+                doAction(action.actionType, action.skillIdx, true);
+            } else if (action.type === 'retreat') {
+                BattleSystem.retreat(opponentKey, action.skillIdx);
+                updateUI();
+                GameState.endTurn();
+                updateUI();
+            } else if (action.type === 'replace_death') {
+                const player = GameState[opponentKey];
+                player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
+                GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
+
+                const modal = document.getElementById('replacementModal');
+                modal.classList.remove('active');
+
+                updateUI();
+                updateBattleLog();
+                if (window.resolveRemoteReplacement) {
+                    window.resolveRemoteReplacement();
+                    window.resolveRemoteReplacement = null;
+                }
+            } else if (action.type === 'emoji' && window.Animations) {
+                if (window.Animations.showEmoji) {
+                    window.Animations.showEmoji(action.emojiId, opponentKey);
+                }
+            }
+        }
+
         document.getElementById('confirmSelection').onclick = async function () {
             if (selectedBattleCard === null) return;
 
@@ -381,6 +620,20 @@
             const otherPlayerKey = currentPlayerKey === 'player1' ? 'player2' : 'player1';
 
             GameState.setBattleCard(currentPlayerKey, selectedBattleCard);
+
+            if (GameState.mode === 'online') {
+                // Send our pick to the opponent
+                NetManager.sendAction({ type: 'select_initial', cardIdx: selectedBattleCard });
+
+                // If opponent hasn't picked yet, show waiting screen
+                if (!GameState[otherPlayerKey].battleCard) {
+                    renderWaitingForOpponentSelection();
+                } else {
+                    document.getElementById('networkWaitingOverlay').classList.remove('active');
+                    startBattle(); // Both selected
+                }
+                return;
+            }
 
             if ((GameState.mode === 'story' || GameState.type === 'pve') && currentPlayerKey === 'player1') {
                 if (GameState.mode === 'story') {
@@ -413,6 +666,14 @@
             document.getElementById('battleContainer').style.display = 'flex';
             GameState.phase = 'battle';
             GameState.turnCount = 1;
+
+            // Flip perspective for Host so P1 appears at the bottom/right.
+            // Joiner is P2, so P2 is naturally at bottom/right.
+            if (GameState.mode === 'online' && localStorage.getItem('onlineRole') === 'host') {
+                document.getElementById('battleContainer').classList.add('flip-perspective');
+            } else {
+                document.getElementById('battleContainer').classList.remove('flip-perspective');
+            }
 
             updateUI();
             GameState.addLog('戰鬥開始！', 'skill');
@@ -448,6 +709,10 @@
             // Show/hide action buttons based on current player
             const isP1Turn = GameState.currentPlayer === 1;
             const isPvE = GameState.mode === 'story' || GameState.type === 'pve';
+            const isOnline = GameState.mode === 'online';
+            const localRole = window.localOnlineRole || 'host'; // Fix: Read from memory, not localStorage to avoid cross-tab pollution
+            const isLocalP1 = !isOnline || localRole === 'host';
+            const isLocalP2 = !isOnline || localRole === 'join';
 
             document.getElementById('p1TurnBadge').classList.toggle('hidden', !isP1Turn);
             document.getElementById('p2TurnBadge').classList.toggle('hidden', isP1Turn);
@@ -461,73 +726,121 @@
             document.getElementById('player2Area').classList.toggle('active-turn', !isP1Turn);
 
             // Re-enable buttons for the active player (fix for buttons sticking disabled)
+            const p1Btns = document.querySelectorAll('#p1Actions .action-btn:not(.view-skill-btn)');
+            const p2Btns = document.querySelectorAll('#p2Actions .action-btn:not(.view-skill-btn)');
+            const p1SkillBtn = document.getElementById('p1SkillBtn');
+            const p2SkillBtn = document.getElementById('p2SkillBtn');
+            const p1ViewBtn = document.getElementById('p1ViewSkillBtn');
+            const p2ViewBtn = document.getElementById('p2ViewSkillBtn');
+
             if (isP1Turn) {
-                const p1Btns = document.querySelectorAll('#p1Actions .action-btn:not(.view-skill-btn)');
                 p1Btns.forEach(btn => btn.disabled = false);
+                p2Btns.forEach(btn => btn.disabled = true);
                 if (GameState.player1.battleCard && GameState.player1.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
                     const attackBtn = document.querySelector('#p1Actions .attack-btn');
                     if (attackBtn) attackBtn.disabled = true;
                 }
-            } else if (!isPvE) {
-                const p2Btns = document.querySelectorAll('#p2Actions .action-btn:not(.view-skill-btn)');
+            } else {
+                p1Btns.forEach(btn => btn.disabled = true);
                 p2Btns.forEach(btn => btn.disabled = false);
-                if (GameState.player2.battleCard && GameState.player2.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
-                    const attackBtn = document.querySelector('#p2Actions .attack-btn');
-                    if (attackBtn) attackBtn.disabled = true;
+                if (!isPvE) {
+                    if (GameState.player2.battleCard && GameState.player2.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
+                        const attackBtn = document.querySelector('#p2Actions .attack-btn');
+                        if (attackBtn) attackBtn.disabled = true;
+                    }
                 }
             }
 
             // View skill btn is always enabled if it's visible
-            document.querySelectorAll('.view-skill-btn').forEach(btn => btn.disabled = false);
+            p1ViewBtn.disabled = false;
+            p2ViewBtn.disabled = false;
 
             // Handle View Skill Button Visibility & Action Buttons
-            const p1ViewBtn = document.getElementById('p1ViewSkillBtn');
-            const p2ViewBtn = document.getElementById('p2ViewSkillBtn');
-
             // First, reset all action buttons to default visibility (remove inline style)
             Array.from(document.getElementById('p1Actions').children).forEach(child => child.style.display = '');
             Array.from(document.getElementById('p2Actions').children).forEach(child => child.style.display = '');
 
-            if (isP1Turn) {
-                // Player 1's turn
-                document.getElementById('p1Actions').style.display = 'flex';
-                p1ViewBtn.classList.add('hidden'); // P1 doesn't need view skill btn for themselves
+            // Hide opponent thinking indicators initially
+            document.getElementById('p1Thinking').classList.add('hidden');
+            document.getElementById('p2Thinking').classList.add('hidden');
 
-                // Show view skill button for P2
-                document.getElementById('p2Actions').style.display = 'flex';
-                p2ViewBtn.classList.remove('hidden');
-
-                // Keep P2 area visible (action area), but hide P2's actual action buttons
-                Array.from(document.getElementById('p2Actions').children).forEach(child => {
-                    if (child.id !== 'p2ViewSkillBtn') {
-                        child.style.display = 'none';
-                    }
-                });
-            } else {
-                // Player 2's turn
-                p2ViewBtn.classList.add('hidden'); // P2 doesn't need view skill btn for themselves
-
-                if (isPvE) {
-                    // P2 is NPC, hide entire actions area
+            // Online Mode Overrides: Hide opponent's buttons entirely
+            if (isOnline) {
+                if (localRole === 'host') {
+                    // Host is P1. Cannot click P2 actions.
                     document.getElementById('p2Actions').style.display = 'none';
-                    // NPC doesn't need to view P1's skills either
-                    document.getElementById('p1Actions').style.display = 'none';
-                    p1ViewBtn.classList.add('hidden');
-                } else {
-                    // P2 can view P1's skills
-                    document.getElementById('p1Actions').style.display = 'flex';
-                    p1ViewBtn.classList.remove('hidden');
+                    if (!isP1Turn) {
+                        p1Btns.forEach(btn => btn.disabled = true);
+                        p1SkillBtn.disabled = true;
+                        p1ViewBtn.classList.remove('hidden');
+                        p1ViewBtn.setAttribute('onclick', "openViewSkillModal('player2')");
 
-                    // Hide P1's actual action buttons
-                    Array.from(document.getElementById('p1Actions').children).forEach(child => {
-                        if (child.id !== 'p1ViewSkillBtn') {
+                        // Opponent is thinking
+                        const thinkingUI = document.getElementById('p2Thinking');
+                        thinkingUI.classList.remove('hidden');
+                        thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                    } else {
+                        p1ViewBtn.classList.add('hidden');
+                    }
+                } else if (localRole === 'join') {
+                    // Joiner is P2. Cannot click P1 actions.
+                    document.getElementById('p1Actions').style.display = 'none';
+                    if (isP1Turn) {
+                        p2Btns.forEach(btn => btn.disabled = true);
+                        p2SkillBtn.disabled = true;
+                        p2ViewBtn.classList.remove('hidden');
+                        p2ViewBtn.setAttribute('onclick', "openViewSkillModal('player1')");
+
+                        // Opponent is thinking
+                        const thinkingUI = document.getElementById('p1Thinking');
+                        thinkingUI.classList.remove('hidden');
+                        thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                    } else {
+                        p2ViewBtn.classList.add('hidden');
+                    }
+                }
+            } else {
+                // Classic / PvE Logic
+                if (isP1Turn) {
+                    // Player 1's turn
+                    document.getElementById('p1Actions').style.display = 'flex';
+                    p1ViewBtn.classList.add('hidden'); // P1 doesn't need view skill btn for themselves
+
+                    // Show view skill button for P2
+                    document.getElementById('p2Actions').style.display = 'flex';
+                    p2ViewBtn.classList.remove('hidden');
+
+                    // Keep P2 area visible (action area), but hide P2's actual action buttons
+                    Array.from(document.getElementById('p2Actions').children).forEach(child => {
+                        if (child.id !== 'p2ViewSkillBtn') {
                             child.style.display = 'none';
                         }
                     });
+                } else {
+                    // Player 2's turn
+                    p2ViewBtn.classList.add('hidden'); // P2 doesn't need view skill btn for themselves
 
-                    // P2 is Player, show normal buttons
-                    document.getElementById('p2Actions').style.display = 'flex';
-                    // We already reset children to default '' above, so normal buttons will show, and p2ViewSkillBtn is hidden via classList
+                    if (isPvE) {
+                        // P2 is NPC, hide entire actions area
+                        document.getElementById('p2Actions').style.display = 'none';
+                        // NPC doesn't need to view P1's skills either
+                        document.getElementById('p1Actions').style.display = 'none';
+                        p1ViewBtn.classList.add('hidden');
+                    } else {
+                        // P2 can view P1's skills
+                        document.getElementById('p1Actions').style.display = 'flex';
+                        p1ViewBtn.classList.remove('hidden');
+
+                        // Hide P1's actual action buttons
+                        Array.from(document.getElementById('p1Actions').children).forEach(child => {
+                            if (child.id !== 'p1ViewSkillBtn') {
+                                child.style.display = 'none';
+                            }
+                        });
+
+                        // P2 is Player, show normal buttons
+                        document.getElementById('p2Actions').style.display = 'flex';
+                    }
                 }
             }
         }
@@ -680,10 +993,17 @@
                 });
             }
             modal.classList.add('active');
+
+            if (GameState.mode === 'online') {
+                NetManager.sendState({ type: 'thinking', isThinking: true });
+            }
         }
 
         function closeSkillModal() {
             document.getElementById('skillPanelModal').classList.remove('active');
+            if (GameState.mode === 'online') {
+                NetManager.sendState({ type: 'thinking', isThinking: false });
+            }
         }
 
         function openViewSkillModal(playerKey) {
@@ -737,9 +1057,13 @@
             });
         }
 
-        async function doAction(type, skillIndex = null) {
+        async function doAction(type, skillIndex = null, isRemote = false) {
             if (isProcessing) return;
             isProcessing = true;
+
+            if (!isRemote && GameState.mode === 'online') {
+                NetManager.sendAction({ type: 'do_action', actionType: type, skillIdx: skillIndex });
+            }
 
             // Disable buttons visually
             document.querySelectorAll('.action-btn').forEach(btn => btn.disabled = true);
@@ -774,7 +1098,22 @@
 
                             // If there are standby cards, must pick one
                             if (GameState[p].standbyCards.length > 0) {
-                                await promptReplacement(p);
+                                if (GameState.mode === 'online') {
+                                    const isLocalPlayer = (NetManager.isHost && p === 'player1') || (!NetManager.isHost && p === 'player2');
+                                    if (isLocalPlayer) {
+                                        await promptReplacement(p);
+                                    } else {
+                                        // Wait for remote action 'replace_death'
+                                        document.getElementById('networkWaitingTitle').textContent = '等待對手替換角色...';
+                                        document.getElementById('networkWaitingText').textContent = '對手正在考慮要派誰上場';
+                                        document.getElementById('networkRoomCode').classList.add('hidden');
+                                        document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                                        await new Promise(resolve => window.resolveRemoteReplacement = resolve);
+                                        document.getElementById('networkWaitingOverlay').classList.add('hidden');
+                                    }
+                                } else {
+                                    await promptReplacement(p);
+                                }
                             }
                         }
                     }
@@ -818,7 +1157,7 @@
             }
 
             // Show thinking indicator
-            const thinkingUI = document.getElementById('npcThinking');
+            const thinkingUI = document.getElementById('p2Thinking');
             if (thinkingUI) thinkingUI.classList.remove('hidden');
 
             // Simulate thinking time (random between 1 to 2.5 seconds)
@@ -1059,6 +1398,10 @@
                     div.innerHTML = renderCardInfo(card);
 
                     div.onclick = () => {
+                        if (GameState.mode === 'online') {
+                            NetManager.sendAction({ type: 'replace_death', skillIdx: idx });
+                        }
+
                         // Perform the swap (remove from standby, set as battle)
                         player.battleCard = player.standbyCards.splice(idx, 1)[0];
                         GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
@@ -1093,6 +1436,10 @@
                 div.innerHTML = renderCardInfo(card);
 
                 div.onclick = () => {
+                    if (GameState.mode === 'online') {
+                        NetManager.sendAction({ type: 'retreat', skillIdx: idx });
+                    }
+
                     BattleSystem.retreat(playerKey, idx);
                     closeRetreatModal();
                     updateUI();
@@ -1158,6 +1505,62 @@
                 e.target.classList.remove('active');
             }
         };
+
+        // Emoji Features
+        function openEmojiMenu() {
+            document.getElementById('emojiModal').classList.add('active');
+        }
+
+        function sendEmoji(emoji) {
+            document.getElementById('emojiModal').classList.remove('active');
+
+            // Show locally above my own avatar
+            const localKey = NetManager.isHost ? 'player1' : 'player2';
+            showEmojiAnimation(emoji, localKey);
+
+            // Broadcast to opponent
+            NetManager.sendEmoji(emoji);
+        }
+
+        function showEmojiAnimation(emoji, playerKey) {
+            const containerId = playerKey === 'player1' ? 'player1Area' : 'player2Area';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const el = document.createElement('div');
+            el.textContent = emoji;
+            el.style.position = 'absolute';
+            el.style.top = '10%';
+            el.style.left = '50%';
+            el.style.transform = 'translate(-50%, 0)';
+            el.style.fontSize = '4rem';
+            el.style.zIndex = '1000';
+            el.style.pointerEvents = 'none';
+            el.style.animation = 'emojiPoof 2s ease-out forwards';
+            el.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
+
+            container.appendChild(el);
+
+            // Add style locally if it doesn't exist
+            if (!document.getElementById('emojiStyle')) {
+                const style = document.createElement('style');
+                style.id = 'emojiStyle';
+                style.textContent = `
+                    @keyframes emojiPoof {
+                        0% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+                        15% { opacity: 1; transform: translate(-50%, -20px) scale(1.2); }
+                        30% { transform: translate(-50%, -10px) scale(1.0); }
+                        80% { opacity: 1; transform: translate(-50%, -30px) scale(1.0); }
+                        100% { opacity: 0; transform: translate(-50%, -50px) scale(0.8); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 2000);
+        }
 
         function finishStoryBattle() {
             if (GameState.winner === 1) {
