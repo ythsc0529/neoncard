@@ -68,7 +68,12 @@ function getRandomFromCategory(category) {
         case 'planet': list = PLANETS; break;
         case 'tea': list = TEAS; break;
         case 'motorcycle': list = MOTORCYCLES; break;
-        default: return null;
+        default:
+            const tagged = getCharactersByTag(category);
+            if (tagged.length > 0) {
+                return tagged[Math.floor(Math.random() * tagged.length)];
+            }
+            return null;
     }
     const name = list[Math.floor(Math.random() * list.length)];
     return getCharacterByName(name);

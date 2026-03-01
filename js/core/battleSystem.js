@@ -1688,9 +1688,11 @@ const BattleSystem = {
 
                         // Steve Jobs shield update
                         if (attacker.passive?.effect?.action === 'apple_passive') {
-                            const shieldPer = attacker.passive.effect.shield_per_apple || 35;
-                            attacker.shield = (attacker.resources.apple || 0) * shieldPer;
-                            GameState.addLog(`${attacker.name} 護盾更新為 ${attacker.shield}`, 'skill');
+                            if (!attacker.resources.apple_reached_max) {
+                                const shieldPer = attacker.passive.effect.shield_per || 50;
+                                attacker.shield = (attacker.resources.apple || 0) * shieldPer;
+                                GameState.addLog(`${attacker.name} 護盾更新為 ${attacker.shield}`, 'skill');
+                            }
                         }
                     } else {
                         GameState.addLog(`蘋果不足`, 'status');
@@ -1709,9 +1711,11 @@ const BattleSystem = {
 
                         // Steve Jobs shield update
                         if (attacker.passive?.effect?.action === 'apple_passive') {
-                            const shieldPer = attacker.passive.effect.shield_per_apple || 35;
-                            attacker.shield = (attacker.resources.apple || 0) * shieldPer;
-                            GameState.addLog(`${attacker.name} 護盾更新為 ${attacker.shield}`, 'skill');
+                            if (!attacker.resources.apple_reached_max) {
+                                const shieldPer = attacker.passive.effect.shield_per || 50;
+                                attacker.shield = (attacker.resources.apple || 0) * shieldPer;
+                                GameState.addLog(`${attacker.name} 護盾更新為 ${attacker.shield}`, 'skill');
+                            }
                         }
                     } else {
                         GameState.addLog(`蘋果不足`, 'status');
@@ -1855,8 +1859,8 @@ const BattleSystem = {
                     break;
                 case 'damage_apply_miss_chance':
                     await this.applyDamage(attacker, defender, effect.damage);
-                    defender.statusEffects.push({ type: 'miss_chance', name: '致盲', chance: effect.miss_chance, turns: effect.turns });
-                    GameState.addLog(`${defender.name} 受到致盲效果`, 'skill');
+                    defender.statusEffects.push({ type: 'miss_chance', name: '致盲', chance: effect.miss_chance, hits: 1 });
+                    GameState.addLog(`${defender.name} 下次攻擊有 ${effect.miss_chance}% 機率無效`, 'skill');
                     break;
                 case 'heal_and_regen':
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);

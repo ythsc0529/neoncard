@@ -796,6 +796,14 @@ const GameState = {
                         const tChar = getCharacterByName(effect.target);
                         Object.assign(card, createCharacterInstance(tChar));
                     }
+                } else if (trigger === 'on_enemy_turn_end' || trigger === 'on_turn_end') {
+                    if (typeof BattleSystem !== 'undefined') {
+                        BattleSystem.evolveCharacter(card, effect.target);
+                    } else {
+                        const tChar = getCharacterByName(effect.target);
+                        Object.assign(card, createCharacterInstance(tChar));
+                        this.addLog(`${card.name} 轉變為 ${effect.target}`, 'skill');
+                    }
                 }
                 break;
             case 'dodge_and_reduction':
@@ -1257,12 +1265,19 @@ const GameState = {
                     const appleCount = card.resources.apple;
                     const appleCap = effect.apple_cap || 8;
                     const shieldPer = effect.shield_per || 50;
-                    // Shield caps at apple_cap apples (no further stacking beyond cap)
-                    const effectiveApples = Math.min(appleCount, appleCap);
-                    card.shield = effectiveApples * shieldPer;
-                    this.addLog(`${card.name} 蘋果 +1 (共${appleCount})，護盾設為 ${card.shield}`, 'skill');
-                    // 生生不息：蘋果超過上限時每回合回復HP
-                    if (appleCount > appleCap) {
+
+                    if (appleCount >= appleCap) {
+                        card.resources.apple_reached_max = true;
+                    }
+
+                    if (!card.resources.apple_reached_max) {
+                        card.shield = appleCount * shieldPer;
+                        this.addLog(`${card.name} 蘋果 +1 (共${appleCount})，護盾設為 ${card.shield}`, 'skill');
+                    } else {
+                        this.addLog(`${card.name} 蘋果 +1 (共${appleCount})`, 'skill');
+                    }
+
+                    if (appleCount > appleCap || card.resources.apple_reached_max) {
                         const regenAmount = effect.regen_per_turn || 10;
                         card.hp = Math.min(card.maxHp, card.hp + regenAmount);
                         this.addLog(`${card.name} 【生生不息】恢復 ${regenAmount} HP`, 'heal');
