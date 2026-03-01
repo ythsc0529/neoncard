@@ -570,6 +570,7 @@
             document.getElementById('networkWaitingTitle').textContent = '等待對手...';
             document.getElementById('networkWaitingText').textContent = '對手正在選擇出戰角色';
             document.getElementById('networkRoomCode').classList.add('hidden');
+            overlay.classList.remove('hidden');
             overlay.classList.add('active');
         }
 
@@ -582,7 +583,9 @@
 
                 // Both players selected
                 if (GameState.player1.battleCard && GameState.player2.battleCard) {
-                    document.getElementById('networkWaitingOverlay').classList.remove('active');
+                    const overlay = document.getElementById('networkWaitingOverlay');
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
                     startBattle();
                 }
             } else if (action.type === 'do_action') {
@@ -629,7 +632,9 @@
                 if (!GameState[otherPlayerKey].battleCard) {
                     renderWaitingForOpponentSelection();
                 } else {
-                    document.getElementById('networkWaitingOverlay').classList.remove('active');
+                    const overlay = document.getElementById('networkWaitingOverlay');
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
                     startBattle(); // Both selected
                 }
                 return;
