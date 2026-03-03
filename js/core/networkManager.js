@@ -26,7 +26,8 @@ class NetworkManager {
 
     async initHost() {
         this.isHost = true;
-        this.roomId = this.generateShortId();
+        this.roomId = sessionStorage.getItem('last_host_room_id') || this.generateShortId();
+        sessionStorage.setItem('last_host_room_id', this.roomId);
         const peerId = 'neoncard-' + this.roomId;
 
         return new Promise((resolve, reject) => {
@@ -112,6 +113,7 @@ class NetworkManager {
                 }
             } else if (data.type === 'seed' && !this.isHost) {
                 // Host sends the game seed to client upon connection
+                if (!window.OriginalMathRandom) window.OriginalMathRandom = Math.random;
                 window.GameRNG = new SeededRNG(data.seed);
                 Math.random = () => window.GameRNG.next(); // OVERRIDE NATIVE RNG
                 console.log('Received RNG seed from host:', data.seed);
@@ -128,6 +130,7 @@ class NetworkManager {
         if (this.isHost) {
             // Host generates seed and sends it
             const seed = Date.now();
+            if (!window.OriginalMathRandom) window.OriginalMathRandom = Math.random;
             window.GameRNG = new SeededRNG(seed);
             Math.random = () => window.GameRNG.next(); // OVERRIDE NATIVE RNG
             this.conn.send({ type: 'seed', seed: seed });

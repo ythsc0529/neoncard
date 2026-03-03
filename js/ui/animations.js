@@ -280,7 +280,7 @@ const Animations = {
                 const rollLoop = () => {
                     const elapsed = Date.now() - rollStart;
                     if (elapsed < rollDuration) {
-                        const fakeVal = Math.floor(Math.random() * 100) + 1;
+                        const fakeVal = Math.floor((window.OriginalMathRandom || Math.random)() * 100) + 1;
                         numEl.textContent = fakeVal;
                         // Animate arc to fake value — use setAttribute for SVG compat
                         arcEl.setAttribute('stroke-dashoffset', offsetFor(fakeVal));
@@ -322,7 +322,7 @@ const Animations = {
                                 const p = document.createElement('div');
                                 p.className = 'prob-particle';
                                 const angle = (i / PARTICLE_COUNT) * 360;
-                                const dist = 60 + Math.random() * 60;
+                                const dist = 60 + (window.OriginalMathRandom || Math.random)() * 60;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
@@ -330,7 +330,7 @@ const Animations = {
                                 p.style.setProperty('--py', py + 'px');
                                 p.style.background = pColors[i % pColors.length];
                                 p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (4 + Math.random() * 6) + 'px';
+                                p.style.width = (4 + (window.OriginalMathRandom || Math.random)() * 6) + 'px';
                                 p.style.height = p.style.width;
                                 gaugeWrap.style.position = 'relative';
                                 gaugeWrap.appendChild(p);
@@ -401,7 +401,7 @@ const Animations = {
                     const elapsed = Date.now() - startTime;
                     if (elapsed < duration) {
                         // High speed rolling
-                        const fakeVal = Math.floor(Math.random() * (max - min + 1)) + min;
+                        const fakeVal = Math.floor((window.OriginalMathRandom || Math.random)() * (max - min + 1)) + min;
                         // pad to at least 2 chars if possible to keep width roughly stable
                         el.textContent = fakeVal.toString().padStart(2, '0');
                         requestAnimationFrame(animate);
@@ -424,7 +424,7 @@ const Animations = {
                                 const p = document.createElement('div');
                                 p.className = 'prob-particle'; // reuse prob-particle css
                                 const angle = (i / PARTICLE_COUNT) * 360;
-                                const dist = 40 + Math.random() * 40;
+                                const dist = 40 + (window.OriginalMathRandom || Math.random)() * 40;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
@@ -432,7 +432,7 @@ const Animations = {
                                 p.style.setProperty('--py', py + 'px');
                                 p.style.background = pColors[i % pColors.length];
                                 p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (3 + Math.random() * 5) + 'px';
+                                p.style.width = (3 + (window.OriginalMathRandom || Math.random)() * 5) + 'px';
                                 p.style.height = p.style.width;
                                 wrapEl.appendChild(p);
                                 setTimeout(() => p.remove(), 900);
@@ -449,7 +449,7 @@ const Animations = {
             } catch (e) {
                 console.error("Animation Error:", e);
                 this.hide();
-                resolve(Math.floor(Math.random() * (max - min + 1)) + min); // Fallback
+                resolve(Math.floor((window.OriginalMathRandom || Math.random)() * (max - min + 1)) + min); // Fallback
             }
         });
     },
@@ -488,7 +488,7 @@ const Animations = {
 
         const rect = element.getBoundingClientRect();
         // Random horizontal scatter so multiple hits don't overlap
-        const scatter = (Math.random() - 0.5) * rect.width * 0.5;
+        const scatter = ((window.OriginalMathRandom || Math.random)() - 0.5) * rect.width * 0.5;
         num.style.left = (rect.left + rect.width / 2 + scatter) + 'px';
         num.style.top = (rect.top + rect.height * 0.25) + 'px';
 
@@ -639,8 +639,24 @@ const Animations = {
             this.show();
 
             const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
-            const btnAction = isStory ? "finishStoryBattle()" : "location.href='index.html'";
-            const btnText = isStory ? "繼續" : "返回主選單";
+            const isOnline = typeof GameState !== 'undefined' && GameState.mode === 'online';
+            
+            let btnAction = isStory ? "finishStoryBattle()" : "location.href='index.html'";
+            let btnText = isStory ? "繼續" : "返回主選單";
+            let secondaryBtnContent = '';
+
+            if (isOnline) {
+                const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                if (localRole === 'host') {
+                    btnAction = "NetManager.conn.send({ type: 'lobby_rematch' }); window.location.reload();";
+                    btnText = "與對手重新開始（聯機）";
+                    secondaryBtnContent = '<div style="margin-top: 15px;"><button class="btn btn-magenta" onclick="location.href=\'index.html\'">退出連線大廳</button></div>';
+                } else {
+                    btnAction = "location.href='index.html'";
+                    btnText = "退出連線大廳";
+                    secondaryBtnContent = '<p style="color:var(--neon-gold); font-size:1.1rem; margin-top:20px; text-shadow:none;">等待房主決定是否重新開始...</p>';
+                }
+            }
 
             this.container.innerHTML = `
                 <div style="text-align: center;">
@@ -651,6 +667,7 @@ const Animations = {
                     <button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">
                         ${btnText}
                     </button>
+                    ${secondaryBtnContent}
                 </div>
             `;
 

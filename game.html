@@ -613,6 +613,8 @@
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(action.emojiId, opponentKey);
                 }
+            } else if (action.type === 'lobby_rematch') {
+                window.location.reload();
             }
         }
 
@@ -769,39 +771,57 @@
             document.getElementById('p1Thinking').classList.add('hidden');
             document.getElementById('p2Thinking').classList.add('hidden');
 
-            // Online Mode Overrides: Hide opponent's buttons entirely
+            // Online Mode Overrides
             if (isOnline) {
                 if (localRole === 'host') {
-                    // Host is P1. Cannot click P2 actions.
-                    document.getElementById('p2Actions').style.display = 'none';
+                    // Host is P1. 
+                    document.getElementById('p1Actions').style.display = 'flex';
+                    document.getElementById('p2Actions').style.display = 'flex';
+
+                    // P2 action area only shows 'View Skill'
+                    Array.from(document.getElementById('p2Actions').children).forEach(child => {
+                        if (child.id !== 'p2ViewSkillBtn') {
+                            child.style.display = 'none';
+                        }
+                    });
+                    p2ViewBtn.classList.remove('hidden');
+                    p2ViewBtn.disabled = false;
+
+                    p1ViewBtn.classList.add('hidden');
+
                     if (!isP1Turn) {
                         p1Btns.forEach(btn => btn.disabled = true);
                         p1SkillBtn.disabled = true;
-                        p1ViewBtn.classList.remove('hidden');
-                        p1ViewBtn.setAttribute('onclick', "openViewSkillModal('player2')");
 
                         // Opponent is thinking
                         const thinkingUI = document.getElementById('p2Thinking');
                         thinkingUI.classList.remove('hidden');
                         thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
-                    } else {
-                        p1ViewBtn.classList.add('hidden');
                     }
                 } else if (localRole === 'join') {
-                    // Joiner is P2. Cannot click P1 actions.
-                    document.getElementById('p1Actions').style.display = 'none';
+                    // Joiner is P2. 
+                    document.getElementById('p2Actions').style.display = 'flex';
+                    document.getElementById('p1Actions').style.display = 'flex';
+
+                    // P1 action area only shows 'View Skill'
+                    Array.from(document.getElementById('p1Actions').children).forEach(child => {
+                        if (child.id !== 'p1ViewSkillBtn') {
+                            child.style.display = 'none';
+                        }
+                    });
+                    p1ViewBtn.classList.remove('hidden');
+                    p1ViewBtn.disabled = false;
+
+                    p2ViewBtn.classList.add('hidden');
+
                     if (isP1Turn) {
                         p2Btns.forEach(btn => btn.disabled = true);
                         p2SkillBtn.disabled = true;
-                        p2ViewBtn.classList.remove('hidden');
-                        p2ViewBtn.setAttribute('onclick', "openViewSkillModal('player1')");
 
                         // Opponent is thinking
                         const thinkingUI = document.getElementById('p1Thinking');
                         thinkingUI.classList.remove('hidden');
                         thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
-                    } else {
-                        p2ViewBtn.classList.add('hidden');
                     }
                 }
             } else {
@@ -1388,6 +1408,26 @@
                     }
                 }
                 // --------------------------------------------
+
+                // Online: If it's the opponent's character that died, show waiting screen instead of picking for them
+                if (GameState.mode === 'online') {
+                    const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                    const isLocalP1 = localRole === 'host';
+                    if ((isLocalP1 && playerKey === 'player2') || (!isLocalP1 && playerKey === 'player1')) {
+                        // We are waiting for the opponent to pick
+                        renderWaitingForOpponentSelection();
+                        const overlay = document.getElementById('networkWaitingOverlay');
+                        document.getElementById('networkWaitingTitle').textContent = '等待對手...';
+                        document.getElementById('networkWaitingText').textContent = '對手正在選擇替補角色';
+
+                        window.resolveRemoteReplacement = () => {
+                            overlay.classList.remove('active');
+                            overlay.classList.add('hidden');
+                            resolve();
+                        };
+                        return;
+                    }
+                }
 
                 const modal = document.getElementById('replacementModal');
                 const optionsDiv = document.getElementById('replacementOptions');
