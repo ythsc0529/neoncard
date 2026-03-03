@@ -528,10 +528,12 @@ const GameState = {
                 break;
             case 'no_attack_dot_revive': // 阿共-共機擾台
                 {
-                    const opp = this.getOpponent();
-                    if (opp.battleCard) {
-                        opp.battleCard.hp -= effect.dot;
-                        this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
+                    if (trigger === 'on_turn_start') {
+                        const opp = this.getOpponent();
+                        if (opp.battleCard) {
+                            opp.battleCard.hp -= effect.dot;
+                            this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
+                        }
                     }
                     break;
                 }
@@ -577,30 +579,33 @@ const GameState = {
             case 'check_mahjong_combo':
                 if (trigger === 'on_turn_start' || trigger === 'passive') {
                     const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const opp = ownerP === 'player1' ? 'player2' : 'player1';
+                    const targetOpp = this[opp].battleCard;
                     const sb = this[ownerP].standbyCards;
-                    if (effect.combo === '大三元') {
-                        const required = ['紅中', '青發', '白板'];
-                        if (required.every(name => sb.some(c => c.name === name)) && !card.resources.combo_triggered) {
-                            card.atk += effect.atk;
-                            card.maxHp += effect.max_hp;
-                            card.hp += effect.max_hp;
-                            card.resources.combo_triggered = true;
-                        }
-                    } else if (effect.combo === '大四喜') {
-                        const required = ['東風', '南風', '西風', '北風'];
-                        if (required.every(name => sb.some(c => c.name === name)) && !card.resources.combo_triggered) {
-                            card.atk += effect.atk;
-                            card.maxHp += effect.max_hp;
-                            card.hp += effect.max_hp;
-                            card.resources.combo_triggered = true;
-                        }
-                    } else if (effect.combo === '十七張') {
-                        if (this[ownerP].allCards && this[ownerP].allCards.length >= 17 && !card.resources.combo_triggered) {
-                            card.atk += effect.atk;
-                            card.maxHp += effect.max_hp;
-                            card.hp += effect.max_hp;
-                            card.resources.combo_triggered = true;
-                        }
+                    if (!targetOpp) break;
+
+                    const hasSan = ['紅中', '發財', '白板'].every(name => sb.some(c => c.name === name));
+                    const hasSi = ['東風', '南風', '西風', '北風'].every(name => sb.some(c => c.name === name));
+
+                    let mjCount = sb.filter(c => c.tags && c.tags.includes('mahjong')).length;
+                    if (this[ownerP].battleCard && this[ownerP].battleCard.tags && this[ownerP].battleCard.tags.includes('mahjong')) mjCount++;
+
+                    if (hasSan && !card.resources.san_triggered) {
+                        targetOpp.hp -= (effect.san_damage || 80);
+                        card.resources.san_triggered = true;
+                        this.addLog(`${card.name} 達成大三元！對 ${targetOpp.name} 造成 ${effect.san_damage || 80} 傷害`, 'damage');
+                    }
+
+                    if (hasSi && !card.resources.si_triggered) {
+                        targetOpp.hp -= (effect.si_damage || 100);
+                        card.resources.si_triggered = true;
+                        this.addLog(`${card.name} 達成大四喜！對 ${targetOpp.name} 造成 ${effect.si_damage || 100} 傷害`, 'damage');
+                    }
+
+                    if (mjCount >= 17 && !card.resources.seventeen_triggered) {
+                        targetOpp.hp -= (effect.seventeen_damage || 400);
+                        card.resources.seventeen_triggered = true;
+                        this.addLog(`${card.name} 達成十七張！對 ${targetOpp.name} 造成 ${effect.seventeen_damage || 400} 傷害`, 'damage');
                     }
                 }
                 break;
@@ -706,7 +711,7 @@ const GameState = {
                 break;
             case 'subspace_dodge':
                 if (trigger === 'passive') {
-                    card.resources.dodge = effect.dodge;
+                    card.resources.dodge = effect.chance || effect.dodge || 90;
                 }
                 break;
             case 'ignore_dodge':
@@ -830,12 +835,14 @@ const GameState = {
                 if (trigger === 'passive') {
                     card.resources.defense_stacks = effect.reduction;
                     if (this.turnCount > 10) card.hp = 0;
+                    const opp = this.getOpponent().battleCard;
+                    if (opp) card.resources.dodge = Math.floor(opp.atk / 3);
                 }
                 break;
             case 'dodge_if_enemy_atk_high':
                 if (trigger === 'passive') {
                     const opp = this.getOpponent().battleCard;
-                    if (opp && opp.atk >= effect.threshold) card.resources.dodge = effect.dodge;
+                    if (opp && opp.atk >= effect.threshold) card.resources.dodge = effect.value || effect.dodge || 0;
                     else card.resources.dodge = 0;
                 }
                 break;
@@ -850,8 +857,9 @@ const GameState = {
                 if (trigger === 'passive') card.resources.dodge = effect.value;
                 break;
             case 'buff_atk_chance':
-                if (trigger === 'on_turn_start' && Math.random() * 100 < effect.chance) {
+                if ((trigger === 'on_turn_start' || trigger === 'on_enter') && Math.random() * 100 < effect.chance) {
                     card.atk += effect.atk;
+                    this.addLog(`${card.name} 觸發機率攻擊提升！ATK +${effect.atk}`, 'skill');
                 }
                 break;
 
@@ -1209,7 +1217,7 @@ const GameState = {
             case 'damage_turn_based':
                 const dmgOpp = this.getOpponent();
                 if (dmgOpp.battleCard) {
-                    const dmg = effect.base + this.turnCount * effect.turn_mult;
+                    const dmg = effect.base + this.turnCount * (effect.mult || effect.turn_mult);
                     dmgOpp.battleCard.hp -= dmg;
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${dmgOpp.battleCard.name} 造成 ${dmg} 傷害`, 'damage');
                 }

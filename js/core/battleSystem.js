@@ -66,14 +66,25 @@ const BattleSystem = {
                         }
                     }
 
+                    // Check dodge_reflect reflection!
+                    if (dodgeEff && dodgeEff.type === 'dodge_reflect') {
+                        if (Math.random() * 100 < (dodgeEff.reflect_chance || 100)) {
+                            const reflectDamage = baseDamage;
+                            if (attacker && attacker.hp !== undefined) attacker.hp -= reflectDamage;
+                            GameState.addLog(`${defender.name} 閃避並反彈了 ${reflectDamage} 傷害！`, 'damage');
+                        }
+                    }
+
                     // Check 垃圾 passive - scale on dodge (animation already shown via probabilityRoll)
                     if (defender.passive?.effect?.action === 'dodge_scale') {
-                        const atkGain = defender.passive.effect.atk || 10;
-                        const dodgeGain = defender.passive.effect.dodge || 5;
-                        defender.atk += atkGain;
-                        defender.resources = defender.resources || {};
-                        defender.resources.dodge_chance_bonus = (defender.resources.dodge_chance_bonus || 0) + dodgeGain;
-                        GameState.addLog(`${defender.name} 觸發猛攻，ATK +${atkGain}，閃避率 +${dodgeGain}%！`, 'skill');
+                        const atkMult = defender.passive.effect.atk_mult || 1;
+                        const hpMult = defender.passive.effect.hp_mult || 1;
+                        if (atkMult !== 1) defender.atk *= atkMult;
+                        if (hpMult !== 1) {
+                            defender.maxHp *= hpMult;
+                            defender.hp *= hpMult;
+                        }
+                        GameState.addLog(`${defender.name} 觸發猛攻，最大生命值與攻擊力翻倍！`, 'skill');
                     }
 
                     return { damage: 0, dodged: true };
@@ -169,6 +180,11 @@ const BattleSystem = {
             }
         }
 
+        // Check damage reduction (from passive defense_stacks like 盾哥)
+        if (defender.resources && defender.resources.defense_stacks) {
+            damage = Math.floor(damage * (1 - Math.min(defender.resources.defense_stacks, 100) / 100));
+        }
+
         // Check damage reduction (from passive conditional_stats - 王世堅情)
         if (defender.passive?.effect?.action === 'conditional_stats' && defender.hp > defender.maxHp / 2) {
             damage = Math.floor(damage * 0.8);
@@ -251,8 +267,10 @@ const BattleSystem = {
             if (rChance === 100 || Math.random() * 100 < rChance) {
                 const rVal = reflect.type === 'dodge_reflect' ? 100 : (reflect.value || 100);
                 const reflectDamage = Math.floor(damage * rVal / 100);
-                attacker.hp -= reflectDamage;
-                GameState.addLog(`${defender.name} 反彈了 ${reflectDamage} 傷害！`, 'damage');
+                if (attacker && attacker.hp !== undefined) {
+                    attacker.hp -= reflectDamage;
+                }
+                GameState.addLog(`${defender.name} 反彈了 ${Math.floor(damage * rVal / 100)} 傷害！`, 'damage');
 
                 if (reflect.hits !== undefined) {
                     reflect.hits--;
@@ -417,7 +435,7 @@ const BattleSystem = {
         let dodge = card.resources?.dodge || 0;
 
         // Check passive dodge
-        if (card.passive?.effect?.trigger === 'on_hit' && card.passive.effect.action === 'dodge_chance') {
+        if (card.passive?.effect?.trigger === 'on_hit' && (card.passive.effect.action === 'dodge_chance' || card.passive.effect.action === 'dodge_scale')) {
             dodge = Math.max(dodge, card.passive.effect.chance);
         }
 
@@ -1268,8 +1286,11 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} ATK +${effect.value} (${effect.turns}回合)`, 'status');
                     break;
                 case 'debuff_percent_hp_dot': // 王欸等-微笑
-                    defender.statusEffects.push({ type: 'percent_hp_dot', name: '露齒微笑', percent: effect.percent, permanent: true });
+                    defender.statusEffects.push({ type: 'percent_hp_dot', name: '露齒微笑', percent: effect.percent, turns: effect.turns, permanent: effect.permanent });
                     attacker.atk += effect.atk_buff;
+                    if (effect.atk_buff) {
+                        attacker.statusEffects.push({ type: 'atk_buff', name: '攻擊提升', value: effect.atk_buff, turns: effect.turns || 99 });
+                    }
                     GameState.addLog(`${defender.name} 獲得露齒微笑效果，每回合損失 ${effect.percent}% HP`, 'status');
                     break;
                 case 'debuff_dodge_zero': // 檸檬紅茶-福利
@@ -1949,7 +1970,7 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, eDmg);
                     break;
                 case 'execute_chance_if_hp_above':
-                    if (defender.hp > defender.maxHp * (effect.threshold / 100)) {
+                    if (defender.hp > effect.threshold) {
                         if (await Animations.probabilityRoll(effect.chance, '收割判定')) {
                             defender.hp = 0;
                             GameState.addLog(`${defender.name} 被強制收割！`, 'damage');
@@ -2128,7 +2149,7 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} 被石化了`, 'skill');
                     break;
                 case 'apply_allergy':
-                    defender.statusEffects.push({ type: 'dot', name: '過敏', damage: effect.damage, turns: effect.turns });
+                    defender.statusEffects.push({ type: 'percent_hp_dot', name: '過敏', percent: effect.damage || 4, turns: effect.turns });
                     GameState.addLog(`${defender.name} 開始過敏`, 'skill');
                     break;
                 case 'consume_item_buff_atk':
