@@ -24,8 +24,14 @@ const BattleSystem = {
             attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'buff_next');
         }
 
+        let options = {};
+        if (attacker.statusEffects && attacker.statusEffects.some(e => e.type === 'buff_next_ignore_dodge')) {
+            options.ignoresDodge = true;
+            attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'buff_next_ignore_dodge');
+        }
+
         // Apply damage
-        const result = await this.applyDamage(attacker, defender, damage);
+        const result = await this.applyDamage(attacker, defender, damage, options);
 
         attacker.hasAttacked = true;
 
@@ -64,6 +70,13 @@ const BattleSystem = {
                         if (dodgeEff.hits <= 0) {
                             defender.statusEffects = defender.statusEffects.filter(e => e !== dodgeEff);
                         }
+                    }
+
+                    // Extend show_off turns (小資)
+                    const showOffEff = defender.statusEffects.find(e => e.type === 'show_off');
+                    if (showOffEff) {
+                        showOffEff.turns = (showOffEff.turns || 2) + 1;
+                        GameState.addLog(`${defender.name} 閃避成功，炫耀時間延長！`, 'skill');
                     }
 
                     // Check dodge_reflect reflection!
@@ -117,6 +130,13 @@ const BattleSystem = {
         }
 
         // --- ATTACKER MODIFIERS ---
+        // Check excite (霍去病)
+        const exciteAttacker = attacker.statusEffects?.find(e => e.type === 'excite');
+        if (exciteAttacker) {
+            damage = Math.floor(damage * 1.2);
+            GameState.addLog(`${attacker.name} 處於亢奮狀態，造成 120% 傷害！`, 'status');
+        }
+
         // Check tribal bonus (巴萬/莫那魯道)
         if (attacker.passive?.effect?.action === 'tribal_bonus' || attacker.passive?.effect?.action === 'bonus_vs_character') {
             const targetName = attacker.passive.effect.target;
@@ -134,6 +154,13 @@ const BattleSystem = {
         }
 
         // --- DEFENDER MODIFIERS ---
+        // Check excite (霍去病)
+        const exciteDefender = defender.statusEffects?.find(e => e.type === 'excite');
+        if (exciteDefender) {
+            damage = Math.floor(damage * 0.9);
+            GameState.addLog(`${defender.name} 處於亢奮狀態，受到 90% 傷害！`, 'status');
+        }
+
         // Check damage reduction (flat)
         const flatReduction = defender.statusEffects.find(e => e.type === 'damage_reduction_flat');
         if (flatReduction) {
@@ -420,6 +447,9 @@ const BattleSystem = {
                 }
                 GameState.addLog(`${attacker.name} 焰發動，獲得 ${shieldGain} 護盾！`, 'skill');
             }
+
+            // General on_hit trigger for defender
+            GameState.processPassive(defender, 'on_hit', { damage: damage });
         }
 
         return { damage, dodged: false, blocked: false };
@@ -446,6 +476,7 @@ const BattleSystem = {
             card.statusEffects.forEach(e => {
                 if (e.type === 'dodge') dodge += (e.chance || 100);
                 if (e.type === 'dodge_reflect') dodge += (e.dodge_chance || 0);
+                if (e.type === 'show_off') dodge += (e.dodge || 35);
             });
         }
 
@@ -591,7 +622,7 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, Math.floor((attacker.maxHp - attacker.hp) * effect.value / 100));
                     break;
                 case 'damage_self_max_hp_percent':
-                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * effect.value / 100));
+                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * (effect.value || effect.percent) / 100));
                     break;
                 case 'damage_turn_hp_percent':
                     await this.applyDamage(attacker, defender, Math.floor(GameState.turnCount * attacker.hp * effect.percent / 100));
@@ -609,6 +640,20 @@ const BattleSystem = {
                         await this.applyDamage(attacker, defender, Math.floor(defender.hp / 2));
                     } else {
                         GameState.addLog('效果未觸發', 'status');
+                    }
+                    break;
+                case 'damage_multi_chance':
+                    let successHits = 0;
+                    for (let i = 0; i < effect.hits; i++) {
+                        if (await Animations.probabilityRoll(effect.chance, `掃射判定 (${i + 1}/${effect.hits})`)) {
+                            successHits++;
+                        }
+                    }
+                    if (successHits > 0) {
+                        await this.applyDamage(attacker, defender, effect.damage * successHits);
+                        GameState.addLog(`${attacker.name} 掃射命中 ${successHits} 發，共造成 ${effect.damage * successHits} 傷害！`, 'damage');
+                    } else {
+                        GameState.addLog(`${attacker.name} 掃射全數落空！`, 'status');
                     }
                     break;
                 case 'damage_chance':
@@ -675,6 +720,13 @@ const BattleSystem = {
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
                     await this.applyDamage(attacker, defender, effect.damage);
                     GameState.addLog(`${attacker.name} 恢復 ${effect.heal} HP`, 'heal');
+                    Animations.showHeal(Animations.getCardEl(attacker), effect.heal);
+                    break;
+                case 'heal_damage_cap':
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
+                    attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'damage_cap_hit');
+                    attacker.statusEffects.push({ type: 'damage_cap_hit', cap: effect.cap, hits: 1 });
+                    GameState.addLog(`${attacker.name} 恢復 ${effect.heal} HP，並獲得超格擋！`, 'heal');
                     Animations.showHeal(Animations.getCardEl(attacker), effect.heal);
                     break;
 
@@ -762,6 +814,11 @@ const BattleSystem = {
                     attacker.statusEffects.push({ type: 'buff_next', name: '蓄力', value: effect.value, turns: 99 });
                     GameState.addLog(`${attacker.name} 正在蓄力`, 'skill');
                     break;
+                case 'buff_next_attack_ignore_dodge':
+                    attacker.nextAttackMult = (attacker.nextAttackMult || 0) + effect.mult;
+                    attacker.statusEffects.push({ type: 'buff_next_ignore_dodge', name: '無法閃避', turns: 99 });
+                    GameState.addLog(`${attacker.name} 下次攻擊無視閃避並且傷害增加！`, 'skill');
+                    break;
                 case 'debuff_atk':
                     defender.atk = Math.max(0, defender.atk - effect.value);
                     defender.statusEffects.push({ type: 'debuff_atk', name: 'ATK下降', value: effect.value, turns: effect.turns || 1 });
@@ -792,6 +849,61 @@ const BattleSystem = {
                     break;
 
                 // --- STATUS EFFECTS ---
+                case 'shield_decay':
+                    attacker.shield += effect.shield;
+                    // Use decay_flat for fixed-value decay (e.g., 托你使坦克), decay for percent-based
+                    attacker.statusEffects.push({
+                        type: 'shield_decay', name: '能量護盾',
+                        decay_flat: effect.decay,  // Store as fixed amount (not percent)
+                        turns: 99
+                    });
+                    GameState.addLog(`${attacker.name} 獲得 ${effect.shield} 護盾，但每回合將流失 ${effect.decay}`, 'skill');
+                    Animations.showShield(Animations.getCardEl(attacker), effect.shield);
+                    break;
+                case 'consume_item_buff_atk':
+                case 'consume_item_shield_heal':
+                case 'consume_item_dodge': {
+                    const owner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const idx = GameState[owner].standbyCards.findIndex(c => c.name === effect.item);
+                    if (idx !== -1) {
+                        GameState[owner].standbyCards.splice(idx, 1);
+                        if (effect.type === 'consume_item_buff_atk') attacker.atk += effect.atk;
+                        if (effect.type === 'consume_item_shield_heal') {
+                            attacker.shield += effect.shield;
+                            attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
+                            Animations.showShield(Animations.getCardEl(attacker), effect.shield);
+                        }
+                        if (effect.type === 'consume_item_dodge') {
+                            attacker.statusEffects.push({ type: 'dodge', name: '閃避', chance: effect.dodge, hits: 99 });
+                        }
+                        GameState.addLog(`${attacker.name} 消耗了 ${effect.item} 並獲得增強！`, 'skill');
+                    } else {
+                        GameState.addLog(`備戰區沒有 ${effect.item}，技能發動失敗！`, 'status');
+                    }
+                    break;
+                }
+                case 'self_stun_buff':
+                    attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.stun || 1 });
+                    if (effect.atk_mult) {
+                        const newAtk = Math.floor((attacker.atk || 0) * effect.atk_mult);
+                        attacker.atk = isNaN(newAtk) ? attacker.atk : newAtk;
+                    }
+                    GameState.addLog(`${attacker.name} 暈眩了自己，但攻擊力大幅提升為 ${attacker.atk}！`, 'skill');
+                    break;
+                case 'stun_self_shield':
+                    attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.turns || 1 });
+                    attacker.shield += (effect.shield || 0);
+                    GameState.addLog(`${attacker.name} 舉盾，獲得 ${effect.shield} 護盾，但也暈眩了自己！`, 'skill');
+                    Animations.showShield(Animations.getCardEl(attacker), effect.shield);
+                    break;
+                case 'apply_excite':
+                    attacker.statusEffects.push({ type: 'excite', name: '振奮', turns: effect.turns || 2 });
+                    GameState.addLog(`${attacker.name} 受到振奮！減傷 10% 且造成傷害增加 20%！`, 'skill');
+                    break;
+                case 'show_off':
+                    attacker.statusEffects.push({ type: 'show_off', name: '炫耀', dodge: effect.dodge_chance || 35, turns: effect.turns || 2 });
+                    GameState.addLog(`${attacker.name} 開始炫耀！大幅提升閃避率！`, 'skill');
+                    break;
                 case 'stun':
                     defender.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.turns });
                     GameState.addLog(`${defender.name} 被暈眩 ${effect.turns} 回合`, 'status');
@@ -852,9 +964,10 @@ const BattleSystem = {
                     break;
 
                 // --- SUMMON & DRAW EFFECTS ---
+                case 'self_damage_draw':
                 case 'draw':
                 case 'draw_self_damage':
-                    if (effect.type === 'draw_self_damage') {
+                    if (effect.type === 'draw_self_damage' || effect.type === 'self_damage_draw') {
                         attacker.hp -= effect.damage;
                         GameState.addLog(`${attacker.name} 消耗血量抽牌`, 'skill');
                     }
@@ -872,7 +985,82 @@ const BattleSystem = {
                         await Animations.drawCards(drawnItems);
                     }
                     break;
+                case 'draw_category': {
+                    const categoryCards = [...(typeof CHARACTERS_PART1 !== 'undefined' ? CHARACTERS_PART1 : []),
+                    ...(typeof CHARACTERS_PART2 !== 'undefined' ? CHARACTERS_PART2 : []),
+                    ...(typeof CHARACTERS_PART3 !== 'undefined' ? CHARACTERS_PART3 : []),
+                    ...(typeof CHARACTERS_PART4 !== 'undefined' ? CHARACTERS_PART4 : []),
+                    ...(typeof CHARACTERS_PART5 !== 'undefined' ? CHARACTERS_PART5 : []),
+                    ...(typeof CHARACTERS_PART6 !== 'undefined' ? CHARACTERS_PART6 : [])]
+                        .filter(c => c.tags && c.tags.includes(effect.category));
+                    const owner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const drawnInsts = [];
+                    for (let i = 0; i < (effect.count || 1); i++) {
+                        if (categoryCards.length > 0) {
+                            const c = categoryCards[Math.floor(Math.random() * categoryCards.length)];
+                            const inst = createCharacterInstance(c);
+                            GameState.addToStandby(owner, inst);
+                            drawnInsts.push(inst);
+                        }
+                    }
+                    if (drawnInsts.length > 0) {
+                        GameState.addLog(`${attacker.name} 抽卡並獲得了特定的卡片！`, 'skill');
+                        await Animations.drawCards(drawnInsts);
+                    }
+                    break;
+                }
+                case 'summon_mahjong_choice': {
+                    const mjCards = [...(typeof CHARACTERS_PART1 !== 'undefined' ? CHARACTERS_PART1 : []),
+                    ...(typeof CHARACTERS_PART2 !== 'undefined' ? CHARACTERS_PART2 : []),
+                    ...(typeof CHARACTERS_PART3 !== 'undefined' ? CHARACTERS_PART3 : []),
+                    ...(typeof CHARACTERS_PART4 !== 'undefined' ? CHARACTERS_PART4 : []),
+                    ...(typeof CHARACTERS_PART5 !== 'undefined' ? CHARACTERS_PART5 : []),
+                    ...(typeof CHARACTERS_PART6 !== 'undefined' ? CHARACTERS_PART6 : [])]
+                        .filter(c => c.tags && c.tags.includes(effect.category));
+                    const owner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    if (mjCards.length > 0) {
+                        const chosen = mjCards[Math.floor(Math.random() * mjCards.length)];
+                        let selectedName = chosen.name;
+                        // For browser prompt if it exists
+                        if (typeof window !== 'undefined' && window.prompt) {
+                            const result = window.prompt("請輸入要加入的麻將牌名字 (例如: 紅中, 西風):", "紅中");
+                            if (result && mjCards.some(m => m.name === result)) {
+                                selectedName = result;
+                            }
+                        }
+                        const finalChosen = mjCards.find(m => m.name === selectedName) || chosen;
+                        const inst = createCharacterInstance(finalChosen);
+                        GameState.addToStandby(owner, inst);
+                        GameState.addLog(`${attacker.name} 作出了 ${finalChosen.name}！`, 'skill');
+                        await Animations.drawCards([inst]);
+                    }
+                    break;
+                }
                 case 'summon':
+                case 'summon_chance_scaling': {
+                    let curChance = attacker.resources?.summon_chance || effect.base_chance;
+                    const success = await Animations.probabilityRoll(curChance, '降靈判定');
+                    if (success) {
+                        const targetChar = [...(typeof CHARACTERS_PART1 !== 'undefined' ? CHARACTERS_PART1 : []),
+                        ...(typeof CHARACTERS_PART2 !== 'undefined' ? CHARACTERS_PART2 : []),
+                        ...(typeof CHARACTERS_PART3 !== 'undefined' ? CHARACTERS_PART3 : []),
+                        ...(typeof CHARACTERS_PART4 !== 'undefined' ? CHARACTERS_PART4 : []),
+                        ...(typeof CHARACTERS_PART5 !== 'undefined' ? CHARACTERS_PART5 : []),
+                        ...(typeof CHARACTERS_PART6 !== 'undefined' ? CHARACTERS_PART6 : [])]
+                            .find(c => c.name === effect.target);
+                        if (targetChar) {
+                            const inst = createCharacterInstance(targetChar);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addLog(`${attacker.name} 成功降靈 ${inst.name}！`, 'skill');
+                            await Animations.drawCards([inst]);
+                            skill.cd = 999;
+                        }
+                    } else {
+                        if (attacker.resources) attacker.resources.summon_chance = curChance + effect.increment;
+                        GameState.addLog(`降靈失敗，下次機率提升至 ${attacker.resources?.summon_chance}%`, 'status');
+                    }
+                    break;
+                }
                 case 'summon_chance':
                     if (effect.type === 'summon_chance' && !(await Animations.probabilityRoll(effect.chance, '召喚判定'))) {
                         GameState.addLog('召喚失敗...', 'status');
@@ -1311,11 +1499,12 @@ const BattleSystem = {
                     break;
 
                 // --- ADDITIONAL STATUS EFFECTS ---
-                case 'self_stun_buff': // 王世堅情-從從容容
+                case 'self_stun_buff': // 王世堅情-從從容容, Ray生我夢-夢
                     attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.stun });
-                    attacker.atk += effect.atk;
-                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
-                    GameState.addLog(`${attacker.name} 暈眩 ${effect.stun} 回合，ATK +${effect.atk}, HP +${effect.heal}`, 'skill');
+                    if (effect.atk) attacker.atk += effect.atk;
+                    if (effect.atk_mult) attacker.atk = Math.floor(attacker.atk * effect.atk_mult);
+                    if (effect.heal) attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
+                    GameState.addLog(`${attacker.name} 暈眩 ${effect.stun} 回合`, 'skill');
                     break;
                 case 'self_stun_delayed_buff': // 伽利略-軟禁
                     attacker.statusEffects.push({ type: 'stun', name: '軟禁', turns: effect.stun });
@@ -2705,10 +2894,76 @@ const BattleSystem = {
 
                 case 'spend_resource_evolve':
                     // Handled in existing logic but ensure case exists if not already covered
-                    // Copied from logic around line 1484, if it exists there, this is redundant.
-                    // Checking existing file... yes it exists at 1484. I should not duplicate.
-                    // I will remove this block if I verify it's there. 
-                    // But I am adding new ones. Let's stick to the new ones properly.
+                    // ...
+                    break;
+
+                case 'draw_category': // 大吉
+                    const drawCatItems = [];
+                    for (let i = 0; i < (effect.count || 1); i++) {
+                        const randomCatChar = getRandomFromCategory(effect.category);
+                        if (randomCatChar) {
+                            const inst = createCharacterInstance(randomCatChar);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            drawCatItems.push(inst);
+                        }
+                    }
+                    if (drawCatItems.length > 0) {
+                        GameState.addLog(`抽到 ${drawCatItems.map(c => c.name).join(', ')}`, 'skill');
+                        await Animations.drawCards(drawCatItems);
+                    } else {
+                        GameState.addLog('沒有對應的牌可抽', 'status');
+                    }
+                    break;
+                case 'damage_self_max_hp_percent': // 塔盾玩家
+                    const dmgSelfMax = Math.floor(attacker.maxHp * (effect.percent || 10) / 100);
+                    await this.applyDamage(attacker, defender, dmgSelfMax);
+                    break;
+                case 'stun_self_shield': // 劍盾
+                    attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.turns });
+                    attacker.shield += effect.shield;
+                    GameState.addLog(`${attacker.name} 暈眩自己 ${effect.turns} 回合並獲得 ${effect.shield} 護盾`, 'skill');
+                    break;
+                case 'apply_excite': // 霍去病
+                    attacker.statusEffects.push({ type: 'excite', name: '亢奮', turns: effect.turns || 2 });
+                    GameState.addLog(`${attacker.name} 進入亢奮狀態 (+20%傷害/-10%受傷)`, 'skill');
+                    break;
+                case 'show_off': // 小資
+                    attacker.statusEffects.push({ type: 'show_off', name: '炫耀', dodge: effect.dodge || 35, turns: effect.turns || 2 });
+                    GameState.addLog(`${attacker.name} 開始炫耀！(基礎閃避+${effect.dodge || 35}%)`, 'skill');
+                    break;
+                case 'buff_next_attack_ignore_dodge': // 黃蓋
+                    attacker.nextAttackIgnoresDodge = true;
+                    // effect.atk is missing in data? Let me re-verify Huan Gai.
+                    attacker.atk += (effect.atk || 0);
+                    GameState.addLog(`${attacker.name} 準備無死角打擊！`, 'skill');
+                    break;
+                case 'shield_decay': // 托你使坦克
+                    attacker.shield += effect.shield;
+                    attacker.statusEffects.push({ type: 'shield_decay', name: '能量護盾', decay: effect.decay, turns: -1 });
+                    GameState.addLog(`${attacker.name} 展開能量護盾！(每回合衰減 ${effect.decay})`, 'skill');
+                    break;
+                case 'damage_multi_chance': // 機槍哥
+                    let hits2 = 1;
+                    while (hits2 < (effect.max_hits || 10) && await Animations.probabilityRoll(effect.chance, '連擊判定')) {
+                        hits2++;
+                    }
+                    GameState.addLog(`${attacker.name} 連續射擊 ${hits2} 次！`, 'skill');
+                    for (let i = 0; i < hits2; i++) {
+                        await this.applyDamage(attacker, defender, effect.damage);
+                    }
+                    break;
+                case 'summon_mahjong_choice': // 麻將俠
+                    let choiceStr = window.prompt("請輸入要作牌的麻將種類對應數字：\n1. 萬\n2. 筒\n3. 索", "1");
+                    let mahjongCat = 'mahjong_wan';
+                    if (choiceStr === '2') mahjongCat = 'mahjong_tong';
+                    else if (choiceStr === '3') mahjongCat = 'mahjong_suo';
+                    const summonMChar = getRandomFromCategory(mahjongCat);
+                    if (summonMChar) {
+                        const inst = createCharacterInstance(summonMChar);
+                        GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                        GameState.addLog(`作牌成功！獲得 ${inst.name}！`, 'skill');
+                        await Animations.drawCards([inst]);
+                    }
                     break;
 
                 default:
