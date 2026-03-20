@@ -1133,8 +1133,10 @@
                                         document.getElementById('networkWaitingText').textContent = '對手正在考慮要派誰上場';
                                         document.getElementById('networkRoomCode').classList.add('hidden');
                                         document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                                        document.getElementById('networkWaitingOverlay').classList.add('active');
                                         await new Promise(resolve => window.resolveRemoteReplacement = resolve);
                                         document.getElementById('networkWaitingOverlay').classList.add('hidden');
+                                        document.getElementById('networkWaitingOverlay').classList.remove('active');
                                     }
                                 } else {
                                     await promptReplacement(p);
