@@ -311,7 +311,8 @@ const GameState = {
                 card.hp = Math.min(card.maxHp, card.hp + (effect.heal || 0));
                 this.addLog(`${card.name} 再生了 ${effect.heal} 點生命`, 'heal');
             } else if (effect.type === 'shield_decay') {
-                const decay = Math.floor(card.shield * ((effect.decay || 0) / 100));
+                const isPercent = effect.decay_percent !== undefined;
+                const decay = isPercent ? Math.floor(card.shield * (effect.decay_percent / 100)) : (effect.decay || 0);
                 if (decay > 0) {
                     card.shield = Math.max(0, card.shield - decay);
                     this.addLog(`${card.name} 的護盾衰減了 ${decay}`, 'status');
@@ -611,8 +612,11 @@ const GameState = {
                 break;
             case 'bao_passive':
                 if (trigger === 'on_turn_start') {
-                    card.resources[effect.resource_name] = (card.resources[effect.resource_name] || 0) + 1;
-                    if (card.resources[effect.resource_name] % effect.threshold === 0) {
+                    card.resources[effect.resource_name || 'bao'] = (card.resources[effect.resource_name || 'bao'] || 0) + 1;
+                    if (effect.limit && card.resources[effect.resource_name || 'bao'] >= effect.limit) {
+                        card.hp = 0;
+                        this.addLog(`${card.name}包到極限了，自爆！`, 'damage');
+                    } else if (effect.threshold && card.resources[effect.resource_name || 'bao'] % effect.threshold === 0) {
                         card.atk += effect.atk;
                         this.addLog(`${card.name} 成長了！ATK +${effect.atk}`, 'skill');
                     }
@@ -649,6 +653,20 @@ const GameState = {
                 if (trigger === 'passive') {
                     card.statusEffects = card.statusEffects.filter(e => e.type !== 'damage_cap_hit');
                     card.statusEffects.push({ type: 'damage_cap_hit', cap: effect.value, hits: 99 });
+                }
+                break;
+            case 'summon_chance':
+                if (trigger === 'on_attack') {
+                    if (Math.random() * 100 < effect.chance) {
+                        const targetChar = getCharacterByName(effect.target);
+                        if (targetChar) {
+                            const inst = createCharacterInstance(targetChar);
+                            const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                            this[ownerKey].standbyCards.push(inst);
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${effect.target}`, 'skill');
+                            Animations.drawCards([inst]);
+                        }
+                    }
                 }
                 break;
             case 'set_atk':
@@ -755,6 +773,13 @@ const GameState = {
             case 'powerless':
                 if (trigger === 'passive') {
                     card.atk = 0;
+                    if (effect.master) {
+                        const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                        const hasMaster = this[ownerKey].standbyCards.some(c => c.name === effect.master) || (this[ownerKey].battleCard && this[ownerKey].battleCard.name === effect.master);
+                        if (!hasMaster) {
+                            card.hp = 0;
+                        }
+                    }
                 }
                 break;
             case 'low_hp_damage_reduction':
@@ -974,7 +999,10 @@ const GameState = {
             case 'set_damage_reduction': // 盾哥、機槍哥
                 if (trigger === 'on_enter' || trigger === 'passive') {
                     if (!card.resources) card.resources = {};
-                    card.resources.defense_stacks = effect.value || 0;
+                    if (!card.resources.dr_initialized) {
+                        card.resources.defense_stacks = (card.resources.defense_stacks || 0) + (effect.value || 0);
+                        card.resources.dr_initialized = true;
+                    }
                 }
                 break;
 
@@ -1012,11 +1040,26 @@ const GameState = {
                 if (trigger === 'on_turn_start') {
                     if (!card.resources) card.resources = {};
                     const deathCh = card.resources.death_chance || effect.base_chance || 10;
-                    if (Math.random() * 100 < deathCh) {
-                        card.hp = 0;
-                        this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
+                    if (window.Animations && window.Animations.probabilityRoll) {
+                        window.Animations.probabilityRoll(deathCh, '死亡判定').then(success => {
+                            if (success) {
+                                card.hp = 0;
+                                this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
+                                if (window.BattleSystem) {
+                                    window.BattleSystem.checkDeath('player1');
+                                    window.BattleSystem.checkDeath('player2');
+                                }
+                            } else {
+                                card.resources.death_chance = deathCh + (effect.increment || 8);
+                            }
+                        });
                     } else {
-                        card.resources.death_chance = deathCh + (effect.increment || 8);
+                        if (Math.random() * 100 < deathCh) {
+                            card.hp = 0;
+                            this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
+                        } else {
+                            card.resources.death_chance = deathCh + (effect.increment || 8);
+                        }
                     }
                 }
                 break;
@@ -1215,20 +1258,24 @@ const GameState = {
 
             // On death: damage turn based (菸-擋一根)
             case 'damage_turn_based':
-                const dmgOpp = this.getOpponent();
-                if (dmgOpp.battleCard) {
+                const ownerOfDeadTurn = (this.player1.battleCard === card || this.player1.standbyCards?.includes(card) || this.player1.graveyard?.includes(card)) ? 'player1' : 'player2';
+                const oppTurnKey = ownerOfDeadTurn === 'player1' ? 'player2' : 'player1';
+                const oppTurnCard = this[oppTurnKey].battleCard;
+                if (oppTurnCard) {
                     const dmg = effect.base + this.turnCount * (effect.mult || effect.turn_mult);
-                    dmgOpp.battleCard.hp -= dmg;
-                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${dmgOpp.battleCard.name} 造成 ${dmg} 傷害`, 'damage');
+                    oppTurnCard.hp -= Math.floor(dmg);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${oppTurnCard.name} 造成 ${dmg} 傷害`, 'damage');
                 }
                 break;
 
-            // On death: damage (伊魯帕恩-同歸於盡)
+            // On death / skill count: damage (伊魯帕恩-同歸於盡, 鼠鼠-跑刀)
             case 'damage':
-                const damageOpp = this.getOpponent();
-                if (damageOpp.battleCard) {
-                    damageOpp.battleCard.hp -= effect.value;
-                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${damageOpp.battleCard.name} 造成 ${effect.value} 傷害`, 'damage');
+                const ownerOfDeadDamage = (this.player1.battleCard === card || this.player1.standbyCards?.includes(card) || this.player1.graveyard?.includes(card)) ? 'player1' : 'player2';
+                const oppDamageKey = ownerOfDeadDamage === 'player1' ? 'player2' : 'player1';
+                const damageOppCard = this[oppDamageKey].battleCard;
+                if (damageOppCard) {
+                    damageOppCard.hp -= effect.value;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${damageOppCard.name} 造成 ${effect.value} 傷害`, 'damage');
                 }
                 break;
 
@@ -1260,7 +1307,18 @@ const GameState = {
 
             // Self kill chance (賦能哥-天才少年, 越野摩托車-翻車)
             case 'self_kill_chance':
-                if (Math.random() * 100 < effect.chance) {
+                if (window.Animations && window.Animations.probabilityRoll) {
+                    window.Animations.probabilityRoll(effect.chance, '生存判定').then(success => {
+                        if (success) {
+                            card.hp = 0;
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
+                            if (window.BattleSystem) {
+                                window.BattleSystem.checkDeath('player1');
+                                window.BattleSystem.checkDeath('player2');
+                            }
+                        }
+                    });
+                } else if (Math.random() * 100 < effect.chance) {
                     card.hp = 0;
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
                 }
@@ -1352,22 +1410,38 @@ const GameState = {
 
             // Summon chance and buff dodge (No Party For Cao Dong)
             case 'summon_chance_buff_dodge':
-                if (Math.random() * 100 < effect.chance) {
-                    const targetChar = getCharacterByName(effect.target);
-                    if (targetChar) {
-                        const owner = this.player1.battleCard === card ? 'player1' : 'player2';
-                        const inst = createCharacterInstance(targetChar);
-                        this[owner].standbyCards.push(inst);
-                        this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                if (window.Animations && window.Animations.probabilityRoll) {
+                    window.Animations.probabilityRoll(effect.chance, '招喚判定').then(success => {
+                        if (success) {
+                            const targetChar = getCharacterByName(effect.target);
+                            if (targetChar) {
+                                const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                                const inst = createCharacterInstance(targetChar);
+                                this[owner].standbyCards.push(inst);
+                                this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
+                                if (window.Animations.drawCards) window.Animations.drawCards([inst]);
+                            }
+                        }
+                        const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
+                        const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
+                        const newDodge = effect.base_dodge + (count * effect.dodge_per);
+                        card.resources.dodge = newDodge;
+                    });
+                } else {
+                    if (Math.random() * 100 < effect.chance) {
+                        const targetChar = getCharacterByName(effect.target);
+                        if (targetChar) {
+                            const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                            const inst = createCharacterInstance(targetChar);
+                            this[owner].standbyCards.push(inst);
+                            this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
+                        }
                     }
+                    const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
+                    const newDodge = effect.base_dodge + (count * effect.dodge_per);
+                    card.resources.dodge = newDodge;
                 }
-                // Recalculate dodge based on owned cards
-                const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
-                const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
-                const newDodge = effect.base_dodge + (count * effect.dodge_per);
-                card.resources.dodge = newDodge;
-                // Log only if changed? Maybe too spammy.
                 break;
 
             // Money passive (Bill Gates) - On turn start logic

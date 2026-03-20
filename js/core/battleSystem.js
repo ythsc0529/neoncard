@@ -57,6 +57,12 @@ const BattleSystem = {
                     dodged = true;
                     GameState.addLog(`${defender.name} 閃避了攻擊！`, 'status');
 
+                    const showOff = defender.statusEffects.find(e => e.type === 'show_off');
+                    if (showOff) {
+                        showOff.turns++;
+                        GameState.addLog(`${defender.name} 炫耀成功！持續時間增加 1 回合`, 'status');
+                    }
+
                     // Consume dodge hit
                     const dodgeEff = defender.statusEffects.find(e => e.type === 'dodge' || e.type === 'dodge_reflect');
                     if (dodgeEff && dodgeEff.hits !== undefined) {
@@ -390,9 +396,13 @@ const BattleSystem = {
         // Check money passive (比二蓋紙)
         if (defender.passive?.effect?.action === 'money_passive') {
             if (damage > 50) {
-                defender.resources.money = Math.max(0, (defender.resources.money || 0) - 5);
-                defender.hp = Math.min(defender.maxHp, defender.hp + 100);
-                GameState.addLog(`${defender.name} 消耗錢錢恢復了 100 HP`, 'heal');
+                const uses = defender.resources.money_passive_uses || 0;
+                if (uses < 3) {
+                    defender.resources.money = Math.max(0, (defender.resources.money || 0) - 1);
+                    defender.hp = Math.min(defender.maxHp, defender.hp + 100);
+                    defender.resources.money_passive_uses = uses + 1;
+                    GameState.addLog(`${defender.name} 消耗錢錢恢復了 100 HP`, 'heal');
+                }
             }
         }
 
@@ -591,7 +601,7 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, Math.floor((attacker.maxHp - attacker.hp) * effect.value / 100));
                     break;
                 case 'damage_self_max_hp_percent':
-                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * effect.value / 100));
+                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * (effect.value || effect.percent || 10) / 100));
                     break;
                 case 'damage_turn_hp_percent':
                     await this.applyDamage(attacker, defender, Math.floor(GameState.turnCount * attacker.hp * effect.percent / 100));
@@ -809,6 +819,30 @@ const BattleSystem = {
                 case 'sleep':
                     defender.statusEffects.push({ type: 'sleep', name: '昏睡', turns: 99 });
                     GameState.addLog(`${defender.name} 陷入睡眠`, 'status');
+                    break;
+                case 'buff_atk_and_reduction': // 巔峰-全盛時期
+                    attacker.atk = Math.floor(attacker.atk * effect.mult);
+                    attacker.statusEffects.push({ type: 'damage_reduction', name: '減傷', value: effect.reduction, turns: 99 });
+                    GameState.addLog(`${attacker.name} ATK ×${effect.mult} 並獲得 ${effect.reduction}% 減傷`, 'skill');
+                    break;
+                case 'apply_excite': // 霍去病-用兵高手
+                    attacker.statusEffects.push({ type: 'excite', name: '振奮', turns: effect.turns });
+                    GameState.addLog(`${attacker.name} 獲得振奮效果`, 'skill');
+                    break;
+                case 'draw_category': // 大吉-大吉領紅茶
+                    const ownerP = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    for (let n = 0; n < effect.count; n++) {
+                        const tgtChar = getRandomFromCategory(effect.category);
+                        if (tgtChar) {
+                            const instance = createCharacterInstance(tgtChar);
+                            GameState[ownerP].standbyCards.push(instance);
+                            GameState.addLog(`抽到了 ${instance.name}`, 'skill');
+                        }
+                    }
+                    if (window.Animations && window.Animations.drawCards) {
+                        const lastCards = GameState[ownerP].standbyCards.slice(-effect.count);
+                        window.Animations.drawCards(lastCards);
+                    }
                     break;
                 case 'poison':
                 case 'burn':
@@ -1202,11 +1236,13 @@ const BattleSystem = {
                     GameState.addLog(`${attacker.name} ATK +${atkBuff}`, 'skill');
                     break;
                 case 'buff_atk_mult': // 夏天與你-ace (next attack only)
-                    // Bug fix: should only affect next attack as a temporary multiplier
-                    // Set nextAttackMult instead of permanently modifying atk
                     attacker.nextAttackMult = (attacker.nextAttackMult || 0) + Math.floor(attacker.atk * (effect.mult - 1));
                     attacker.statusEffects.push({ type: 'buff_next', name: '暫時攻擊提升', nextAttackMult: effect.mult, turns: effect.turns || 1 });
                     GameState.addLog(`${attacker.name} 下次攻擊 ATK ×${effect.mult}`, 'skill');
+                    break;
+                case 'buff_atk_mult_permanent':
+                    attacker.atk = Math.floor(attacker.atk * effect.mult);
+                    GameState.addLog(`${attacker.name} ATK ×${effect.mult}！`, 'skill');
                     break;
                 case 'buff_atk_mult_chance': // 12了-12了
                     if (await Animations.probabilityRoll(effect.chance, '強化判定')) {
@@ -1235,10 +1271,10 @@ const BattleSystem = {
                     GameState.addLog(`${effect.resource} +${effect.value}`, 'skill');
                     break;
                 case 'buff_hp_percent_atk': // 美秀吉團-來一根
-                    const hpGain = Math.floor(attacker.maxHp * effect.hp_percent / 100);
+                    const hpGain = Math.floor(attacker.maxHp * (effect.hp || effect.hp_percent || 0) / 100);
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + hpGain);
                     attacker.atk += effect.atk;
-                    GameState.addLog(`${attacker.name} HP +${effect.hp_percent}%, ATK +${effect.atk}`, 'skill');
+                    GameState.addLog(`${attacker.name} HP +${effect.hp || effect.hp_percent || 0}%, ATK +${effect.atk}`, 'skill');
                     break;
                 case 'buff_speed_hp_atk': // 高鐵-準點
                     attacker.resources.speed = (attacker.resources.speed || 0) + effect.speed;
@@ -1311,11 +1347,12 @@ const BattleSystem = {
                     break;
 
                 // --- ADDITIONAL STATUS EFFECTS ---
-                case 'self_stun_buff': // 王世堅情-從從容容
+                case 'self_stun_buff': // 王世堅情-從從容容, Ray生我夢-夢
                     attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.stun });
-                    attacker.atk += effect.atk;
-                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
-                    GameState.addLog(`${attacker.name} 暈眩 ${effect.stun} 回合，ATK +${effect.atk}, HP +${effect.heal}`, 'skill');
+                    if (effect.atk) attacker.atk += effect.atk;
+                    if (effect.atk_mult) attacker.atk = Math.floor(attacker.atk * effect.atk_mult);
+                    if (effect.heal) attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.heal);
+                    GameState.addLog(`${attacker.name} 暈眩自己並獲得強化`, 'skill');
                     break;
                 case 'self_stun_delayed_buff': // 伽利略-軟禁
                     attacker.statusEffects.push({ type: 'stun', name: '軟禁', turns: effect.stun });
@@ -1338,6 +1375,15 @@ const BattleSystem = {
                 case 'damage_reduction_flat': // 小圓盾-硬
                     attacker.statusEffects.push({ type: 'damage_reduction_flat', name: '減傷', value: effect.value, turns: effect.turns });
                     GameState.addLog(`${attacker.name} 下回合受傷減少 ${effect.value}`, 'skill');
+                    break;
+                case 'damage_reduction':
+                    attacker.statusEffects.push({ type: 'damage_reduction', name: '減傷', value: effect.value, hits: effect.hits, turns: effect.turns });
+                    GameState.addLog(`${attacker.name} 獲得減傷 ${effect.value}%`, 'skill');
+                    if (attacker.name === '塔盾玩家' && effect.value === 90) {
+                        attacker.maxHp += 50;
+                        attacker.hp += 50;
+                        GameState.addLog(`塔盾玩家最大生命值 +50！`, 'skill');
+                    }
                     break;
                 case 'damage_reduction_chance': // 扁彿俠-高科技
                     if (await Animations.probabilityRoll(effect.chance, '減傷判定')) {
@@ -1890,8 +1936,14 @@ const BattleSystem = {
                     break;
                 case 'damage_multi_chance':
                     for (let i = 0; i < effect.hits; i++) {
-                        if (await Animations.probabilityRoll(effect.chance, '連擊判定')) {
-                            await this.applyDamage(attacker, defender, effect.damage);
+                        let currentDef = GameState[GameState.currentPlayer === 1 ? 'player2' : 'player1'].battleCard;
+                        if (!currentDef) break;
+                        if (await Animations.probabilityRoll(effect.chance, `連擊判定 ${i+1}`)) {
+                            await this.applyDamage(attacker, currentDef, effect.damage);
+                            if (currentDef.hp <= 0) {
+                                GameState.checkDeath(GameState.currentPlayer === 1 ? 'player2' : 'player1');
+                            }
+                            if (i < effect.hits - 1) await new Promise(r => setTimeout(r, 200));
                         } else {
                             break;
                         }
@@ -2036,7 +2088,7 @@ const BattleSystem = {
                     break;
                 case 'shield_decay':
                     attacker.shield += effect.shield;
-                    attacker.statusEffects.push({ type: 'shield_decay', name: '衰減護盾', decay: effect.decay_percent, turns: 99 });
+                    attacker.statusEffects.push({ type: 'shield_decay', name: '衰減護盾', decay: effect.decay, decay_percent: effect.decay_percent, turns: 99 });
                     GameState.addLog(`${attacker.name} 獲得 ${effect.shield} 衰減護盾`, 'skill');
                     break;
                 case 'apply_erosion':
@@ -2111,6 +2163,10 @@ const BattleSystem = {
                             await Animations.drawCards([inst]);
                         }
                         attacker.resources.summon_chance = effect.base_chance;
+                        if (attacker.name === '教宗' || effect.target === '被信仰之人') {
+                            const sqIdx = attacker.skills.findIndex(s => s.name === '降靈');
+                            if (sqIdx >= 0) attacker.cooldowns[sqIdx] = 999;
+                        }
                     } else {
                         attacker.resources.summon_chance = curSmCh + effect.increment;
                     }
@@ -2185,10 +2241,10 @@ const BattleSystem = {
                         }
                     }
                     break;
-                case 'stun_self_shield':
-                    defender.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.turns });
+                case 'stun_self_shield': // 劍盾 - 舉盾
+                    attacker.statusEffects.push({ type: 'stun', name: '暈眩', turns: effect.turns });
                     attacker.shield += effect.shield;
-                    GameState.addLog(`暈眩對手並獲得護盾`, 'skill');
+                    GameState.addLog(`暈眩自己並獲得護盾`, 'skill');
                     break;
                 case 'summon_chance_once':
                     if (await Animations.probabilityRoll(effect.chance, '召喚判定')) {
@@ -2290,7 +2346,7 @@ const BattleSystem = {
                     break;
                 case 'buff_next_attack_ignore_dodge':
                     attacker.nextAttackMult = (attacker.nextAttackMult || 0) + effect.mult;
-                    attacker.statusEffects.push({ type: 'ignore_dodge', name: '必中', hits: 1 });
+                    attacker.nextAttackIgnoresDodge = true;
                     GameState.addLog(`下次攻擊必中且加倍`, 'skill');
                     break;
                 case 'stack_damage_reduction':
@@ -2455,9 +2511,7 @@ const BattleSystem = {
                     }
                     break;
 
-                case 'damage_self_max_hp_percent': // 塔盾玩家-烈陽鎧甲
-                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * ((effect.percent || 10) / 100)));
-                    break;
+                // damage_self_max_hp_percent handled above
 
                 case 'set_enemy_atk_zero_timed': // 開發者-程式改寫
                     defender.statusEffects.push({ type: 'atk_zero', name: '格式清空', turns: effect.turns || 3, original_atk: defender.atk });
