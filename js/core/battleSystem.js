@@ -929,6 +929,59 @@ const BattleSystem = {
                         await Animations.drawCards([inst]);
                     }
                     break;
+                case 'summon_mahjong_choice':
+                    const mahjongChars = getCharactersByTag(effect.category);
+                    if (mahjongChars && mahjongChars.length > 0) {
+                        let chosenMahjong = null;
+                        
+                        const isPvE = GameState.mode === 'story' || GameState.type === 'pve';
+                        const isOnline = GameState.mode === 'online';
+                        const isCPUTurn = isPvE && GameState.currentPlayer === 2;
+
+                        if (isOnline) {
+                            const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                            const isMyTurn = (GameState.currentPlayer === 1 && localRole === 'host') || 
+                                             (GameState.currentPlayer === 2 && localRole === 'join');
+                            
+                            if (isMyTurn) {
+                                if (window.showMahjongSelectionModal) {
+                                    chosenMahjong = await window.showMahjongSelectionModal(mahjongChars);
+                                    if (window.NetManager && window.NetManager.sendAction) {
+                                        window.NetManager.sendAction({ type: 'sync_mahjong_choice', characterId: chosenMahjong.id });
+                                    }
+                                } else {
+                                    chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                                }
+                            } else {
+                                if (window.earlyRemoteMahjongChoice) {
+                                    chosenMahjong = mahjongChars.find(c => c.id === window.earlyRemoteMahjongChoice);
+                                    window.earlyRemoteMahjongChoice = null;
+                                } else {
+                                    chosenMahjong = await new Promise(resolve => {
+                                        window.resolveRemoteMahjongChoice = (charId) => {
+                                            const char = mahjongChars.find(c => c.id === charId);
+                                            resolve(char);
+                                        };
+                                    });
+                                }
+                                if (!chosenMahjong) {
+                                    chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                                }
+                            }
+                        } else if (!isCPUTurn && window.showMahjongSelectionModal) {
+                            chosenMahjong = await window.showMahjongSelectionModal(mahjongChars);
+                        } else {
+                            chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                        }
+
+                        if (chosenMahjong) {
+                            const inst = createCharacterInstance(chosenMahjong);
+                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addLog(`作牌獲得了 ${inst.name}！`, 'skill');
+                            await Animations.drawCards([inst]);
+                        }
+                    }
+                    break;
                 case 'summon_multiple':
                     const mults = [];
                     for (let i = 0; i < effect.count; i++) {

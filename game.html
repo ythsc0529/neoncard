@@ -176,6 +176,14 @@
         </div>
     </div>
 
+    <!-- Mahjong Selection Modal -->
+    <div class="modal-overlay" id="mahjongSelectionModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="mahjongSelectionTitle">選擇要加入的麻將</h2>
+            <div id="mahjongSelectionOptions" class="drawn-cards"></div>
+        </div>
+    </div>
+
     <!-- Skill Panel Modal -->
     <div class="modal-overlay" id="skillPanelModal">
         <div class="modal glass" style="max-width: 800px;">
@@ -609,6 +617,13 @@
                     window.resolveRemoteReplacement();
                     window.resolveRemoteReplacement = null;
                 }
+            } else if (action.type === 'sync_mahjong_choice') {
+                if (window.resolveRemoteMahjongChoice) {
+                    window.resolveRemoteMahjongChoice(action.characterId);
+                    window.resolveRemoteMahjongChoice = null;
+                } else {
+                    window.earlyRemoteMahjongChoice = action.characterId;
+                }
             } else if (action.type === 'emoji' && window.Animations) {
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(action.emojiId, opponentKey);
@@ -617,6 +632,32 @@
                 window.location.reload();
             }
         }
+
+        window.showMahjongSelectionModal = async function(characters) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('mahjongSelectionModal');
+                const container = document.getElementById('mahjongSelectionOptions');
+                container.innerHTML = '';
+                
+                characters.forEach(char => {
+                    const div = document.createElement('div');
+                    div.className = `select-card glass ${getRarityClass(char.rarity)}`;
+                    div.innerHTML = renderCardInfo(char);
+                    div.style.cursor = 'pointer';
+                    // Optional styling adjustments for compact modal display
+                    div.style.transform = 'scale(0.9)';
+                    div.style.margin = '5px';
+                    
+                    div.onclick = () => {
+                        modal.classList.remove('active');
+                        resolve(char);
+                    };
+                    container.appendChild(div);
+                });
+                
+                modal.classList.add('active');
+            });
+        };
 
         document.getElementById('confirmSelection').onclick = async function () {
             if (selectedBattleCard === null) return;
