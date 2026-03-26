@@ -643,6 +643,20 @@ const GameState = {
                     }
                 }
                 break;
+            case 'sacrifice_hp_buff_atk':
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    let hpLossTotal = card.resources.hp_sacrificed || 0;
+                    if (hpLossTotal < effect.max_loss) {
+                        const amount = Math.min(effect.hp_loss, effect.max_loss - hpLossTotal);
+                        card.maxHp = Math.max(1, card.maxHp - amount);
+                        if (card.hp > card.maxHp) card.hp = card.maxHp;
+                        card.atk += effect.atk_gain;
+                        card.resources.hp_sacrificed = hpLossTotal + amount;
+                        this.addLog(`${card.name} 血祭！血量上限 -${amount}，ATK +${effect.atk_gain}`, 'skill');
+                    }
+                }
+                break;
             case 'refresh_cooldowns':
                 if (trigger === 'on_turn_start' && Math.random() * 100 < effect.chance) {
                     card.cooldowns.fill(0);
@@ -672,6 +686,23 @@ const GameState = {
             case 'set_atk':
                 if (trigger === 'on_skill_success') {
                     card.atk = effect.value;
+                }
+                break;
+            case 'set_stats':
+                if (trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] === effect.count) {
+                            if (effect.hp) {
+                                card.hp = effect.hp;
+                                card.maxHp = Math.max(card.maxHp, effect.hp);
+                            }
+                            if (effect.atk) card.atk = effect.atk;
+                            this.addLog(`${card.name} 被動條件達成！能力大幅變化！`, 'skill');
+                        }
+                    }
                 }
                 break;
             case 'bonus_vs_character':
@@ -720,10 +751,12 @@ const GameState = {
                 break;
             case 'death_chance_range':
                 if (trigger === 'on_turn_start') {
-                    if (Math.random() * 100 < effect.chance) {
-                        const rDmg = Math.floor(Math.random() * (effect.max_damage - effect.min_damage)) + effect.min_damage;
-                        card.hp -= rDmg;
-                        this.addLog(`${card.name} 突然受到 ${rDmg} 傷害`, 'damage');
+                    const chance = Math.floor(Math.random() * (effect.max - effect.min + 1)) + effect.min;
+                    if (Math.random() * 100 < chance) {
+                        card.hp = 0;
+                        this.addLog(`${card.name} 迎來了死亡的隨機性 (判定機率 ${chance}%)！`, 'damage');
+                    } else {
+                        this.addLog(`${card.name} 逃過了死亡 (判定機率 ${chance}%)`, 'status');
                     }
                 }
                 break;
@@ -765,11 +798,6 @@ const GameState = {
                     card.atk += counts * effect.atk_per;
                 }
                 break;
-            case 'shop_item':
-                if (trigger === 'on_enter') {
-                    card.hp = 0;
-                }
-                break;
             case 'powerless':
                 if (trigger === 'passive') {
                     card.atk = 0;
@@ -794,16 +822,16 @@ const GameState = {
             case 'navy_buff':
                 if (trigger === 'passive') {
                     const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
-                    const sc = this[ownerP].standbyCards.filter(c => c.name === '水軍').length;
+                    const sc = this[ownerP].standbyCards.filter(c => c.name === '海軍').length;
                     if (sc > 0 && !card.resources.navy_buff_amount) {
-                        card.atk += sc * effect.atk_per;
-                        card.maxHp += sc * effect.hp_per;
-                        card.hp += sc * effect.hp_per;
+                        card.atk += sc * (effect.atk_per || 0);
+                        card.maxHp += sc * (effect.hp_per || 0);
+                        card.hp += sc * (effect.hp_per || 0);
                         card.resources.navy_buff_amount = sc;
                     } else if (sc === 0 && card.resources.navy_buff_amount) {
                         const lostSc = card.resources.navy_buff_amount;
-                        card.atk -= lostSc * effect.atk_per;
-                        card.maxHp -= lostSc * effect.hp_per;
+                        card.atk -= lostSc * (effect.atk_per || 0);
+                        card.maxHp -= lostSc * (effect.hp_per || 0);
                         card.resources.navy_buff_amount = 0;
                     }
                 }
@@ -850,10 +878,6 @@ const GameState = {
                         card.atk = card.atk - (card.resources.missing_hp_bonus || 0) + bonus;
                         card.resources.missing_hp_bonus = bonus;
                     }
-                }
-                break;
-            case 'tower_shield_player_passive':
-                if (trigger === 'passive') {
                 }
                 break;
             case 'npc_defense':
@@ -1023,7 +1047,13 @@ const GameState = {
                 break;
 
             case 'tower_shield_player_passive': // 塔盾玩家
-                if (trigger === 'passive') {
+                if (trigger === 'on_skill' || trigger === 'on_skill_success') {
+                    if (args.skillName === '舉盾抵抗') {
+                        card.maxHp += (effect.hp_per_use || 50);
+                        card.hp += (effect.hp_per_use || 50);
+                        this.addLog(`${card.name} 舉盾抵抗！最大生命值 +${effect.hp_per_use || 50}`, 'skill');
+                    }
+                } else if (trigger === 'passive') {
                     if (!card.resources) card.resources = {};
                     const initialDodge = effect.initial_dodge || 10;
                     if (!card.resources.ts_dodge_set) {

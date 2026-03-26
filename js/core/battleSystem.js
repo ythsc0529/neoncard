@@ -11,6 +11,16 @@ const BattleSystem = {
 
         let damage = attacker.atk;
 
+        // Check miss_chance flag
+        const missEff = attacker.statusEffects.find(e => e.type === 'miss_chance');
+        if (missEff) {
+            if (await Animations.probabilityRoll(missEff.chance || 50, '失誤判定')) {
+                GameState.addLog(`${attacker.name} 發生了失誤！攻擊未命中`, 'status');
+                attacker.hasAttacked = true;
+                return { damage: 0, dodged: true, missed: true };
+            }
+        }
+
         // Check for random ATK (暗夜騎士 passive)
         if (attacker.baseAtkMin !== undefined) {
             damage = await Animations.showRandomNumber(attacker.baseAtkMin, attacker.baseAtkMax, '攻擊力判定');
@@ -73,10 +83,14 @@ const BattleSystem = {
                     }
 
                     // Check dodge_reflect reflection!
-                    if (dodgeEff && dodgeEff.type === 'dodge_reflect') {
-                        if (Math.random() * 100 < (dodgeEff.reflect_chance || 100)) {
+                    const dodgeReflect = defender.statusEffects.find(e => e.type === 'dodge_reflect');
+                    if (dodgeReflect) {
+                        if (Math.random() * 100 < (dodgeReflect.reflect_chance || 100)) {
                             const reflectDamage = baseDamage;
-                            if (attacker && attacker.hp !== undefined) attacker.hp -= reflectDamage;
+                            if (attacker && attacker.hp !== undefined) {
+                                attacker.hp -= reflectDamage;
+                                if (window.Animations) Animations.showDamage(Animations.getCardEl(attacker), reflectDamage);
+                            }
                             GameState.addLog(`${defender.name} 閃避並反彈了 ${reflectDamage} 傷害！`, 'damage');
                         }
                     }
@@ -112,11 +126,13 @@ const BattleSystem = {
         }
 
         // Check immunity
-        const immunity = defender.statusEffects.find(e => e.type === 'immunity');
+        const immunity = defender.statusEffects.find(e => e.type === 'immunity' || e.type === 'immunity_all');
         if (immunity) {
-            immunity.hits--;
-            if (immunity.hits <= 0) {
-                defender.statusEffects = defender.statusEffects.filter(e => e !== immunity);
+            if (immunity.hits !== undefined) {
+                immunity.hits--;
+                if (immunity.hits <= 0) {
+                    defender.statusEffects = defender.statusEffects.filter(e => e !== immunity);
+                }
             }
             GameState.addLog(`${defender.name} 免疫了傷害！`, 'status');
             return { damage: 0, blocked: true };
@@ -497,6 +513,14 @@ const BattleSystem = {
 
         // Execute skill effect
         GameState.addLog(`${attacker.name} 使用 [${skill.name}]`, 'skill');
+        
+        const missEff = attacker.statusEffects.find(e => e.type === 'miss_chance');
+        if (missEff) {
+            if (await Animations.probabilityRoll(missEff.chance || 50, '失誤判定')) {
+                GameState.addLog(`${attacker.name} 發生了失誤！技能施放失敗`, 'status');
+                return false;
+            }
+        }
 
         const result = await this.executeSkillEffect(attacker, defender, skill);
         // Handle on_skill passive (e.g., 水上摩托車-溺水)
@@ -588,7 +612,7 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, Math.floor(GameState.turnCount * effect.mult));
                     break;
                 case 'damage_enemy_atk_mult':
-                    await this.applyDamage(attacker, defender, Math.floor((defender.baseAtk || defender.atk) * effect.mult));
+                    await this.applyDamage(attacker, defender, Math.floor(defender.atk * effect.mult));
                     break;
                 case 'damage_enemy_atk':
                     // Bug fix: use defender's current atk (not baseAtk)
@@ -647,6 +671,32 @@ const BattleSystem = {
                         GameState.addLog('效果發動成功！', 'skill');
                     } else {
                         GameState.addLog('效果發動失敗', 'status');
+                    }
+                    break;
+                }
+
+                case 'consume_item_buff_atk':
+                case 'consume_item_shield_heal':
+                case 'consume_item_dodge': {
+                    const ownerP = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const sb = GameState[ownerP].standbyCards;
+                    const itemIdx = sb.findIndex(c => c.name === effect.item);
+                    if (itemIdx === -1) {
+                        GameState.addLog(`發動失敗：備戰區沒有「${effect.item}」！`, 'status');
+                        return false; 
+                    }
+                    sb.splice(itemIdx, 1);
+                    if (effect.type === 'consume_item_buff_atk') {
+                        attacker.atk += (effect.atk || 0);
+                        GameState.addLog(`消耗「${effect.item}」，ATK +${effect.atk}`, 'skill');
+                    } else if (effect.type === 'consume_item_shield_heal') {
+                        attacker.shield += (effect.shield || 0);
+                        attacker.hp = Math.min(attacker.maxHp, attacker.hp + (effect.heal || 0));
+                        GameState.addLog(`消耗「${effect.item}」，獲得 ${effect.shield} 護盾並恢復 ${effect.heal} HP`, 'skill');
+                    } else if (effect.type === 'consume_item_dodge') {
+                        if (!attacker.resources) attacker.resources = {};
+                        attacker.resources.dodge = Math.min(effect.limit || 100, (attacker.resources.dodge || 0) + (effect.dodge || 0));
+                        GameState.addLog(`消耗「${effect.item}」，閃避率增加至 ${attacker.resources.dodge}%`, 'skill');
                     }
                     break;
                 }
@@ -1940,8 +1990,8 @@ const BattleSystem = {
                     }
                     break;
                 case 'dodge_buff':
-                    attacker.resources.dodge = (attacker.resources.dodge || 0) + effect.value;
-                    GameState.addLog(`${attacker.name} 閃避率增加 ${effect.value}%`, 'skill');
+                    attacker.statusEffects.push({ type: 'dodge', name: '閃避提升', chance: effect.value, turns: effect.turns || 1 });
+                    GameState.addLog(`${attacker.name} 閃避率增加 ${effect.value}%，持續 ${effect.turns || 1} 回合`, 'skill');
                     break;
                 case 'damage_buff_atk_resource':
                     await this.applyDamage(attacker, defender, effect.damage);
@@ -2100,9 +2150,10 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_doubling':
-                    for (let i = 0; i < effect.attacks; i++) {
-                        await this.applyDamage(attacker, defender, effect.start_damage * Math.pow(2, i));
-                    }
+                    let blastCount = attacker.resources.blast_count || 0;
+                    let blastDmg = (effect.base_damage || 10) * Math.pow(2, blastCount);
+                    await this.applyDamage(attacker, defender, blastDmg);
+                    attacker.resources.blast_count = blastCount + 1;
                     break;
                 case 'debuff_enemy_stats_percent':
                     defender.maxHp = Math.floor(defender.maxHp * ((100 - effect.percent) / 100));
@@ -2232,7 +2283,7 @@ const BattleSystem = {
                         const ownerP = GameState.currentPlayer === 1 ? 'player1' : 'player2';
                         let consumed = 0;
                         GameState[ownerP].standbyCards = GameState[ownerP].standbyCards.filter(c => {
-                            if (c.name === '信徒' || c.tags?.includes('believer')) { consumed++; return false; }
+                            if (c.name === '信眾' || c.tags?.includes('believer')) { consumed++; return false; }
                             return true;
                         });
                         if (consumed > 0) {
