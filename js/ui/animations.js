@@ -648,7 +648,7 @@ const Animations = {
             if (isOnline) {
                 const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
                 if (localRole === 'host') {
-                    btnAction = "NetManager.conn.send({ type: 'lobby_rematch' }); window.location.reload();";
+                    btnAction = "window.isRematching = true; let nextRoom = typeof NetManager !== 'undefined' ? NetManager.generateShortId() : Math.random().toString(36).substr(2, 4).toUpperCase(); sessionStorage.setItem('last_host_room_id', nextRoom); NetManager.conn.send({ type: 'lobby_rematch', newRoomId: nextRoom }); setTimeout(() => window.location.reload(), 200);";
                     btnText = "與對手重新開始（聯機）";
                     secondaryBtnContent = '<div style="margin-top: 15px;"><button class="btn btn-magenta" onclick="location.href=\'index.html\'">退出連線大廳</button></div>';
                 } else {

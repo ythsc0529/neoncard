@@ -437,6 +437,7 @@
                 };
 
                 NetManager.onDisconnected = () => {
+                    if (window.isRematching) return;
                     alert('連線已中斷。對方已離開。');
                     location.href = 'index.html';
                 };
@@ -470,12 +471,27 @@
                     document.getElementById('networkWaitingOverlay').classList.remove('hidden');
                     document.getElementById('networkWaitingOverlay').classList.add('active');
 
-                    try {
-                        await NetManager.joinRoom(roomId);
-                    } catch (err) {
-                        alert('無法連線至房間: ' + err);
-                        location.href = 'index.html';
-                    }
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    const tryJoin = async () => {
+                        try {
+                            await NetManager.joinRoom(roomId);
+                        } catch (err) {
+                            attempts++;
+                            console.log("Join failed, retry:", err);
+                            if (attempts < maxAttempts && (!err.type || err.type === 'peer-unavailable' || err.type === 'network' || err.type === 'server-error')) {
+                                document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]... (重試 ${attempts}/${maxAttempts})`;
+                                setTimeout(() => {
+                                    NetManager.disconnect();
+                                    tryJoin();
+                                }, 1500);
+                            } else {
+                                alert('無法連線至房間: ' + err);
+                                location.href = 'index.html';
+                            }
+                        }
+                    };
+                    tryJoin();
                 }
 
             } else {
@@ -629,7 +645,11 @@
                     window.Animations.showEmoji(action.emojiId, opponentKey);
                 }
             } else if (action.type === 'lobby_rematch') {
-                window.location.reload();
+                window.isRematching = true;
+                if (action.newRoomId) {
+                    localStorage.setItem('roomId', action.newRoomId);
+                }
+                setTimeout(() => window.location.reload(), 200);
             }
         }
 
