@@ -271,6 +271,14 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Firebase (for display names & invites) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/core/friends.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
     <script src="js/core/networkManager.js"></script>
@@ -368,14 +376,28 @@
             } else if (mode === 'online') {
                 window.localOnlineRole = localStorage.getItem('onlineRole');
                 const role = window.localOnlineRole;
+                const onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
                 const overlay = document.getElementById('networkWaitingOverlay');
                 overlay.classList.remove('hidden');
                 overlay.classList.add('active');
+
+                // Apply display names from Firebase/matchmaking
+                const myName = localStorage.getItem('onlineMyName');
+                if (myName) {
+                    if (role === 'host') GameState.player1.name = myName;
+                    else GameState.player2.name = myName;
+                }
 
                 NetManager.onConnected = async () => {
                     overlay.classList.remove('active');
                     overlay.classList.add('hidden');
                     GameState.init('online', 'pvp', 'normal');
+                    GameState.onlineSubMode = onlineSubMode; // For getCardCount()
+                    // Restore names after init
+                    const myN = localStorage.getItem('onlineMyName');
+                    const oppN = localStorage.getItem('onlineOpponentName');
+                    if (myN) { if (role === 'host') GameState.player1.name = myN; else GameState.player2.name = myN; }
+                    if (oppN) { if (role === 'host') GameState.player2.name = oppN; else GameState.player1.name = oppN; }
 
                     if (role === 'host') {
                         // Host defines first player using RNG
@@ -445,7 +467,7 @@
                 if (role === 'host') {
                     // Host Player is Player 1
                     document.getElementById('networkWaitingTitle').textContent = '連線大廳';
-                    document.getElementById('networkWaitingText').textContent = '請將此代碼交給朋友，等待加入...';
+                    document.getElementById('networkWaitingText').textContent = '等待朋友輸入代碼加入...';
                     const codeLabel = document.getElementById('networkRoomCode');
                     codeLabel.classList.remove('hidden');
                     codeLabel.textContent = '生成中...';
@@ -457,6 +479,8 @@
                     try {
                         const roomId = await NetManager.initHost();
                         codeLabel.textContent = roomId;
+                        // Add invite friend button if Firebase available
+                        addInviteFriendBtn(roomId, onlineSubMode);
                     } catch (err) {
                         alert('無法建立連線: ' + err);
                         location.href = 'index.html';
@@ -497,6 +521,12 @@
             } else {
                 GameState.init(mode, type, difficulty);
 
+                // If this is a bot match from competitive matchmaking, apply sub-mode card count
+                const botMatchName = localStorage.getItem('botMatchName');
+                if (botMatchName) {
+                    GameState.onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
+                }
+
                 // Coin flip
                 const firstPlayer = await Animations.coinFlip();
                 GameState.firstPlayer = firstPlayer;
@@ -505,7 +535,12 @@
                 if (type === 'pve') {
                     // Draw cards silently for NPC
                     const npcCards = GameState.drawCards('player2', GameState.getCardCount());
-                    if (difficulty === 'hell') {
+
+                    // Use fake name if this is a bot match, otherwise show difficulty label
+                    if (botMatchName) {
+                        GameState.player2.name = botMatchName;
+                        localStorage.removeItem('botMatchName'); // clean up
+                    } else if (difficulty === 'hell') {
                         GameState.player2.name = 'NPC (地獄)';
                     } else if (difficulty === 'hard') {
                         GameState.player2.name = 'NPC (困難)';
@@ -522,6 +557,7 @@
                     selectionPhase = 'player1_draw';
                     await startDrawPhase('player1');
                 } else {
+
                     // Draw phase for the first player
                     const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';
                     selectionPhase = firstPlayerKey + '_draw';
@@ -1694,6 +1730,38 @@
         }
 
         let isProcessing = false;
+
+        // ── Friend Invite Button (for hosts in online lobby) ─────────────────
+        async function addInviteFriendBtn(roomId, gameMode) {
+            try {
+                AuthManager.init();
+                const user = AuthManager.getCurrentUser();
+                if (!user) return;
+                const profile = await UserProfile.getProfile(user.uid);
+                if (!profile) return;
+
+                const overlay = document.getElementById('networkWaitingOverlay');
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-gold';
+                btn.style.marginTop = '10px';
+                btn.textContent = '📨 邀請好友加入';
+                btn.onclick = () => showFriendInviteList(roomId, gameMode, profile);
+                overlay.querySelector('.modal').appendChild(btn);
+            } catch (e) {
+                console.log('[game] addInviteFriendBtn skipped (no auth):', e.message);
+            }
+        }
+
+        async function showFriendInviteList(roomId, gameMode, myProfile) {
+            const friends = await FriendsManager.getFriendList();
+            if (friends.length === 0) { alert('你還沒有好友，請先在個人檔案中加好友！'); return; }
+            const names = friends.map((f, i) => `${i + 1}. ${f.displayName}`).join('\n');
+            const choice = prompt(`選擇要邀請的好友（輸入編號）：\n${names}`);
+            const idx = parseInt(choice) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= friends.length) return;
+            await FriendsManager.sendGameInvite(friends[idx].uid, roomId, gameMode, myProfile.displayName);
+            alert(`已向 ${friends[idx].displayName} 發送遊戲邀請！`);
+        }
 
         // Initialize game
         document.addEventListener('DOMContentLoaded', initGame);

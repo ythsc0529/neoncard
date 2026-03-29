@@ -635,8 +635,34 @@ const Animations = {
 
     // Victory animation
     async victory(winner) {
+        // Track win/loss in Firestore (silent, non-blocking)
+        try {
+            if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
+                const user = AuthManager.getCurrentUser();
+                if (user && typeof GameState !== 'undefined') {
+                    const mode = GameState.mode;
+                    let statMode = null;
+                    let iWon = false;
+                    if (mode === 'pve' || mode === 'story') {
+                        statMode = 'pve';
+                        iWon = (GameState.winner === 1);
+                    } else if (mode === 'online') {
+                        const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                        const myPlayer = (role === 'host') ? 1 : 2;
+                        const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
+                        statMode = isComp ? 'competitive' : 'online';
+                        iWon = (GameState.winner === myPlayer);
+                    }
+                    if (statMode) {
+                        UserProfile.incrementStat(user.uid, statMode, iWon).catch(() => {});
+                    }
+                }
+            }
+        } catch (_e) { /* silent */ }
+
         return new Promise(resolve => {
             this.show();
+
 
             const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
             const isOnline = typeof GameState !== 'undefined' && GameState.mode === 'online';

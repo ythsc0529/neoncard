@@ -826,6 +826,10 @@ function getStoryProgress() {
 
 function saveStoryProgress(progress) {
     localStorage.setItem('neonCardStoryProgress', JSON.stringify(progress));
+    // Sync to cloud if user is logged in
+    if (typeof window._saveStoryProgressToCloud === 'function') {
+        window._saveStoryProgressToCloud(progress);
+    }
 }
 
 function unlockNextNode(chapterId, currentNodeIndex) {

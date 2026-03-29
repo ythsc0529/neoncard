@@ -1,202 +1,322 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - Neon Card Game</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/theme.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/core/friends.js"></script>
+    <script src="js/core/matchmaking.js"></script>
+    <style>
+        /* ── Loading & Login Screens ── */
+        .fullscreen-cover {
+            position: fixed; inset: 0; z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%);
+            flex-direction: column; gap: 20px;
+            opacity: 1; transition: opacity 0.4s;
+        }
+        .fullscreen-cover.hidden { opacity: 0; pointer-events: none; }
+
+        .login-box {
+            padding: 50px 40px; max-width: 420px; width: 90%;
+            text-align: center; animation: fadeIn 0.6s ease backwards;
+        }
+        .login-title { font-size: 3.5rem; font-family: var(--font-heading); margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--neon-cyan), #fff, var(--neon-magenta));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(0,243,255,0.5)); }
+        .login-subtitle { color: var(--text-secondary); font-size: 1rem; margin-bottom: 40px; line-height: 1.6; }
+        .google-sign-in-btn {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            width: 100%; padding: 16px 24px; border-radius: 12px;
+            background: white; color: #333; border: none; cursor: pointer;
+            font-family: var(--font-main); font-size: 1.1rem; font-weight: 600;
+            transition: all 0.25s; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            letter-spacing: 0.5px; margin-bottom: 14px;
+        }
+        .google-sign-in-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
+        .google-icon { width: 22px; height: 22px; }
+        .guest-btn { color: var(--text-muted); background: none; border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 24px; border-radius: 8px; cursor: pointer; font-family: var(--font-main);
+            font-size: 0.9rem; width: 100%; transition: all 0.2s; }
+        .guest-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--text-secondary); }
+
+        /* ── User Badge ── */
+        .user-badge {
+            position: fixed; top: 18px; right: 20px;
+            display: flex; align-items: center; gap: 10px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 50px; padding: 8px 16px 8px 8px;
+            cursor: pointer; z-index: 100; transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+        .user-badge:hover { border-color: rgba(0,243,255,0.4); box-shadow: 0 0 15px rgba(0,243,255,0.15); }
+        .user-badge-avatar { width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+            border: 2px solid var(--neon-cyan); background: var(--glass-bg);
+            display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .user-badge-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-badge-name { font-family: var(--font-main); font-size: 0.9rem; color: var(--text-primary); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ── Tournament button special style ── */
+        .btn-tournament {
+            border-color: var(--neon-gold) !important;
+            color: var(--neon-gold) !important;
+            background: rgba(255,215,0,0.05) !important;
+            position: relative; overflow: hidden;
+        }
+        .btn-tournament::after {
+            content: '🏆'; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            font-size: 1.2rem; animation: pulse 2s infinite;
+        }
+        .btn-tournament:hover:not(:disabled) {
+            background: rgba(255,215,0,0.15) !important;
+            box-shadow: 0 0 25px rgba(255,215,0,0.35) !important;
+        }
+
+        /* ── Matchmaking Animation ── */
+        @keyframes radar {
+            0% { transform: scale(0.5); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .radar-ring {
+            position: absolute; width: 80px; height: 80px; border: 2px solid var(--neon-cyan);
+            border-radius: 50%; animation: radar 1.8s ease-out infinite;
+        }
+        .radar-ring:nth-child(2) { animation-delay: 0.6s; }
+        .radar-ring:nth-child(3) { animation-delay: 1.2s; }
+        .radar-dot {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,243,255,0.3), rgba(0,243,255,0.05));
+            border: 2px solid var(--neon-cyan); display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; position: relative; z-index: 1;
+        }
+        .radar-container { position: relative; display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; margin: 20px auto; }
+        .matchmaking-timer { font-size: 2rem; font-family: var(--font-heading); color: var(--neon-gold); margin: 10px 0; }
+
+        /* ── Game Invite Notification ── */
+        @keyframes slideInRight {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .invite-toast {
+            position: fixed; bottom: 30px; right: 24px;
+            background: rgba(15,15,35,0.95); border: 1px solid var(--neon-gold);
+            border-radius: 14px; padding: 18px 20px; max-width: 320px; z-index: 3000;
+            box-shadow: 0 0 30px rgba(255,215,0,0.2);
+            animation: slideInRight 0.4s ease;
+        }
+        .invite-toast-title { color: var(--neon-gold); font-family: var(--font-heading); font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 6px; }
+        .invite-toast-msg { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 14px; }
+        .invite-toast-btns { display: flex; gap: 8px; }
+
+        /* ── Setup name modal ── */
+        .setup-step { animation: fadeIn 0.5s ease; }
+        .name-input-big {
+            width: 100%; padding: 16px; font-size: 1.3rem; text-align: center;
+            background: rgba(0,0,0,0.4); border: 2px solid var(--neon-cyan);
+            border-radius: 10px; color: var(--text-primary); font-family: var(--font-main);
+            outline: none; letter-spacing: 1px; margin: 20px 0;
+        }
+        .name-input-big:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px rgba(255,215,0,0.2); }
+    </style>
 </head>
-
 <body>
-    <!-- Theme Toggle Removed -->
+    <!-- ① Loading Screen -->
+    <div class="fullscreen-cover" id="loadingScreen">
+        <div class="neon-text" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">霓 虹 牌</div>
+        <div style="color:var(--text-muted);font-size:0.9rem;letter-spacing:2px;">LOADING...</div>
+    </div>
 
-    <div class="menu-container">
-        <h1 class="game-title neon-text">霓虹牌</h1>
-        <div class="menu-buttons">
-            <button class="btn menu-btn" onclick="showModeSelection()">開始遊戲</button>
-            <button class="btn menu-btn btn-magenta" onclick="location.href='tutorial.html'">新手教學</button>
-            <button class="btn menu-btn btn-primary" onclick="location.href='story_menu.html'">劇情模式</button>
-            <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
-            <!-- 攻略專區 (Strategy Zone) Add Here -->
-            <button class="btn menu-btn" style="border-color: #00f3ff; color: #00f3ff;"
-                onclick="location.href='strategy.html'">攻略專區</button>
-            <button class="btn menu-btn" style="border-color: var(--neon-green); color: var(--neon-green);"
-                onclick="showUpdateModal()">版本更新</button>
+    <!-- ② Login Screen -->
+    <div class="fullscreen-cover hidden" id="loginScreen">
+        <div class="login-box glass">
+            <div class="login-title">霓虹牌</div>
+            <div class="login-subtitle">登入帳號以使用競賽模式、好友系統等完整功能<br>或以訪客模式繼續</div>
+            <button class="google-sign-in-btn" onclick="handleGoogleSignIn()">
+                <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                使用 Google 登入
+            </button>
+            <button class="guest-btn" onclick="continueAsGuest()">以訪客模式繼續（無社群功能）</button>
         </div>
     </div>
 
-    <!-- Mode Selection Modal -->
-    <div class="modal-overlay" id="modeModal">
-        <div class="modal glass">
-            <h2 id="modeModalTitle">選擇對戰模式</h2>
-
-            <div class="modal-buttons" id="mainModeContainer">
-                <button class="btn btn-primary" onclick="showSubMenu('pve')">單人模式 (對戰電腦)</button>
-                <button class="btn btn-magenta" onclick="showSubMenu('pvp')">雙人對戰 (本地)</button>
-                <button class="btn btn-gold" onclick="showSubMenu('online')">多人連線 (Online)</button>
-                <button class="btn" onclick="closeModeModal()" style="margin-top: 20px; opacity: 0.7;">返回</button>
-            </div>
-
-            <div class="modal-buttons hidden" id="onlineTypeContainer">
-                <button class="btn btn-gold" onclick="startOnlineGame('host')">建立房間 (自己當主機)</button>
-                <div style="margin: 10px 0; color: var(--text-secondary);">或者</div>
-                <input type="text" id="joinRoomId" placeholder="輸入 4 碼連線代碼"
-                    style="padding: 10px; font-size: 1.2rem; text-align: center; border-radius: 5px; border: 1px solid var(--neon-cyan); background: rgba(0,0,0,0.5); color: white; width: 80%; margin: 0 auto 10px auto; text-transform: uppercase;"
-                    maxlength="6">
-                <button class="btn btn-cyan" onclick="startOnlineGame('join')">加入房間</button>
-                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
-            </div>
-
-            <div class="modal-buttons hidden" id="pveTypeContainer">
-                <button class="btn" onclick="selectPvEType('quick')">快速模式 (3張牌)</button>
-                <button class="btn btn-magenta" onclick="selectPvEType('classic')">經典模式 (7張牌)</button>
-                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
-            </div>
-
-            <div class="modal-buttons hidden" id="pveDiffContainer">
-                <button class="btn" onclick="startGame(selectedPvEType, 'pve', 'easy')">簡單</button>
-                <button class="btn btn-danger" onclick="startGame(selectedPvEType, 'pve', 'hard')">困難</button>
-                <button class="btn btn-magenta" onclick="startGame(selectedPvEType, 'pve', 'hell')">地獄</button>
-                <button class="btn" onclick="showSubMenu('pve')" style="margin-top: 20px; opacity: 0.7;">返回</button>
-            </div>
-
-            <div class="modal-buttons hidden" id="pvpTypeContainer">
-                <button class="btn" onclick="startGame('quick', 'pvp')">快速模式 (3張牌)</button>
-                <button class="btn btn-magenta" onclick="startGame('classic', 'pvp')">經典模式 (7張牌)</button>
-                <button class="btn" onclick="showSubMenu('main')" style="margin-top: 20px; opacity: 0.7;">返回</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tutorial Overlay -->
-    <div class="tutorial-overlay hidden" id="tutorialOverlay">
+    <!-- ③ First-time: Mandatory Tutorial Overlay -->
+    <div class="tutorial-overlay hidden" id="tutorialOverlay" style="z-index:1500;">
         <div class="tutorial-box glass">
             <h2 class="tutorial-title" id="tutorialTitle">歡迎來到霓虹牌！</h2>
             <p class="tutorial-text" id="tutorialText">這是一款對戰卡牌遊戲。讓我們開始學習基本規則吧！</p>
             <div class="tutorial-buttons">
                 <button class="btn" id="tutorialPrev" onclick="prevTutorial()">上一步</button>
-                <button class="btn btn-magenta" id="tutorialNext" onclick="nextTutorial()">下一步</button>
+                <button class="btn btn-magenta" id="tutorialNext" onclick="nextTutorialStep()">下一步</button>
             </div>
         </div>
     </div>
 
-    <!-- Update Modal -->
-    <div class="modal-overlay" id="updateModal">
-        <div class="modal glass"
-            style="max-width: 800px; max-height: 80vh; text-align: left; display: flex; flex-direction: column;">
-            <h2 style="text-align: center; margin-bottom: 20px;">v2.1.0 多人連線模式正式上線</h2>
-            <div class="update-content"
-                style="color: var(--text-primary); line-height: 1.6; overflow-y: auto; padding-right: 15px; font-size: 1.1rem;">
+    <!-- ④ First-time: Name Setup Modal -->
+    <div class="modal-overlay" id="nameSetupModal">
+        <div class="modal glass setup-step" style="max-width:440px;">
+            <h2 style="color:var(--neon-gold);">🎮 設定你的名稱</h2>
+            <p style="color:var(--text-secondary);margin-top:10px;line-height:1.6;">這個名稱將在對戰、好友清單中顯示。<br>之後可在個人檔案中修改。</p>
+            <input class="name-input-big" id="playerNameInput" maxlength="12" placeholder="輸入2-12個字的名稱" oninput="validateNameInput()">
+            <p id="nameInputHint" style="color:var(--text-muted);font-size:0.85rem;min-height:20px;"></p>
+            <button class="btn btn-gold" id="confirmNameBtn" onclick="submitPlayerName()" style="width:100%;font-size:1.1rem;padding:16px;" disabled>確認並開始遊戲 →</button>
+        </div>
+    </div>
 
-                <h3 style="color: var(--neon-gold); margin-top: 10px; margin-bottom: 10px;">🌐 重磅更新：多人連線模式 (Online PVP)
-                    正式啟用</h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li>「<strong>多人連線 (Online)</strong>」模式正式對外開放，不再需要同一台裝置即可進行卡牌對決！</li>
-                    <li>透過 <strong>4 碼連線代碼</strong>即可快速建立或加入房間，操作簡單直覺。</li>
-                    <li>實裝 <strong>P2P 點對點連線技術</strong>，降低延遲，讓對戰體驗更加流暢。</li>
-                    <li>實裝連線同步機制，確保雙方遊戲狀態（抽牌順序、技能判定）完全一致，杜絕不同步問題。</li>
-                    <li>新增<strong>連線大廳</strong>介面，建立房間後顯示專屬代碼，等待對手加入時提供清楚的狀態提示。</li>
-                    <li>新增對戰中「<strong>等待對手中...</strong>」遮罩，防止在非己方回合誤觸操作。</li>
-                </ul>
+    <!-- ⑤ User Badge (Top-Right) -->
+    <div class="user-badge hidden" id="userBadge" onclick="location.href='profile.html'">
+        <div class="user-badge-avatar" id="badgeAvatar"><span>👤</span></div>
+        <span class="user-badge-name" id="badgeName">-</span>
+    </div>
 
-                <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
-                <h3 style="color: rgba(255,255,255,0.4); margin-top: 10px; margin-bottom: 10px; font-size: 0.95rem;">──
-                    v1.2.0 歷史記錄 ──</h3>
+    <!-- ⑥ Main Menu -->
+    <div class="menu-container" id="mainMenu" style="display:none;">
+        <h1 class="game-title neon-text">霓虹牌</h1>
+        <div class="menu-buttons">
+            <button class="btn menu-btn" onclick="showModeSelection()">開始遊戲</button>
+            <button class="btn menu-btn btn-magenta" onclick="location.href='tutorial.html'">新手教學</button>
+            <button class="btn menu-btn btn-primary" onclick="location.href='story_menu.html'">劇情模式</button>
+            <button class="btn menu-btn btn-tournament" id="tournamentBtn" onclick="showTournamentMenu()">競賽模式</button>
+            <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
+            <button class="btn menu-btn" style="border-color:#00f3ff;color:#00f3ff;" onclick="location.href='strategy.html'">攻略專區</button>
+            <button class="btn menu-btn" style="border-color:var(--neon-green);color:var(--neon-green);" onclick="showUpdateModal()">版本更新</button>
+            <button class="btn menu-btn hidden" id="profileMenuBtn" style="border-color:var(--neon-magenta);color:var(--neon-magenta);" onclick="location.href='profile.html'">個人檔案</button>
+        </div>
+        <!-- Stats Card (shown when logged in) -->
+        <div id="statsCard" class="hidden" style="
+            margin-top:18px;width:100%;max-width:420px;
+            background:rgba(0,0,0,0.35);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:14px;padding:14px 18px;
+            backdrop-filter:blur(8px);
+        ">
+            <div style="color:var(--text-secondary);font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">📊 我的戰績</div>
+            <div id="statsRows" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+        </div>
+    </div>
 
-                <h3 style="color: var(--neon-cyan); margin-top: 10px; margin-bottom: 10px;">🌟 新增 107 名全新角色</h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li>一口氣實裝了圖鑑編號 <strong>199 至 305</strong> 的所有全新角色！</li>
-                    <li>新增多種全新戰鬥機制：包含<strong>資源累積與消耗現象</strong>、<strong>備戰區組合技（機甲合體等）</strong>。</li>
-                    <li>新增多樣強力異常狀態：如<strong>黑洞吞噬、致盲、衰減護盾、過敏、催眠與侵蝕</strong>。</li>
-                    <li>實裝全新技能類型：包含<strong>斬殺判定、攻擊力翻倍、吸血、反傷、犧牲血量重擊</strong>等豐富多變的戰術選擇。</li>
-                </ul>
-
-                <h3 style="color: var(--neon-green); margin-top: 10px; margin-bottom: 10px;">🟢 增強角色 (Buffs)</h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li><strong style="color: var(--text-primary);">迪斯查</strong>：體質增強，基礎生命值提升 (1 -> 50)，技能「免疫」敘述更清晰。
-                    </li>
-                    <li><strong style="color: var(--text-primary);">蘇賽德</strong>：技能「全員玉碎」傷害大幅提升 (30 -> 50)。</li>
-                    <li><strong style="color: var(--text-primary);">廚師</strong>：體質增強，基礎生命值提升 (150 -> 200)。</li>
-                    <li><strong style="color: var(--text-primary);">英國紳士</strong>：體質大增，基礎生命值 (80 -> 180) 與攻擊力 (10 ->
-                        35)，站場能力大幅強化。</li>
-                    <li><strong style="color: var(--text-primary);">鳳凰</strong>：由於浴火重生特性，基礎生命值提升 (100 -> 150)。</li>
-                    <li><strong style="color: var(--text-primary);">大吉</strong>：祈福靈驗，新增強力技能「大吉領紅茶」(抽出三張紅茶牌)。</li>
-                    <li><strong style="color: var(--text-primary);">12了</strong>：體質增強，基礎生命值提升 (12 -> 80)。</li>
-                    <li><strong style="color: var(--text-primary);">拳</strong>：超拳技能與被動爆擊倍率大幅強化 (1.3倍)。</li>
-                    <li><strong style="color: var(--text-primary);">草東街</strong>：體質增強，基礎生命值提升 (150 -> 200)。</li>
-                    <li><strong style="color: var(--text-primary);">婕媞</strong>：主力技能「顆秒」冷卻時間移除 (1 -> 0)。</li>
-                    <li><strong style="color: var(--text-primary);">王欸等</strong>：技能「大跳」新增增加攻擊力效果。</li>
-                    <li><strong style="color: var(--text-primary);">比二蓋紙</strong>：成為大富翁，基礎生命值提升 (200 -> 250)，被動發動次數增加至 3
-                        次。</li>
-                    <li><strong style="color: var(--text-primary);">摳P</strong>：被動「垃圾不分藍綠」重製，現在每次施放技能後會增加少量攻擊力。</li>
-                    <li><strong style="color: var(--text-primary);">可疑草叢</strong>：太可疑了，新增保命與拖延技能「我很可疑」(暈眩自己兩回合)。</li>
-                    <li><strong style="color: var(--text-primary);">李白 / 李太白</strong>：傳奇詩人體質雙雙加強，基礎生命值提升 (400 ->
-                        600)，李白本身攻擊力提升 (30 -> 50)。</li>
-                    <li><strong style="color: var(--text-primary);">很亮的魚</strong>：體質增強，基礎生命值提升 (250 -> 300)。</li>
-                </ul>
-
-                <h3 style="color: var(--neon-pink); margin-top: 20px; margin-bottom: 10px;">🔴 削弱角色 (Nerfs)</h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li><strong style="color: var(--text-primary);">超級坦克</strong>：過於強勢，技能「裝甲」增加 1 回合冷卻時間。</li>
-                    <li><strong style="color: var(--text-primary);">美秀吉團</strong>：被動「大老婆」限制整場戰鬥觸發次數為 1 次。</li>
-                    <li><strong style="color: var(--text-primary);">阿共</strong>：被動「共機擾台」復活機率限制為 1 次。</li>
-                    <li><strong style="color: var(--text-primary);">Peter</strong>：「一階」與「二階」招式冷卻時間增加，延長進化所需時間。</li>
-                    <li><strong style="color: var(--text-primary);">怕瘦團</strong>：被動「大寶」恢復血量減少 (50 -> 30)。</li>
-                    <li><strong style="color: var(--text-primary);">賈伯斯max</strong>：體質大砍，基礎生命值 (570 -> 400) 與攻擊力 (70 ->
-                        50) 下降。</li>
-                    <li><strong style="color: var(--text-primary);">賴韋禎</strong>：被動「🤚」過於靈活，閃避機率下調 (60% -> 35%)。</li>
-                </ul>
-
-                <h3 style="color: var(--neon-cyan); margin-top: 20px; margin-bottom: 10px;">⚡ 平衡性調整 (Adjustments)</h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li><strong style="color: var(--text-primary);">護理師</strong>：攻擊力適度下調 (30 -> 20)，但技能「砍一刀」傷害提升 (10 ->
-                        30)。</li>
-                    <li><strong style="color: var(--text-primary);">瘋狗騎士</strong>：基礎生命值下調 (500 -> 400)，但攻擊力提升 (5 ->
-                        20)。同時調整技能冷卻時間與相關倍率。</li>
-                    <li><strong style="color: var(--text-primary);">抽卡時間</strong>：基礎生命值提升 (200 -> 230)，但移除了副作用技能「賣血時間」。
-                    </li>
-                    <li><strong style="color: var(--text-primary);">拳王</strong>：被動文字說明更新與效果標準化，爆擊倍率為2.0倍。</li>
-                    <li><strong style="color: var(--text-primary);">Ray生我夢</strong>：基礎生命值提升 (320 ->
-                        400)，一二技能的冷卻時間與強大負面效果做了相對應的平衡。</li>
-                    <li><strong style="color: var(--text-primary);">王世堅情</strong>：被動「有出息」大幅重製，現在低於 20% 血量時可以刷新所有技能一次。
-                    </li>
-                </ul>
-
-                <h3 style="color: var(--neon-gold); margin-top: 20px; margin-bottom: 10px;">🛠️ 系統與遊戲調整 (System Updates)
-                </h3>
-                <ul
-                    style="margin-left: 20px; margin-bottom: 20px; list-style-type: square; color: var(--text-secondary);">
-                    <li>全面實裝了包含 32 名角色的第一波大型平衡性更新。</li>
-                    <li>新增全新<strong>單人對戰模式 (PvE)</strong>，隨時可以找電腦進行卡牌對決。</li>
-                    <li>實裝「<strong>AI 難度差異系統</strong>」。現在困難模式的 NPC 將懂得：優先施放技能自保、殘血時主動撤退換健康隊友、以及陣亡換人時會挑選最強角色上場。</li>
-                    <li>新增對戰中電腦思考時的「思考中...」特效。</li>
-                    <li>修復了多樣技能描述與實際發動效果不一致的問題。</li>
-                    <li>針對多項強大被動技能加上「觸發次數限制」，防止無限循環發生。</li>
-                </ul>
+    <!-- ── Mode Selection Modal (existing + extended) ── -->
+    <div class="modal-overlay" id="modeModal">
+        <div class="modal glass">
+            <h2 id="modeModalTitle">選擇對戰模式</h2>
+            <!-- Main -->
+            <div class="modal-buttons" id="mainModeContainer">
+                <button class="btn btn-primary" onclick="showSubMenu('pve')">單人模式 (對戰電腦)</button>
+                <button class="btn btn-magenta" onclick="showSubMenu('pvp')">雙人對戰 (本地)</button>
+                <button class="btn btn-gold" onclick="showSubMenu('onlineMode')">多人連線 (Online)</button>
+                <button class="btn" onclick="closeModeModal()" style="margin-top:20px;opacity:0.7;">返回</button>
             </div>
-            <div style="margin-top: 20px; display: flex; justify-content: center;">
-                <button class="btn" style="border-color: var(--neon-green); color: var(--neon-green);"
-                    onclick="closeUpdateModal()">了解！</button>
+            <!-- Online: select sub-mode first -->
+            <div class="modal-buttons hidden" id="onlineModeContainer">
+                <button class="btn" onclick="selectOnlineSubMode('quick')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="selectOnlineSubMode('classic')">經典模式 (7張牌)</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+            <!-- Online: host/join -->
+            <div class="modal-buttons hidden" id="onlineTypeContainer">
+                <button class="btn btn-gold" onclick="startOnlineGame('host')">建立房間 (自己當主機)</button>
+                <div style="margin:10px 0;color:var(--text-secondary);">或者</div>
+                <input type="text" id="joinRoomId" placeholder="輸入 4 碼連線代碼"
+                    style="padding:10px;font-size:1.2rem;text-align:center;border-radius:5px;border:1px solid var(--neon-cyan);background:rgba(0,0,0,0.5);color:white;width:80%;margin:0 auto 10px auto;text-transform:uppercase;" maxlength="6">
+                <button class="btn btn-cyan" onclick="startOnlineGame('join')">加入房間</button>
+                <button class="btn" onclick="showSubMenu('onlineMode')" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+            <!-- PvE -->
+            <div class="modal-buttons hidden" id="pveTypeContainer">
+                <button class="btn" onclick="selectPvEType('quick')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="selectPvEType('classic')">經典模式 (7張牌)</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+            <div class="modal-buttons hidden" id="pveDiffContainer">
+                <button class="btn" onclick="startGame(selectedPvEType,'pve','easy')">簡單</button>
+                <button class="btn btn-danger" onclick="startGame(selectedPvEType,'pve','hard')">困難</button>
+                <button class="btn btn-magenta" onclick="startGame(selectedPvEType,'pve','hell')">地獄</button>
+                <button class="btn" onclick="showSubMenu('pve')" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+            <!-- PvP -->
+            <div class="modal-buttons hidden" id="pvpTypeContainer">
+                <button class="btn" onclick="startGame('quick','pvp')">快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="startGame('classic','pvp')">經典模式 (7張牌)</button>
+                <button class="btn" onclick="showSubMenu('main')" style="margin-top:20px;opacity:0.7;">返回</button>
             </div>
         </div>
     </div>
 
-    <!-- Network Lobby Modal -->
+    <!-- ── Tournament Modal ── -->
+    <div class="modal-overlay" id="tournamentModal">
+        <div class="modal glass" style="text-align:center;">
+            <h2 style="color:var(--neon-gold);">🏆 競賽模式</h2>
+            <p style="color:var(--text-secondary);margin:12px 0 24px;line-height:1.6;">與全球玩家自動配對<br>選擇你的對戰規則</p>
+            <div class="modal-buttons">
+                <button class="btn" style="border-color:var(--neon-cyan);color:var(--neon-cyan);" onclick="startMatchmaking('quick')">⚡ 快速模式 (3張牌)</button>
+                <button class="btn btn-magenta" onclick="startMatchmaking('classic')">📜 經典模式 (7張牌)</button>
+                <button class="btn" onclick="closeTournamentModal()" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Matchmaking Waiting Modal ── -->
+    <div class="modal-overlay" id="matchmakingModal">
+        <div class="modal glass" style="text-align:center;">
+            <h2 style="color:var(--neon-cyan);">搜尋對手中</h2>
+            <div class="radar-container">
+                <div class="radar-ring"></div>
+                <div class="radar-ring"></div>
+                <div class="radar-ring"></div>
+                <div class="radar-dot">⚔️</div>
+            </div>
+            <div id="matchmakingStatusText" style="color:var(--text-secondary);margin-bottom:10px;">正在配對中，請稍候...</div>
+            <div class="matchmaking-timer" id="matchmakingTimer">0:00</div>
+            <button class="btn" onclick="cancelMatchmaking()" style="margin-top:10px;opacity:0.7;">取消配對</button>
+        </div>
+    </div>
+
+    <!-- ── Network Lobby Modal ── -->
     <div class="modal-overlay" id="lobbyModal">
-        <div class="modal glass" style="text-align: center;">
-            <h2 id="lobbyTitle" class="neon-text" style="color: var(--neon-cyan);">連線大廳</h2>
-            <p id="lobbyStatus" style="margin: 20px 0; font-size: 1.2rem; color: var(--text-secondary);">初始化網路中...</p>
-            <div id="lobbyRoomCode"
-                style="font-size: 3rem; font-weight: bold; letter-spacing: 5px; color: var(--neon-gold); margin: 20px 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);"
-                class="hidden"></div>
-            <button class="btn" onclick="cancelLobby()" style="margin-top: 20px; opacity: 0.8;">取消連線</button>
+        <div class="modal glass" style="text-align:center;">
+            <h2 id="lobbyTitle" class="neon-text" style="color:var(--neon-cyan);">連線大廳</h2>
+            <p id="lobbyStatus" style="margin:20px 0;font-size:1.2rem;color:var(--text-secondary);">初始化網路中...</p>
+            <div id="lobbyRoomCode" style="font-size:3rem;font-weight:bold;letter-spacing:5px;color:var(--neon-gold);margin:20px 0;text-shadow:0 0 10px rgba(255,215,0,0.5);" class="hidden"></div>
+            <button class="btn" onclick="cancelLobby()" style="margin-top:20px;opacity:0.8;">取消連線</button>
+        </div>
+    </div>
+
+    <!-- ── Update Modal ── -->
+    <div class="modal-overlay" id="updateModal">
+        <div class="modal glass" style="max-width:800px;max-height:80vh;text-align:left;display:flex;flex-direction:column;">
+            <h2 style="text-align:center;margin-bottom:20px;">v3.0.0 社群功能正式上線</h2>
+            <div class="update-content" style="color:var(--text-primary);line-height:1.6;overflow-y:auto;padding-right:15px;font-size:1.1rem;">
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">🌐 重磅更新：社群系統全面上線</h3>
+                <ul style="margin-left:20px;margin-bottom:20px;list-style-type:square;color:var(--text-secondary);">
+                    <li><strong>Google 帳號登入</strong>：支援跨裝置同步，無需記憶帳號密碼。</li>
+                    <li><strong>個人檔案</strong>：設定遊戲名稱、自我介紹、最多3個愛用角色。</li>
+                    <li><strong>好友系統</strong>：搜尋玩家、加好友、邀請對戰。</li>
+                    <li><strong>競賽模式 🏆</strong>：自動與線上玩家配對，支援快速/經典兩種規則。</li>
+                    <li><strong>遊戲邀請通知</strong>：好友發出邀請時即時彈窗提醒。</li>
+                    <li><strong>訪客模式</strong>：不登入也可享受單人/雙人/連線功能。</li>
+                </ul>
+                <hr style="border-color:rgba(255,255,255,0.1);margin:20px 0;">
+                <h3 style="color:rgba(255,255,255,0.4);font-size:0.95rem;">── v2.1.0 歷史記錄 ──</h3>
+                <h3 style="color:var(--neon-cyan);margin-top:10px;">🌐 多人連線模式正式啟用</h3>
+                <ul style="margin-left:20px;margin-bottom:20px;list-style-type:square;color:var(--text-secondary);">
+                    <li>「多人連線 (Online)」模式正式對外開放。</li>
+                    <li>透過 4 碼連線代碼即可快速建立或加入房間。</li>
+                    <li>實裝 P2P 點對點連線技術，降低延遲。</li>
+                </ul>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:center;">
+                <button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" onclick="closeUpdateModal()">了解！</button>
+            </div>
         </div>
     </div>
 
@@ -205,146 +325,440 @@
     <script src="js/core/rng.js"></script>
     <script src="js/core/networkManager.js"></script>
     <script>
+        // ── State ──────────────────────────────────────────────────────
         let selectedPvEType = 'classic';
+        let currentUserProfile = null;
+        let isGuest = false;
+        let matchmakingTimerInterval = null;
+        let matchmakingSeconds = 0;
+        let selectedOnlineSubMode = 'classic';
+        let gameInviteUnsubscribe = null;
+        let friendRequestUnsubscribe = null;
 
-        function showModeSelection() {
-            showSubMenu('main');
-            document.getElementById('modeModal').classList.add('active');
-        }
-
-        function showSubMenu(menu) {
-            document.getElementById('mainModeContainer').classList.add('hidden');
-            document.getElementById('pveTypeContainer').classList.add('hidden');
-            document.getElementById('pveDiffContainer').classList.add('hidden');
-            document.getElementById('pvpTypeContainer').classList.add('hidden');
-            if (document.getElementById('onlineTypeContainer')) document.getElementById('onlineTypeContainer').classList.add('hidden');
-
-            if (menu === 'main') {
-                document.getElementById('modeModalTitle').textContent = '選擇對戰模式';
-                document.getElementById('mainModeContainer').classList.remove('hidden');
-            } else if (menu === 'pve') {
-                document.getElementById('modeModalTitle').textContent = '單人模式 - 選擇規則';
-                document.getElementById('pveTypeContainer').classList.remove('hidden');
-            } else if (menu === 'pvp') {
-                document.getElementById('modeModalTitle').textContent = '雙人對戰 - 選擇規則';
-                document.getElementById('pvpTypeContainer').classList.remove('hidden');
-            } else if (menu === 'online') {
-                document.getElementById('modeModalTitle').textContent = '多人連線 - PVP';
-                document.getElementById('onlineTypeContainer').classList.remove('hidden');
-            }
-        }
-
-        function selectPvEType(type) {
-            selectedPvEType = type;
-            document.getElementById('pveTypeContainer').classList.add('hidden');
-            document.getElementById('pveDiffContainer').classList.remove('hidden');
-            document.getElementById('modeModalTitle').textContent = '單人模式 - 選擇難度';
-        }
-
-        function closeModeModal() {
-            document.getElementById('modeModal').classList.remove('active');
-        }
-
-        function showUpdateModal() {
-            document.getElementById('updateModal').classList.add('active');
-        }
-
-        function closeUpdateModal() {
-            document.getElementById('updateModal').classList.remove('active');
-        }
-
-        function startGame(mode, type = 'pvp', difficulty = 'normal') {
-            localStorage.setItem('gameMode', mode);
-            localStorage.setItem('gameType', type);
-            localStorage.setItem('pveDifficulty', difficulty);
-            location.href = 'game.html';
-        }
-
-        // --- Network Lobby Logic ---
-        function startOnlineGame(role) {
-            localStorage.setItem('gameMode', 'online');
-            localStorage.setItem('gameType', 'pvp');
-            localStorage.setItem('onlineRole', role);
-
-            if (role === 'join') {
-                const roomCode = document.getElementById('joinRoomId').value.trim().toUpperCase();
-                if (!roomCode) {
-                    alert('請輸入連線代碼！');
-                    return;
+        // ── App Init ──────────────────────────────────────────────────
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (isGuest) return; // Guest already set up
+            if (user) {
+                const profile = await UserProfile.getProfile(user.uid);
+                if (!profile || !profile.isProfileSetup) {
+                    showFirstTimeSetup(user);
+                } else {
+                    currentUserProfile = profile;
+                    showMain(user, profile);
                 }
-                localStorage.setItem('roomId', roomCode);
+            } else {
+                showScreen('login');
+            }
+        });
+
+        function showScreen(screen) {
+            document.getElementById('loadingScreen').classList.toggle('hidden', screen !== 'loading');
+            document.getElementById('loginScreen').classList.toggle('hidden', screen !== 'login');
+            document.getElementById('mainMenu').style.display = screen === 'main' ? 'flex' : 'none';
+        }
+
+        function showMain(user, profile) {
+            showScreen('main');
+            // User badge
+            const badge = document.getElementById('userBadge');
+            badge.classList.remove('hidden');
+            document.getElementById('badgeName').textContent = profile.displayName;
+            if (profile.googlePhotoURL) {
+                document.getElementById('badgeAvatar').innerHTML = `<img src="${profile.googlePhotoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            }
+            document.getElementById('profileMenuBtn').classList.remove('hidden');
+            document.getElementById('tournamentBtn').disabled = false;
+            setupListeners(user.uid);
+
+            // Load win rate stats
+            loadStatsDisplay(user.uid);
+            // Sync cloud story progress to localStorage
+            syncStoryProgressFromCloud(user.uid);
+
+            // Auto-show update modal on new version
+            const APP_VERSION = '3.0.0';
+            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
+                showUpdateModal();
+                localStorage.setItem('lastSeenVersion', APP_VERSION);
             }
 
-            location.href = 'game.html';
         }
 
-        function cancelLobby() {
-            document.getElementById('lobbyModal').classList.remove('active');
+        function setupListeners(uid) {
+            // Game invite listener
+            gameInviteUnsubscribe = FriendsManager.listenForGameInvites((invite) => {
+                showGameInviteToast(invite);
+            });
+            // Friend request listener
+            friendRequestUnsubscribe = FriendsManager.listenForRequests((profile) => {
+                showFriendRequestToast(profile);
+            });
         }
 
-        // Tutorial System
+        // ── Google Login ──────────────────────────────────────────────
+        async function handleGoogleSignIn() {
+            try {
+                await AuthManager.signInWithGoogle();
+                // onAuthChanged handles the rest
+            } catch (e) {
+                if (e.code !== 'auth/popup-closed-by-user') {
+                    alert('登入失敗：' + e.message);
+                }
+            }
+        }
+
+        function continueAsGuest() {
+            isGuest = true;
+            showScreen('main');
+            document.getElementById('tournamentBtn').disabled = true;
+            document.getElementById('tournamentBtn').title = '需要登入才能使用競賽模式';
+            const APP_VERSION = '3.0.0';
+            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
+                showUpdateModal();
+                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            }
+        }
+
+        // ── First-time Setup ──────────────────────────────────────────
+        let isFirstTimeSetup = false;
+        let firstTimeUser = null;
+
+        function showFirstTimeSetup(user) {
+            isFirstTimeSetup = true;
+            firstTimeUser = user;
+            showScreen('main');
+            currentStep = 0;
+            document.getElementById('tutorialOverlay').classList.remove('hidden');
+            updateTutorial();
+        }
+
+        // ── Tutorial System ───────────────────────────────────────────
         const tutorialSteps = [
-            { title: '歡迎來到霓虹牌！', text: '這是一款雙人對戰卡牌遊戲，兩位玩家在同一台裝置上進行對戰。' },
+            { title: '歡迎來到霓虹牌！', text: '這是一款雙人對戰卡牌遊戲，兩位玩家進行對戰。首次遊玩，讓我們學習基本規則！' },
             { title: '遊戲模式', text: '快速模式：每位玩家擁有3張牌\n經典模式：每位玩家擁有7張牌\n規則相同，只有牌數不同。' },
             { title: '開局流程', text: '1. 擲硬幣決定先手\n2. 雙方抽取角色牌\n3. 選擇一張放入戰鬥區\n4. 其餘放入備戰區' },
             { title: '戰鬥區與備戰區', text: '戰鬥區：進行戰鬥的角色（各1隻）\n備戰區：待命的角色，可透過「撤退」替換' },
             { title: '回合行動', text: '每回合必須選擇以下其中一個行動：\n• 普攻：造成ATK值的傷害\n• 技能：使用角色技能（有冷卻）\n• 撤退：與備戰區角色交換' },
             { title: '技能冷卻', text: '技能括號中的數字代表冷卻回合數。\n使用後需等待該回合數才能再次使用。\n注意：備戰區角色的冷卻也會持續計算！' },
             { title: '狀態效果', text: '• 睡眠：無法行動，每回合50%機率甦醒\n• 暈眩：無法行動\n• 中毒/灼燒：每回合受到持續傷害\n• 沉默：無法使用技能' },
-            { title: '勝利條件', text: '擊敗對手所有角色即可獲勝！\n善用角色特性和技能組合來取得優勢。' },
-            { title: '準備好了嗎？', text: '現在你已經了解基本規則，開始遊戲吧！\n祝你遊戲愉快！' }
+            { title: '社群功能', text: '🏆 競賽模式：自動與線上玩家配對\n👥 好友系統：加好友、邀請對戰\n👤 個人檔案：設定名稱、愛用角色\n登入後即可使用上述功能！' },
+            { title: '準備好了嗎？', text: '現在你已經了解基本規則，讓我們設定你的遊戲名稱吧！' }
         ];
         let currentStep = 0;
-
-        function startTutorial() {
-            currentStep = 0;
-            document.getElementById('tutorialOverlay').classList.remove('hidden');
-            updateTutorial();
-        }
 
         function updateTutorial() {
             const step = tutorialSteps[currentStep];
             document.getElementById('tutorialTitle').textContent = step.title;
             document.getElementById('tutorialText').textContent = step.text;
             document.getElementById('tutorialPrev').style.display = currentStep === 0 ? 'none' : 'inline-block';
-            document.getElementById('tutorialNext').textContent = currentStep === tutorialSteps.length - 1 ? '完成' : '下一步';
+            const isLast = currentStep === tutorialSteps.length - 1;
+            document.getElementById('tutorialNext').textContent = isLast ? (isFirstTimeSetup ? '設定名稱 →' : '完成') : '下一步';
         }
 
-        function nextTutorial() {
+        function nextTutorialStep() {
             if (currentStep < tutorialSteps.length - 1) {
                 currentStep++;
                 updateTutorial();
             } else {
                 document.getElementById('tutorialOverlay').classList.add('hidden');
+                if (isFirstTimeSetup) {
+                    document.getElementById('nameSetupModal').classList.add('active');
+                    document.getElementById('playerNameInput').focus();
+                }
             }
         }
 
         function prevTutorial() {
-            if (currentStep > 0) {
-                currentStep--;
-                updateTutorial();
+            if (currentStep > 0) { currentStep--; updateTutorial(); }
+        }
+
+        // ── Name Setup ────────────────────────────────────────────────
+        function validateNameInput() {
+            const val = document.getElementById('playerNameInput').value.trim();
+            const btn = document.getElementById('confirmNameBtn');
+            const hint = document.getElementById('nameInputHint');
+            if (val.length < 2) { hint.textContent = '名稱至少需要2個字'; btn.disabled = true; }
+            else if (val.length > 12) { hint.textContent = '名稱最多12個字'; btn.disabled = true; }
+            else { hint.textContent = `✓ 名稱：${val}`; hint.style.color = 'var(--neon-green)'; btn.disabled = false; }
+        }
+
+        async function submitPlayerName() {
+            const val = document.getElementById('playerNameInput').value.trim();
+            if (val.length < 2 || !firstTimeUser) return;
+            const btn = document.getElementById('confirmNameBtn');
+            btn.disabled = true;
+            btn.textContent = '檢查名稱...';
+            // Check uniqueness
+            const taken = await UserProfile.isNameTaken(val);
+            if (taken) {
+                document.getElementById('nameInputHint').textContent = '❌ 此名稱已被使用，請換一個';
+                document.getElementById('nameInputHint').style.color = 'var(--neon-pink)';
+                btn.disabled = false;
+                btn.textContent = '確認並開始遊戲 →';
+                return;
+            }
+            btn.textContent = '儲存中...';
+            try {
+                const profile = await UserProfile.createProfile(firstTimeUser.uid, val, firstTimeUser.photoURL);
+                currentUserProfile = profile;
+                document.getElementById('nameSetupModal').classList.remove('active');
+                isFirstTimeSetup = false;
+                showMain(firstTimeUser, profile);
+            } catch (e) {
+                alert('儲存失敗：' + e.message);
+                btn.disabled = false;
+                btn.textContent = '確認並開始遊戲 →';
             }
         }
 
-        // Update Modal Auto-Show Logic
-        const APP_VERSION = '2.1.0'; // Update this string when releasing a new version
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const lastSeenVersion = localStorage.getItem('lastSeenVersion');
-            if (lastSeenVersion !== APP_VERSION) {
-                showUpdateModal();
-                localStorage.setItem('lastSeenVersion', APP_VERSION);
+        // ── Tournament / Matchmaking ───────────────────────────────────
+        function showTournamentMenu() {
+            if (!currentUserProfile && !isGuest) return;
+            if (isGuest || !AuthManager.getCurrentUser()) {
+                alert('競賽模式需要 Google 登入帳號才能使用！\n請先登入或刷新頁面。');
+                return;
             }
-        });
+            document.getElementById('tournamentModal').classList.add('active');
+        }
+
+        function closeTournamentModal() {
+            document.getElementById('tournamentModal').classList.remove('active');
+        }
+
+        function startMatchmaking(mode) {
+            document.getElementById('tournamentModal').classList.remove('active');
+            matchmakingSeconds = 0;
+            document.getElementById('matchmakingTimer').textContent = '0:00';
+            document.getElementById('matchmakingStatusText').textContent = '正在配對中，請稍候...';
+            document.getElementById('matchmakingModal').classList.add('active');
+
+            matchmakingTimerInterval = setInterval(() => {
+                matchmakingSeconds++;
+                const m = Math.floor(matchmakingSeconds / 60);
+                const s = matchmakingSeconds % 60;
+                document.getElementById('matchmakingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+            }, 1000);
+
+            const displayName = currentUserProfile?.displayName || '玩家';
+            MatchmakingManager.joinQueue(mode, displayName, (status) => {
+                if (status === 'matched' || status === 'bot_match_start') {
+                    clearInterval(matchmakingTimerInterval);
+                }
+                if (status === 'bot_match_start') {
+                    // Show a fake "match found" message before redirect
+                    document.getElementById('matchmakingStatusText').textContent = '✅ 找到對手！即將開始...';
+                    document.querySelector('#matchmakingModal .btn').style.display = 'none'; // hide cancel
+                } else if (status === 'matched') {
+                    document.getElementById('matchmakingStatusText').textContent = '✅ 配對成功！即將開始...';
+                }
+            });
+
+        }
+
+        function cancelMatchmaking() {
+            clearInterval(matchmakingTimerInterval);
+            MatchmakingManager.leaveQueue();
+            document.getElementById('matchmakingModal').classList.remove('active');
+        }
+
+        // ── Game Invite Toast ─────────────────────────────────────────
+        function showGameInviteToast(invite) {
+            const existing = document.getElementById('gameInviteToast');
+            if (existing) existing.remove();
+
+            const modeText = invite.gameMode === 'quick' ? '快速模式' : '經典模式';
+            const toast = document.createElement('div');
+            toast.id = 'gameInviteToast';
+            toast.className = 'invite-toast';
+            toast.innerHTML = `
+                <div class="invite-toast-title">⚔️ 遊戲邀請</div>
+                <div class="invite-toast-msg"><strong>${escHtml(invite.fromName)}</strong> 邀請你進行 ${modeText} 對戰！</div>
+                <div class="invite-toast-btns">
+                    <button class="btn btn-gold" style="flex:1;padding:8px;" onclick="acceptGameInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">接受</button>
+                    <button class="btn" style="flex:1;padding:8px;opacity:0.6;" onclick="declineGameInvite('${invite.id}')">拒絕</button>
+                </div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { const t = document.getElementById('gameInviteToast'); if (t) t.remove(); }, 20000);
+        }
+
+        function showFriendRequestToast(profile) {
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:30px;left:24px;background:rgba(15,15,35,0.95);border:1px solid var(--neon-cyan);border-radius:14px;padding:16px 18px;max-width:280px;z-index:3000;animation:slideIn 0.4s ease;box-shadow:0 0 25px rgba(0,243,255,0.2);';
+            toast.innerHTML = `<div style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:0.85rem;margin-bottom:6px;">👥 好友邀請</div><div style="color:var(--text-secondary);font-size:0.9rem;"><strong>${escHtml(profile.displayName)}</strong> 想加你為好友</div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 6000);
+        }
+
+        async function acceptGameInvite(fromUid, roomId, gameMode, fromName) {
+            const toast = document.getElementById('gameInviteToast');
+            if (toast) toast.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', 'join');
+            localStorage.setItem('onlineSubMode', gameMode);
+            localStorage.setItem('roomId', roomId);
+            localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家');
+            localStorage.setItem('onlineOpponentName', fromName);
+            location.href = 'game.html';
+        }
+
+        async function declineGameInvite(fromUid) {
+            const toast = document.getElementById('gameInviteToast');
+            if (toast) toast.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+        }
+
+        // ── Mode Selection ─────────────────────────────────────────────
+        function showModeSelection() {
+            showSubMenu('main');
+            document.getElementById('modeModal').classList.add('active');
+        }
+
+        function showSubMenu(menu) {
+            ['mainModeContainer','pveTypeContainer','pveDiffContainer','pvpTypeContainer','onlineTypeContainer','onlineModeContainer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const titles = { main:'選擇對戰模式', pve:'單人模式 - 選擇規則', pvp:'雙人對戰 - 選擇規則', onlineMode:'多人連線 - 選擇規則', online:'多人連線 - PVP' };
+            document.getElementById('modeModalTitle').textContent = titles[menu] || '選擇對戰模式';
+            const containers = { main:'mainModeContainer', pve:'pveTypeContainer', pvp:'pvpTypeContainer', onlineMode:'onlineModeContainer', online:'onlineTypeContainer' };
+            if (containers[menu]) document.getElementById(containers[menu]).classList.remove('hidden');
+            if (menu === 'diff') {
+                document.getElementById('pveDiffContainer').classList.remove('hidden');
+                document.getElementById('modeModalTitle').textContent = '單人模式 - 選擇難度';
+            }
+        }
+
+        function selectOnlineSubMode(mode) {
+            selectedOnlineSubMode = mode;
+            localStorage.setItem('onlineSubMode', mode);
+            showSubMenu('online');
+        }
+
+        function selectPvEType(type) {
+            selectedPvEType = type;
+            showSubMenu('diff');
+        }
+
+        function closeModeModal() { document.getElementById('modeModal').classList.remove('active'); }
+
+        function startGame(mode, type = 'pvp', difficulty = 'normal') {
+            localStorage.setItem('gameMode', mode);
+            localStorage.setItem('gameType', type);
+            localStorage.setItem('pveDifficulty', difficulty);
+            localStorage.removeItem('onlineMyName');
+            localStorage.removeItem('onlineOpponentName');
+            location.href = 'game.html';
+        }
+
+        function startOnlineGame(role) {
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', role);
+            localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
+            localStorage.setItem('onlineMyName', currentUserProfile?.displayName || (role === 'host' ? '玩家1' : '玩家2'));
+            localStorage.removeItem('fromCompetitiveMode'); // not competitive
+            if (role === 'join') {
+                const roomCode = document.getElementById('joinRoomId').value.trim().toUpperCase();
+                if (!roomCode) { alert('請輸入連線代碼！'); return; }
+                localStorage.setItem('roomId', roomCode);
+            }
+            location.href = 'game.html';
+        }
+
+
+        function cancelLobby() { document.getElementById('lobbyModal').classList.remove('active'); }
+
+        // ── Update Modal ───────────────────────────────────────────────
+        function showUpdateModal() { document.getElementById('updateModal').classList.add('active'); }
+        function closeUpdateModal() { document.getElementById('updateModal').classList.remove('active'); }
+
+        // ── Utilities ──────────────────────────────────────────────────
+        function escHtml(str) {
+            return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
 
         // Close modals on outside click
-        document.getElementById('modeModal').addEventListener('click', function (e) {
-            if (e.target === this) closeModeModal();
-        });
-        document.getElementById('updateModal').addEventListener('click', function (e) {
-            if (e.target === this) closeUpdateModal();
-        });
-    </script>
-</body>
+        document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
+        document.getElementById('updateModal').addEventListener('click', e => { if (e.target === document.getElementById('updateModal')) closeUpdateModal(); });
+        document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
 
+        // ── Win Rate Stats Display ─────────────────────────────────────
+        async function loadStatsDisplay(uid) {
+            const profile = await UserProfile.getProfile(uid);
+            const stats = profile?.stats || {};
+            const card = document.getElementById('statsCard');
+            const rows = document.getElementById('statsRows');
+            const modes = [
+                { key: 'pve', label: '🤖 PvE', color: 'var(--neon-cyan)' },
+                { key: 'pvp', label: '👥 本地PvP', color: 'var(--neon-magenta)' },
+                { key: 'online', label: '🌐 線上對戰', color: 'var(--neon-gold)' },
+                { key: 'competitive', label: '🏆 競賽', color: '#ff6b35' }
+            ];
+            let hasAny = false;
+            rows.innerHTML = modes.map(m => {
+                const s = stats[m.key] || {};
+                const w = s.wins || 0;
+                const l = s.losses || 0;
+                const total = w + l;
+                if (total === 0) return '';
+                hasAny = true;
+                const pct = total > 0 ? Math.round(w / total * 100) : 0;
+                return `<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;">
+                    <div style="color:${m.color};font-size:0.8rem;margin-bottom:4px;">${m.label}</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">${pct}%</div>
+                    <div style="color:var(--text-muted);font-size:0.75rem;">${w}勝 ${l}敗</div>
+                </div>`;
+            }).join('');
+            if (hasAny) card.classList.remove('hidden');
+        }
+
+        // ── Cloud Save: Story Progress ─────────────────────────────────
+        async function syncStoryProgressFromCloud(uid) {
+            try {
+                const profile = await UserProfile.getProfile(uid);
+                if (profile?.storyProgress) {
+                    // Cloud has data → overwrite local if cloud is newer or local is missing
+                    const local = localStorage.getItem('neonCardStoryProgress');
+                    if (!local) {
+                        localStorage.setItem('neonCardStoryProgress', JSON.stringify(profile.storyProgress));
+                        console.log('[CloudSave] Story progress loaded from cloud');
+                    } else {
+                        // Merge: union of unlocked/completed nodes
+                        const localData = JSON.parse(local);
+                        const merged = {
+                            unlockedNodes: { ...profile.storyProgress.unlockedNodes, ...localData.unlockedNodes },
+                            completedNodes: { ...profile.storyProgress.completedNodes, ...localData.completedNodes }
+                        };
+                        localStorage.setItem('neonCardStoryProgress', JSON.stringify(merged));
+                        // Also save merged back to cloud
+                        await UserProfile.updateProfile(uid, { storyProgress: merged });
+                    }
+                } else {
+                    // No cloud data → push local to cloud
+                    const local = localStorage.getItem('neonCardStoryProgress');
+                    if (local) {
+                        await UserProfile.updateProfile(uid, { storyProgress: JSON.parse(local) });
+                    }
+                }
+            } catch (e) {
+                console.warn('[CloudSave] Story sync failed:', e.message);
+            }
+        }
+
+        // Call this whenever story progress is saved (used by story.js patch)
+        window._saveStoryProgressToCloud = async function(progressData) {
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            try {
+                await UserProfile.updateProfile(user.uid, { storyProgress: progressData });
+            } catch (e) {
+                console.warn('[CloudSave] Save failed:', e.message);
+            }
+        };
+    </script>
+
+</body>
 </html>
