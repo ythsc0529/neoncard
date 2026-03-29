@@ -2916,10 +2916,14 @@ const BattleSystem = {
         // Transform card
         card.name = targetData.name;
         card.maxHp = targetData.hp;
-        card.hp = Math.min(targetData.hp, oldHp);
+        card.hp = targetData.hp;
         card.atk = targetData.atk;
         card.skills = JSON.parse(JSON.stringify(targetData.skills || []));
         card.passive = targetData.passive ? JSON.parse(JSON.stringify(targetData.passive)) : null;
+
+        // Reset status to full state (Clear abnormal statuses and shields)
+        card.statusEffects = [];
+        card.shield = 0;
 
         // Reset cooldowns
         card.cooldowns = {};
