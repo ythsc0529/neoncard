@@ -18,7 +18,7 @@ const MatchmakingManager = (() => {
         '霓虹劍客', '幽靈手牌', '星煌決鬥', '暗月行者', '閃電術士',
         '赤焰王者', '冰晶智者', '神速閃擊', '午夜孤狼', '破曉戰士',
         'V3n0m_GG', 'TurboDecK', 'Phr0st', 'Kairos_99', 'NebulaX',
-        '影速', '天穹牌師', '絕境逆轉', '虛空術士', 'ProPLayer2077'
+        '影速', '天穹牌師', '絕境逆轉', '虛空術士', 'ProPLayer2077', '我的刀盾', '逼逼拉補'
     ];
 
     function getRandomBotName() {
