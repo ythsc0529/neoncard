@@ -97,35 +97,37 @@ const FriendsManager = (() => {
         return doc.exists && doc.data().type === 'outgoing';
     }
 
-    // ── Game Invites ──────────────────────────────────────────────────
+    // ── Game Invites (RTDB — avoids Firestore cross-user write restrictions) ──
 
     async function sendGameInvite(targetUid, roomId, gameMode, fromName) {
         const uid = myUid();
         if (!uid) return;
-        await db().collection('gameInvites').doc(targetUid).collection('invites').doc(uid).set({
+        const ref = AuthManager.getRtdb().ref(`gameInvites/${targetUid}/${uid}`);
+        await ref.set({
             fromUid: uid,
             fromName,
             roomId,
             gameMode,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            sentAt: firebase.database.ServerValue.TIMESTAMP
         });
+        // Auto-expire after 60 seconds
+        setTimeout(() => ref.remove().catch(() => {}), 60000);
     }
 
     function listenForGameInvites(callback) {
         const uid = myUid();
         if (!uid) return () => {};
-        return db().collection('gameInvites').doc(uid).collection('invites')
-            .onSnapshot(snap => {
-                snap.docChanges().forEach(change => {
-                    if (change.type === 'added') callback({ id: change.doc.id, ...change.doc.data() });
-                });
-            });
+        const ref = AuthManager.getRtdb().ref(`gameInvites/${uid}`);
+        const handler = ref.on('child_added', snap => {
+            if (snap.exists()) callback({ id: snap.key, ...snap.val() });
+        });
+        return () => ref.off('child_added', handler);
     }
 
     async function clearGameInvite(fromUid) {
         const uid = myUid();
         if (!uid) return;
-        await db().collection('gameInvites').doc(uid).collection('invites').doc(fromUid).delete();
+        await AuthManager.getRtdb().ref(`gameInvites/${uid}/${fromUid}`).remove();
     }
 
     return {

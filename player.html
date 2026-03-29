@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 玩家檔案</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/core/friends.js"></script>
+    <style>
+        body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
+        @keyframes fadeIn   { from{opacity:0;} to{opacity:1;} }
+        @keyframes slideUp  { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:none;} }
+        @keyframes pulse    { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+        .player-page { max-width: 700px; margin: 0 auto; padding: 30px 20px; animation: fadeIn 0.4s ease; }
+        .back-btn    { display:inline-flex;align-items:center;gap:8px;color:var(--neon-cyan);text-decoration:none;font-family:var(--font-heading);letter-spacing:1px;font-size:0.9rem;transition:all 0.2s;margin-bottom:28px; }
+        .back-btn:hover { text-shadow:0 0 10px var(--neon-cyan);transform:translateX(-3px); }
+
+        /* Profile hero card */
+        .hero-card { padding:36px 32px; text-align:center; animation:slideUp 0.5s ease; }
+        .hero-avatar { width:100px;height:100px;border-radius:50%;margin:0 auto 20px;border:3px solid var(--neon-cyan);box-shadow:0 0 24px rgba(0,243,255,0.35);overflow:hidden;background:var(--glass-bg);display:flex;align-items:center;justify-content:center; }
+        .hero-avatar img { width:100%;height:100%;object-fit:cover; }
+        .hero-name  { font-family:var(--font-heading);font-size:2rem;color:var(--text-primary);margin-bottom:6px;text-shadow:0 0 20px rgba(255,255,255,0.15); }
+        .hero-bio   { color:var(--text-secondary);font-size:0.95rem;line-height:1.6;max-width:420px;margin:0 auto; }
+        .hero-meta  { margin-top:14px;color:var(--text-muted);font-size:0.8rem; }
+
+        /* Fav chars */
+        .fav-section { margin-top:22px;padding-top:18px;border-top:1px solid var(--glass-border); }
+        .section-label { color:var(--text-secondary);font-size:0.75rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px; }
+        .fav-chips { display:flex;gap:8px;flex-wrap:wrap;justify-content:center; }
+        .fav-chip  { background:rgba(0,243,255,0.08);border:1px solid rgba(0,243,255,0.3);border-radius:20px;padding:5px 14px;font-size:0.85rem;color:var(--neon-cyan); }
+
+        /* Stats grid */
+        .stats-section { margin-top:8px;padding:24px 28px; }
+        .stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px; }
+        .stat-card  { background:rgba(0,0,0,0.25);border:1px solid var(--glass-border);border-radius:12px;padding:14px 16px; }
+        .stat-mode  { font-size:0.8rem;color:var(--text-muted);margin-bottom:6px; }
+        .stat-rate  { font-family:var(--font-heading);font-size:1.8rem;font-weight:700;margin-bottom:4px; }
+        .stat-detail{ font-size:0.78rem;color:var(--text-muted); }
+        .stat-bar-bg{ height:4px;background:rgba(255,255,255,0.08);border-radius:4px;margin-top:8px; }
+        .stat-bar-fill { height:100%;border-radius:4px;transition:width 0.6s ease; }
+
+        /* Action bar */
+        .action-bar { display:flex;gap:12px;justify-content:center;margin-top:20px;padding:0 28px 24px; }
+        .action-bar .btn { flex:1;max-width:200px; }
+
+        /* Error / loading states */
+        .pg-loading { display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.3rem;letter-spacing:3px;animation:pulse 1.5s infinite; }
+        .pg-error   { max-width:500px;margin:80px auto;text-align:center;color:var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div id="pgLoading" class="pg-loading">載入中...</div>
+    <div id="pgError" class="pg-error" style="display:none;">
+        <div style="font-size:3rem;margin-bottom:16px;">😶</div>
+        <div id="pgErrorMsg" style="font-size:1rem;">找不到玩家</div>
+        <a href="javascript:history.back()" style="color:var(--neon-cyan);text-decoration:none;font-size:0.9rem;margin-top:12px;display:inline-block;">← 返回</a>
+    </div>
+
+    <div class="player-page" id="playerPage" style="display:none;">
+        <a href="javascript:history.back()" class="back-btn">← 返回</a>
+
+        <div class="glass hero-card">
+            <!-- Avatar + Name -->
+            <div class="hero-avatar">
+                <span id="heroAvatarEmoji" style="font-size:3rem;">👤</span>
+                <img id="heroAvatarImg" style="display:none;" alt="Avatar">
+            </div>
+            <div class="hero-name" id="heroName">-</div>
+            <div class="hero-bio"  id="heroBio"></div>
+            <div class="hero-meta" id="heroMeta"></div>
+
+            <!-- Fav Characters -->
+            <div class="fav-section" id="favSection" style="display:none;">
+                <div class="section-label">愛用角色</div>
+                <div class="fav-chips" id="favChips"></div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="glass stats-section" style="margin-top:16px;" id="statsSection" style="display:none;">
+            <div class="section-label" style="margin-bottom:14px;">📊 戰績</div>
+            <div class="stats-grid" id="statsGrid">
+                <div style="color:var(--text-muted);font-size:0.9rem;">此玩家尚無戰績</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-bar" id="actionBar"></div>
+    </div>
+
+    <script>
+        const STAT_MODES = [
+            { key:'pve',         label:'🤖 PvE',    color:'var(--neon-cyan)'    },
+            { key:'pvp',         label:'👥 本地PvP', color:'var(--neon-magenta)' },
+            { key:'online',      label:'🌐 線上',    color:'var(--neon-gold)'    },
+            { key:'competitive', label:'🏆 競賽',    color:'#ff6b35'             }
+        ];
+
+        function escHtml(s) {
+            return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function formatJoinDate(ts) {
+            if (!ts) return '';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+        }
+
+        function winRate(wins, losses) {
+            const total = (wins||0) + (losses||0);
+            return total ? Math.round((wins||0)/total*100) : null;
+        }
+
+        function renderStats(stats) {
+            const grid = document.getElementById('statsGrid');
+            const cards = STAT_MODES.map(m => {
+                const st = (stats||{})[m.key] || {};
+                const w  = st.wins   || 0;
+                const l  = st.losses || 0;
+                if (w + l === 0) return null;
+                const rate = winRate(w, l);
+                return `<div class="stat-card">
+                    <div class="stat-mode">${m.label}</div>
+                    <div class="stat-rate" style="color:${m.color};">${rate}%</div>
+                    <div class="stat-detail">${w}勝 ${l}敗</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${rate}%;background:${m.color};"></div></div>
+                </div>`;
+            }).filter(Boolean);
+
+            if (cards.length) {
+                grid.innerHTML = cards.join('');
+                document.getElementById('statsSection').style.display = 'block';
+            }
+        }
+
+        async function init() {
+            AuthManager.init();
+
+            const params  = new URLSearchParams(location.search);
+            const targetUid = params.get('uid');
+            if (!targetUid) { showError('缺少玩家 ID'); return; }
+
+            const profile = await UserProfile.getProfile(targetUid);
+            if (!profile) { showError('找不到此玩家'); return; }
+
+            // Render hero
+            if (profile.googlePhotoURL) {
+                document.getElementById('heroAvatarEmoji').style.display = 'none';
+                const img = document.getElementById('heroAvatarImg');
+                img.src = profile.googlePhotoURL;
+                img.style.display = 'block';
+            }
+            document.getElementById('heroName').textContent = profile.displayName || '玩家';
+            document.getElementById('heroBio').textContent  = profile.bio || '這位玩家沒有留下自我介紹';
+
+            const meta = [];
+            if (profile.createdAt) meta.push(`📅 加入於 ${formatJoinDate(profile.createdAt)}`);
+            document.getElementById('heroMeta').textContent = meta.join('  ·  ');
+
+            // Fav characters
+            if (profile.favCharacters?.length) {
+                document.getElementById('favChips').innerHTML =
+                    profile.favCharacters.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
+                document.getElementById('favSection').style.display = 'block';
+            }
+
+            // Stats
+            renderStats(profile.stats);
+
+            // Action bar (only if logged in and not own profile)
+            AuthManager.onAuthChanged(async (user) => {
+                if (!user || user.uid === targetUid) {
+                    document.getElementById('actionBar').innerHTML = '';
+                    return;
+                }
+                const isFriend   = await FriendsManager.isFriend(targetUid);
+                const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
+                let btn = '';
+                if (isFriend) {
+                    btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
+                } else if (hasPending) {
+                    btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
+                } else {
+                    btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
+                }
+                document.getElementById('actionBar').innerHTML = btn;
+            });
+
+            document.getElementById('pgLoading').style.display = 'none';
+            document.getElementById('playerPage').style.display = 'block';
+        }
+
+        async function sendRequest(uid) {
+            const btn = document.getElementById('addFriendBtn');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.textContent = '送出中...';
+            await FriendsManager.sendFriendRequest(uid);
+            btn.textContent = '✓ 請求已送出';
+            btn.style.borderColor = 'var(--neon-green)';
+            btn.style.color = 'var(--neon-green)';
+        }
+
+        function showError(msg) {
+            document.getElementById('pgLoading').style.display = 'none';
+            document.getElementById('pgErrorMsg').textContent = msg;
+            document.getElementById('pgError').style.display = 'block';
+        }
+
+        init();
+    </script>
+</body>
+</html>

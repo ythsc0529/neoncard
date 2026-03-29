@@ -1,15 +1,15 @@
 /**
  * Neon Card Game - Matchmaking Manager (Realtime Database)
- * Handles auto-matchmaking for Competition Mode.
- * After 60 seconds with no real opponent found, matches player against AI
- * disguised as a random player name.
+ * Uses RTDB transactions for atomic slot-claiming to eliminate race conditions.
+ * After 25–35s with no real opponent, silently falls back to a bot disguised as a real player.
  */
 const MatchmakingManager = (() => {
     const rtdb = () => AuthManager.getRtdb();
 
-    let _myRef = null;
+    let _myRef      = null;
     let _myListener = null;
-    let _timeout = null;
+    let _timeout    = null;
+    let _committed  = false; // guard: prevent double-commit
 
     // ── Fake player name pool ─────────────────────────────────────────
     const FAKE_NAMES = [
@@ -18,7 +18,7 @@ const MatchmakingManager = (() => {
         '霓虹劍客', '幽靈手牌', '星煌決鬥', '暗月行者', '閃電術士',
         '赤焰王者', '冰晶智者', '神速閃擊', '午夜孤狼', '破曉戰士',
         'V3n0m_GG', 'TurboDecK', 'Phr0st', 'Kairos_99', 'NebulaX',
-        '影速', '天穹牌師', '絕境逆轉', '虛空術士', 'ProPLayer2077', '我的刀盾', '逼逼拉補'
+        '影速', '天穹牌師', '絕境逆轉', '虛空術士', 'ProPLayer2077'
     ];
 
     function getRandomBotName() {
@@ -30,73 +30,110 @@ const MatchmakingManager = (() => {
         return Array.from({ length: 4 }, () => c[Math.floor(Math.random() * c.length)]).join('');
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // joinQueue: main entry point
+    // ─────────────────────────────────────────────────────────────────
     async function joinQueue(gameMode, displayName, onStatus) {
         const user = AuthManager.getCurrentUser();
         if (!user) return;
-        const uid = user.uid;
+
+        const uid      = user.uid;
         const roomCode = genCode();
+        _committed     = false;
 
         const queueRef = rtdb().ref(`matchmaking/${gameMode}`);
-        _myRef = queueRef.child(uid);
+        _myRef         = queueRef.child(uid);
 
-        // Write my entry
+        // 1. Write own entry
         await _myRef.set({
             uid,
             displayName,
             roomCode,
-            joinedAt: firebase.database.ServerValue.TIMESTAMP,
-            status: 'waiting'
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
         });
         _myRef.onDisconnect().remove();
 
         if (onStatus) onStatus('searching');
 
-        // Look for an opponent already waiting
-        const snap = await queueRef.orderByChild('status').equalTo('waiting').once('value');
-        const all = snap.val() || {};
-        const oppEntry = Object.entries(all).find(([id]) => id !== uid);
+        // 2. Read the queue and try to claim an opponent via transaction
+        const claimed = await _tryClaim(queueRef, uid, displayName, gameMode, onStatus);
+        if (claimed) return;
 
-        if (oppEntry) {
-            // Found opponent — I'm the joiner
-            const [oppUid, oppData] = oppEntry;
-            await queueRef.child(oppUid).remove();
-            await _myRef.remove();
-            _commit('join', oppData.roomCode, oppData.displayName, displayName, gameMode);
-            if (onStatus) onStatus('matched');
-            return;
-        }
-
-        // No opponent — wait as host
+        // 3. Nobody to claim — become HOST, watch for joiner removing my entry
         _myListener = _myRef.on('value', snap => {
-            if (!snap.exists()) {
-                // Someone matched me by removing my entry — I'm the host
+            if (!snap.exists() && !_committed) {
+                _committed = true;
                 clearTimeout(_timeout);
+                if (_myListener) { _myRef.off('value', _myListener); _myListener = null; }
                 _commit('host', roomCode, null, displayName, gameMode);
                 if (onStatus) onStatus('matched');
             }
         });
 
-        // 25~35s timeout → auto bot match (random so it doesn't feel scripted)
-        const botDelay = (25 + Math.floor(Math.random() * 11)) * 1000; // 25–35 seconds
+        // 4. Bot-match fallback after 25–35 s
+        const botDelay = (25 + Math.floor(Math.random() * 11)) * 1000;
         _timeout = setTimeout(async () => {
+            if (_committed) return;
+            _committed = true;
             leaveQueue();
             if (onStatus) onStatus('bot_match_start');
-            // Brief "found match" delay before redirecting
             await new Promise(r => setTimeout(r, 1800));
-            const botName = getRandomBotName();
-            _commitBotMatch(botName, gameMode);
+            _commitBotMatch(getRandomBotName(), gameMode);
             if (onStatus) onStatus('matched');
         }, botDelay);
-
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // _tryClaim: atomically claim a waiting opponent via RTDB transaction
+    // Returns true if successfully matched as joiner.
+    // ─────────────────────────────────────────────────────────────────
+    async function _tryClaim(queueRef, myUid, displayName, gameMode, onStatus) {
+        const snap = await queueRef.once('value');
+        const all  = snap.val() || {};
+
+        // Sort by joinedAt so we always approach the oldest waiting player first
+        const candidates = Object.entries(all)
+            .filter(([id]) => id !== myUid)
+            .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+
+        for (const [oppUid, oppData] of candidates) {
+            let claimSucceeded = false;
+            let claimedData    = null;
+
+            await queueRef.child(oppUid).transaction(current => {
+                if (current !== null) {
+                    // Slot is still occupied — atomically remove it (claim)
+                    claimSucceeded = true;
+                    claimedData    = current;
+                    return null; // delete the node
+                }
+                // Already claimed by someone else — abort
+                return current;
+            });
+
+            if (claimSucceeded && claimedData) {
+                // We won the race → we are the JOINER
+                _committed = true;
+                await _myRef.remove();
+                _commit('join', claimedData.roomCode, claimedData.displayName, displayName, gameMode);
+                if (onStatus) onStatus('matched');
+                return true;
+            }
+        }
+
+        return false; // no opponent found
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Commit helpers
+    // ─────────────────────────────────────────────────────────────────
     function _commitBotMatch(botName, gameMode) {
         localStorage.setItem('gameMode', 'pve');
         localStorage.setItem('gameType', 'pve');
         localStorage.setItem('pveDifficulty', 'normal');
-        localStorage.setItem('botMatchName', botName);        // disguised NPC name
-        localStorage.setItem('fromCompetitiveMode', 'true');  // still counts as competitive
-        localStorage.setItem('onlineSubMode', gameMode);      // card count
+        localStorage.setItem('botMatchName', botName);
+        localStorage.setItem('fromCompetitiveMode', 'true');
+        localStorage.setItem('onlineSubMode', gameMode);
         localStorage.removeItem('onlineRole');
         setTimeout(() => { location.href = 'game.html'; }, 600);
     }
@@ -105,29 +142,27 @@ const MatchmakingManager = (() => {
         localStorage.setItem('gameMode', 'online');
         localStorage.setItem('gameType', 'pvp');
         localStorage.setItem('onlineRole', role);
-        localStorage.setItem('onlineSubMode', gameMode); // 'quick' or 'classic'
+        localStorage.setItem('onlineSubMode', gameMode);
         localStorage.setItem('onlineMyName', myName);
-        localStorage.setItem('fromCompetitiveMode', 'true'); // flag for stat tracking
+        localStorage.setItem('fromCompetitiveMode', 'true');
         if (role === 'join') {
             localStorage.setItem('roomId', roomCode);
             localStorage.setItem('onlineOpponentName', opponentName || '');
         } else {
-            // Host: set sessionStorage so networkManager uses our pre-generated code
             sessionStorage.setItem('last_host_room_id', roomCode);
             localStorage.setItem('onlineOpponentName', '');
         }
         setTimeout(() => { location.href = 'game.html'; }, 800);
     }
 
-
+    // ─────────────────────────────────────────────────────────────────
     function leaveQueue() {
         if (_myRef) {
-            if (_myListener) _myRef.off('value', _myListener);
+            if (_myListener) { _myRef.off('value', _myListener); _myListener = null; }
             _myRef.remove();
             _myRef = null;
         }
         if (_timeout) { clearTimeout(_timeout); _timeout = null; }
-        _myListener = null;
     }
 
     return { joinQueue, leaveQueue };
