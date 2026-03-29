@@ -28,30 +28,90 @@ class NetworkManager {
         this.isHost = true;
         this.roomId = sessionStorage.getItem('last_host_room_id') || this.generateShortId();
         sessionStorage.setItem('last_host_room_id', this.roomId);
-        const peerId = 'neoncard-' + this.roomId;
+
+        // Use a unique peer ID each time to avoid "ID taken" if previous session
+        // hasn't fully expired from PeerJS server yet
+        const uniqueSuffix = Date.now().toString(36).slice(-4);
+        const peerId = 'neoncard-' + this.roomId + '-' + uniqueSuffix;
 
         return new Promise((resolve, reject) => {
             try {
+                if (this.peer) { this.peer.destroy(); this.peer = null; }
                 this.peer = new Peer(peerId);
 
+                const timeout = setTimeout(() => {
+                    reject(new Error('連線逾時，請重試'));
+                }, 15000);
+
                 this.peer.on('open', (id) => {
+                    clearTimeout(timeout);
                     console.log('Host created with ID:', id);
                     resolve(this.roomId);
                 });
 
                 this.peer.on('connection', (c) => {
-                    // Only accept the first connection
-                    if (this.conn) {
-                        c.close();
-                        return;
+                    if (this.conn) { c.close(); return; }
+                    this.conn = c;
+                    this.conn.on('open', () => { this.setupConnection(); });
+                });
+
+                this.peer.on('error', (err) => {
+                    clearTimeout(timeout);
+                    console.error('Peer error:', err);
+                    if (this.onError) this.onError(err);
+                    reject(err);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async initHost() {
+        this.isHost = true;
+        this.roomId = sessionStorage.getItem('last_host_room_id') || this.generateShortId();
+        sessionStorage.setItem('last_host_room_id', this.roomId);
+
+        // Add unique time suffix to avoid PeerJS "ID taken" from previous sessions
+        const uniqueSuffix = Date.now().toString(36).slice(-5);
+        const peerId = 'nc-' + this.roomId + '-' + uniqueSuffix;
+
+        // Publish peerId to RTDB so joiner can discover it
+        const rtdb = window.AuthManager ? AuthManager.getRtdb() : null;
+        const roomRef = rtdb ? rtdb.ref(`rooms/${this.roomId}`) : null;
+
+        return new Promise((resolve, reject) => {
+            try {
+                if (this.peer) { this.peer.destroy(); this.peer = null; }
+                this.peer = new Peer(peerId);
+
+                const timeout = setTimeout(() => {
+                    reject(new Error('連線逾時，請重試'));
+                }, 15000);
+
+                this.peer.on('open', (id) => {
+                    clearTimeout(timeout);
+                    console.log('Host peer ready:', id);
+                    // Register in RTDB so joiners can find us
+                    if (roomRef) {
+                        roomRef.set({ peerId: id, ts: Date.now() });
+                        roomRef.onDisconnect().remove();
                     }
+                    resolve(this.roomId);
+                });
+
+                this.peer.on('connection', (c) => {
+                    if (this.conn) { c.close(); return; }
                     this.conn = c;
                     this.conn.on('open', () => {
+                        // Clean up signaling entry once connected
+                        if (roomRef) roomRef.remove().catch(() => {});
                         this.setupConnection();
                     });
                 });
 
                 this.peer.on('error', (err) => {
+                    clearTimeout(timeout);
                     console.error('Peer error:', err);
                     if (this.onError) this.onError(err);
                     reject(err);
@@ -65,29 +125,51 @@ class NetworkManager {
     async joinRoom(roomId) {
         this.isHost = false;
         this.roomId = roomId.toUpperCase();
-        const peerId = 'neoncard-' + this.roomId;
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             try {
+                if (this.peer) { this.peer.destroy(); this.peer = null; }
+
+                // Look up host's actual PeerID from RTDB (with retries)
+                let peerId = null;
+                const rtdb = window.AuthManager ? AuthManager.getRtdb() : null;
+                if (rtdb) {
+                    for (let i = 0; i < 8; i++) {
+                        const snap = await rtdb.ref(`rooms/${this.roomId}`).once('value');
+                        if (snap.exists()) {
+                            peerId = snap.val().peerId;
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+                // Fallback to legacy fixed format if RTDB lookup fails
+                if (!peerId) peerId = 'neoncard-' + this.roomId;
+
                 this.peer = new Peer();
 
-                this.peer.on('open', (id) => {
-                    console.log('Joined with ID:', id);
-                    this.conn = this.peer.connect(peerId, {
-                        reliable: true
-                    });
+                const timeout = setTimeout(() => {
+                    reject({ type: 'timeout', message: '連線逾時' });
+                }, 15000);
+
+                this.peer.on('open', (myId) => {
+                    console.log('Joiner peer ready, connecting to:', peerId);
+                    this.conn = this.peer.connect(peerId, { reliable: true });
 
                     this.conn.on('open', () => {
+                        clearTimeout(timeout);
                         this.setupConnection();
                         resolve(true);
                     });
 
                     this.conn.on('error', (err) => {
+                        clearTimeout(timeout);
                         reject(err);
                     });
                 });
 
                 this.peer.on('error', (err) => {
+                    clearTimeout(timeout);
                     console.error('Peer error:', err);
                     if (this.onError) this.onError(err);
                     reject(err);
