@@ -108,16 +108,37 @@
             from { transform: translateX(120%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        .invite-toast {
-            position: fixed; bottom: 30px; right: 24px;
-            background: rgba(15,15,35,0.95); border: 1px solid var(--neon-gold);
-            border-radius: 14px; padding: 18px 20px; max-width: 320px; z-index: 3000;
-            box-shadow: 0 0 30px rgba(255,215,0,0.2);
-            animation: slideInRight 0.4s ease;
+        /* ── Game Invite Overlay ── */
+        @keyframes invitePulse {
+            0%,100% { box-shadow: 0 0 20px rgba(255,215,0,0.3), 0 0 60px rgba(255,215,0,0.1); }
+            50% { box-shadow: 0 0 40px rgba(255,215,0,0.6), 0 0 100px rgba(255,215,0,0.25); }
         }
-        .invite-toast-title { color: var(--neon-gold); font-family: var(--font-heading); font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 6px; }
-        .invite-toast-msg { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 14px; }
-        .invite-toast-btns { display: flex; gap: 8px; }
+        @keyframes inviteSlideUp {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        #gameInviteOverlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9000; backdrop-filter: blur(6px);
+            animation: fadeIn 0.25s ease;
+        }
+        #gameInviteOverlay .invite-card {
+            background: linear-gradient(135deg, rgba(15,15,40,0.98), rgba(10,10,30,0.98));
+            border: 2px solid var(--neon-gold);
+            border-radius: 20px; padding: 32px 36px;
+            max-width: 400px; width: 90%; text-align: center;
+            animation: inviteSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1), invitePulse 2s ease infinite 0.4s;
+        }
+        .invite-swords { font-size: 3.5rem; margin-bottom: 12px; animation: pulse 1s infinite; }
+        .invite-from { color: var(--text-muted); font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+        .invite-name { color: var(--neon-gold); font-family: var(--font-heading); font-size: 1.8rem; margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        .invite-detail { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 24px; }
+        .invite-countdown { font-size: 0.8rem; color: var(--text-muted); margin-top: 16px; }
+        .invite-countdown span { color: var(--neon-cyan); font-weight: 700; }
+        .invite-btns { display: flex; gap: 12px; }
+        .invite-btns .btn { flex: 1; padding: 14px; font-size: 1rem; }
+
 
         /* ── Setup name modal ── */
         .setup-step { animation: fadeIn 0.5s ease; }
@@ -224,13 +245,18 @@
             </div>
             <!-- Online: host/join -->
             <div class="modal-buttons hidden" id="onlineTypeContainer">
-                <button class="btn btn-gold" onclick="startOnlineGame('host')">建立房間 (自己當主機)</button>
-                <div style="margin:10px 0;color:var(--text-secondary);">或者</div>
-                <input type="text" id="joinRoomId" placeholder="輸入 4 碼連線代碼"
-                    style="padding:10px;font-size:1.2rem;text-align:center;border-radius:5px;border:1px solid var(--neon-cyan);background:rgba(0,0,0,0.5);color:white;width:80%;margin:0 auto 10px auto;text-transform:uppercase;" maxlength="6">
-                <button class="btn btn-cyan" onclick="startOnlineGame('join')">加入房間</button>
+                <button class="btn btn-gold" onclick="startOnlineGame('host')" style="font-size:1.05rem;">
+                    🏠 建立房間
+                    <div style="font-size:0.75rem;opacity:0.7;margin-top:4px;">生成房號，邀請對手加入</div>
+                </button>
+                <div style="margin:8px 0;color:var(--text-secondary);font-size:0.85rem;">─── 或 ───</div>
+                <button class="btn btn-cyan" onclick="startOnlineGame('join')" style="font-size:1.05rem;">
+                    🚪 加入房間
+                    <div style="font-size:0.75rem;opacity:0.7;margin-top:4px;">輸入對手的房號加入</div>
+                </button>
                 <button class="btn" onclick="showSubMenu('onlineMode')" style="margin-top:20px;opacity:0.7;">返回</button>
             </div>
+
             <!-- PvE -->
             <div class="modal-buttons hidden" id="pveTypeContainer">
                 <button class="btn" onclick="selectPvEType('quick')">快速模式 (3張牌)</button>
@@ -281,13 +307,80 @@
         </div>
     </div>
 
-    <!-- ── Network Lobby Modal ── -->
+    <!-- ── Network Lobby Modal (Redesigned) ── -->
     <div class="modal-overlay" id="lobbyModal">
-        <div class="modal glass" style="text-align:center;">
-            <h2 id="lobbyTitle" class="neon-text" style="color:var(--neon-cyan);">連線大廳</h2>
-            <p id="lobbyStatus" style="margin:20px 0;font-size:1.2rem;color:var(--text-secondary);">初始化網路中...</p>
-            <div id="lobbyRoomCode" style="font-size:3rem;font-weight:bold;letter-spacing:5px;color:var(--neon-gold);margin:20px 0;text-shadow:0 0 10px rgba(255,215,0,0.5);" class="hidden"></div>
-            <button class="btn" onclick="cancelLobby()" style="margin-top:20px;opacity:0.8;">取消連線</button>
+        <div class="modal glass" style="max-width:520px;padding:0;overflow:hidden;">
+
+            <!-- Header -->
+            <div style="padding:22px 28px 16px;border-bottom:1px solid var(--glass-border);">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 id="lobbyTitle" style="color:var(--neon-cyan);font-family:var(--font-heading);margin:0;font-size:1.3rem;letter-spacing:2px;">🎮 連線大廳</h2>
+                    <div id="lobbyModeBadge" style="background:rgba(0,243,255,0.1);border:1px solid rgba(0,243,255,0.3);border-radius:20px;padding:4px 12px;font-size:0.78rem;color:var(--neon-cyan);">-</div>
+                </div>
+            </div>
+
+            <!-- Room Code Block -->
+            <div id="lobbyHostSection" class="hidden" style="padding:24px 28px;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--glass-border);">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">房間代碼</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div id="lobbyRoomCode" style="
+                        font-family:var(--font-heading);
+                        font-size:2.8rem;
+                        font-weight:900;
+                        letter-spacing:12px;
+                        color:var(--neon-gold);
+                        text-shadow:0 0 20px rgba(255,215,0,0.6),0 0 40px rgba(255,215,0,0.3);
+                        background:rgba(255,215,0,0.05);
+                        border:2px solid rgba(255,215,0,0.3);
+                        border-radius:12px;
+                        padding:12px 20px;
+                        flex:1;
+                        text-align:center;
+                        user-select:all;
+                        cursor:pointer;
+                    ">----</div>
+                    <button id="lobbyCopyBtn" onclick="copyRoomCode()" style="
+                        background:rgba(255,215,0,0.1);
+                        border:1px solid rgba(255,215,0,0.4);
+                        color:var(--neon-gold);
+                        border-radius:10px;
+                        padding:10px 14px;
+                        cursor:pointer;
+                        font-size:1.2rem;
+                        transition:all 0.2s;
+                        white-space:nowrap;
+                    " title="複製房號">📋</button>
+                </div>
+                <div id="lobbyCopyHint" style="color:var(--text-muted);font-size:0.8rem;margin-top:8px;min-height:18px;"></div>
+            </div>
+
+            <!-- Join Section (for joiner) -->
+            <div id="lobbyJoinSection" class="hidden" style="padding:20px 28px;background:rgba(0,0,0,0.2);border-bottom:1px solid var(--glass-border);">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">輸入房間代碼</div>
+                <div style="display:flex;gap:10px;">
+                    <input type="text" id="lobbyJoinInput" maxlength="6" placeholder="XXXX"
+                        style="flex:1;background:rgba(0,0,0,0.4);border:1px solid var(--glass-border);color:var(--text-primary);border-radius:8px;padding:12px 16px;font-size:1.6rem;font-family:var(--font-heading);letter-spacing:6px;text-align:center;text-transform:uppercase;outline:none;transition:border-color 0.2s;"
+                        oninput="this.value=this.value.toUpperCase()" onfocus="this.style.borderColor='var(--neon-cyan)'" onblur="this.style.borderColor='var(--glass-border)'">
+                    <button class="btn btn-cyan" onclick="joinRoomFromLobby()" style="white-space:nowrap;padding:12px 20px;">加入</button>
+                </div>
+            </div>
+
+            <!-- Friends List (host only: invite friends) -->
+            <div id="lobbyFriendsSection" class="hidden" style="padding:20px 28px;border-bottom:1px solid var(--glass-border);max-height:220px;overflow-y:auto;">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">📨 邀請好友</div>
+                <div id="lobbyFriendsList" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="color:var(--text-muted);font-size:0.85rem;">載入好友中...</div>
+                </div>
+            </div>
+
+            <!-- Status & Actions -->
+            <div style="padding:18px 28px;">
+                <div id="lobbyStatus" style="display:flex;align-items:center;gap:10px;color:var(--text-secondary);font-size:0.9rem;margin-bottom:16px;">
+                    <div class="lobby-pulse" style="width:10px;height:10px;border-radius:50%;background:var(--neon-green);box-shadow:0 0 8px var(--neon-green);animation:pulse 1.5s infinite;"></div>
+                    <span id="lobbyStatusText">初始化網路中...</span>
+                </div>
+                <button class="btn" onclick="cancelLobby()" style="width:100%;opacity:0.7;">離開大廳</button>
+            </div>
         </div>
     </div>
 
@@ -562,37 +655,71 @@
             document.getElementById('matchmakingModal').classList.remove('active');
         }
 
-        // ── Game Invite Toast ─────────────────────────────────────────
-        function showGameInviteToast(invite) {
-            const existing = document.getElementById('gameInviteToast');
-            if (existing) existing.remove();
+        // ── Game Invite Overlay (full-screen) ────────────────────────
+        let _inviteCountdownTimer = null;
 
-            const modeText = invite.gameMode === 'quick' ? '快速模式' : '經典模式';
-            const toast = document.createElement('div');
-            toast.id = 'gameInviteToast';
-            toast.className = 'invite-toast';
-            toast.innerHTML = `
-                <div class="invite-toast-title">⚔️ 遊戲邀請</div>
-                <div class="invite-toast-msg"><strong>${escHtml(invite.fromName)}</strong> 邀請你進行 ${modeText} 對戰！</div>
-                <div class="invite-toast-btns">
-                    <button class="btn btn-gold" style="flex:1;padding:8px;" onclick="acceptGameInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">接受</button>
-                    <button class="btn" style="flex:1;padding:8px;opacity:0.6;" onclick="declineGameInvite('${invite.id}')">拒絕</button>
+        function showGameInviteToast(invite) {
+            const existing = document.getElementById('gameInviteOverlay');
+            if (existing) existing.remove();
+            if (_inviteCountdownTimer) clearInterval(_inviteCountdownTimer);
+
+            const modeLabel = invite.gameMode === 'quick' ? '快速模式 (3張牌)' : '經典模式 (7張牌)';
+            let secsLeft = 45;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'gameInviteOverlay';
+            overlay.innerHTML = `
+                <div class="invite-card">
+                    <div class="invite-swords">⚔️</div>
+                    <div class="invite-from">收到對戰邀請</div>
+                    <div class="invite-name">${escHtml(invite.fromName)}</div>
+                    <div class="invite-detail">${modeLabel}</div>
+                    <div class="invite-btns">
+                        <button class="btn btn-gold" onclick="acceptGameInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">
+                            ✅ 接受對戰
+                        </button>
+                        <button class="btn" style="opacity:0.6;" onclick="declineGameInvite('${invite.id}')">
+                            ❌ 拒絕
+                        </button>
+                    </div>
+                    <div class="invite-countdown">邀請將於 <span id="inviteCountdownNum">${secsLeft}</span> 秒後失效</div>
                 </div>`;
-            document.body.appendChild(toast);
-            setTimeout(() => { const t = document.getElementById('gameInviteToast'); if (t) t.remove(); }, 20000);
+            document.body.appendChild(overlay);
+
+            // Close on backdrop click
+            overlay.addEventListener('click', e => { if (e.target === overlay) declineGameInvite(invite.id); });
+
+            // Countdown
+            _inviteCountdownTimer = setInterval(() => {
+                secsLeft--;
+                const el = document.getElementById('inviteCountdownNum');
+                if (el) el.textContent = secsLeft;
+                if (secsLeft <= 0) {
+                    clearInterval(_inviteCountdownTimer);
+                    FriendsManager.clearGameInvite(invite.id).catch(() => {});
+                    const ov = document.getElementById('gameInviteOverlay');
+                    if (ov) ov.remove();
+                }
+            }, 1000);
         }
 
+
         function showFriendRequestToast(profile) {
+            // Simple bottom-left toast for friend requests
+            const old = document.getElementById('friendReqToast');
+            if (old) old.remove();
             const toast = document.createElement('div');
+            toast.id = 'friendReqToast';
             toast.style.cssText = 'position:fixed;bottom:30px;left:24px;background:rgba(15,15,35,0.95);border:1px solid var(--neon-cyan);border-radius:14px;padding:16px 18px;max-width:280px;z-index:3000;animation:slideIn 0.4s ease;box-shadow:0 0 25px rgba(0,243,255,0.2);';
-            toast.innerHTML = `<div style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:0.85rem;margin-bottom:6px;">👥 好友邀請</div><div style="color:var(--text-secondary);font-size:0.9rem;"><strong>${escHtml(profile.displayName)}</strong> 想加你為好友</div>`;
+            toast.innerHTML = `<div style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:0.85rem;margin-bottom:6px;">👥 好友邀請</div><div style="color:var(--text-secondary);font-size:0.9rem;"><strong>${escHtml(profile.displayName)}</strong> 想加你為好友</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">前往個人檔案查看</div>`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 6000);
         }
 
         async function acceptGameInvite(fromUid, roomId, gameMode, fromName) {
-            const toast = document.getElementById('gameInviteToast');
-            if (toast) toast.remove();
+            if (_inviteCountdownTimer) clearInterval(_inviteCountdownTimer);
+            const ov = document.getElementById('gameInviteOverlay');
+            if (ov) ov.remove();
             await FriendsManager.clearGameInvite(fromUid);
             localStorage.setItem('gameMode', 'online');
             localStorage.setItem('gameType', 'pvp');
@@ -605,8 +732,9 @@
         }
 
         async function declineGameInvite(fromUid) {
-            const toast = document.getElementById('gameInviteToast');
-            if (toast) toast.remove();
+            if (_inviteCountdownTimer) clearInterval(_inviteCountdownTimer);
+            const ov = document.getElementById('gameInviteOverlay');
+            if (ov) ov.remove();
             await FriendsManager.clearGameInvite(fromUid);
         }
 
@@ -654,24 +782,135 @@
         }
 
         function startOnlineGame(role) {
-            localStorage.setItem('gameMode', 'online');
-            localStorage.setItem('gameType', 'pvp');
-            localStorage.setItem('onlineRole', role);
-            localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
-            localStorage.setItem('onlineMyName', currentUserProfile?.displayName || (role === 'host' ? '玩家1' : '玩家2'));
-            localStorage.removeItem('fromCompetitiveMode'); // not competitive
-            if (role === 'join') {
-                const roomCode = document.getElementById('joinRoomId').value.trim().toUpperCase();
-                if (!roomCode) { alert('請輸入連線代碼！'); return; }
-                localStorage.setItem('roomId', roomCode);
+            closeModeModal();
+            if (role === 'host') {
+                // Generate room code immediately and show lobby
+                const roomCode = Array.from({length:4}, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random()*36)]).join('');
+                sessionStorage.setItem('last_host_room_id', roomCode);
+                localStorage.setItem('gameMode', 'online');
+                localStorage.setItem('gameType', 'pvp');
+                localStorage.setItem('onlineRole', 'host');
+                localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
+                localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家1');
+                localStorage.removeItem('fromCompetitiveMode');
+                openLobbyAsHost(roomCode);
+            } else {
+                // Join: show the join-code section in lobby
+                openLobbyAsJoiner();
             }
-            location.href = 'game.html';
         }
 
+        function openLobbyAsHost(roomCode) {
+            document.getElementById('lobbyModal').classList.add('active');
+            document.getElementById('lobbyTitle').textContent = '🎮連線大廳';
+            document.getElementById('lobbyModeBadge').textContent = selectedOnlineSubMode === 'quick' ? '快速3張' : '經典7張';
+            document.getElementById('lobbyRoomCode').textContent = roomCode;
+            document.getElementById('lobbyHostSection').classList.remove('hidden');
+            document.getElementById('lobbyJoinSection').classList.add('hidden');
+            document.getElementById('lobbyStatusText').textContent = '等居對手加入...';
+            // Load friends for invite
+            loadLobbyFriends(roomCode);
+            // Go to game.html immediately (host waits there)
+            setTimeout(() => { location.href = 'game.html'; }, 3500);
+        }
 
-        function cancelLobby() { document.getElementById('lobbyModal').classList.remove('active'); }
+        function openLobbyAsJoiner() {
+            document.getElementById('lobbyModal').classList.add('active');
+            document.getElementById('lobbyTitle').textContent = '🎮加入房間';
+            document.getElementById('lobbyModeBadge').textContent = selectedOnlineSubMode === 'quick' ? '快速3張' : '經典7張';
+            document.getElementById('lobbyHostSection').classList.add('hidden');
+            document.getElementById('lobbyJoinSection').classList.remove('hidden');
+            document.getElementById('lobbyFriendsSection').classList.add('hidden');
+            document.getElementById('lobbyStatusText').textContent = '請輸入房間代碼加入對手的房間';
+        }
+
+        function joinRoomFromLobby() {
+            const code = document.getElementById('lobbyJoinInput').value.trim().toUpperCase();
+            if (!code || code.length < 4) { 
+                document.getElementById('lobbyJoinInput').style.borderColor = 'var(--neon-pink)'; 
+                return; 
+            }
+            localStorage.setItem('roomId', code);
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', 'join');
+            localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
+            localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家2');
+            localStorage.removeItem('fromCompetitiveMode');
+            document.getElementById('lobbyStatusText').textContent = '連線中，請稍候...';
+            setTimeout(() => { location.href = 'game.html'; }, 800);
+        }
+
+        function copyRoomCode() {
+            const code = document.getElementById('lobbyRoomCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const el = document.getElementById('lobbyCopyHint');
+                el.textContent = '✅ 房號已複製！分享給好友吧';
+                el.style.color = 'var(--neon-green)';
+                const btn = document.getElementById('lobbyCopyBtn');
+                btn.textContent = '✅';
+                setTimeout(() => { btn.textContent = '📋'; el.textContent = ''; }, 2500);
+            }).catch(() => {
+                // Fallback
+                const range = document.createRange();
+                range.selectNode(document.getElementById('lobbyRoomCode'));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                document.getElementById('lobbyCopyHint').textContent = '已選取，可自行複製';
+            });
+        }
+
+        async function loadLobbyFriends(roomCode) {
+            if (!currentUserProfile) return;
+            const section = document.getElementById('lobbyFriendsSection');
+            const list = document.getElementById('lobbyFriendsList');
+            try {
+                const friends = await FriendsManager.getFriendList();
+                if (!friends || friends.length === 0) {
+                    list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">還沒有好友，可分享房號給對方</div>';
+                } else {
+                    list.innerHTML = friends.map(f => `
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);">
+                            <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--glass-bg);flex-shrink:0;">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.displayName)}</div>
+                            </div>
+                            <button class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
+                        </div>`).join('');
+                }
+                section.classList.remove('hidden');
+            } catch (e) {
+                list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">無法載入好友</div>';
+                section.classList.remove('hidden');
+            }
+        }
+
+        async function inviteFromLobby(friendUid, friendName, roomCode) {
+            if (!currentUserProfile) return;
+            try {
+                await FriendsManager.sendGameInvite(friendUid, roomCode, selectedOnlineSubMode || 'classic', currentUserProfile.displayName);
+                // Find the invite button and show feedback
+                const btns = document.querySelectorAll('#lobbyFriendsList .btn-gold');
+                btns.forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(friendUid)) {
+                        btn.textContent = '已送出';
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                    }
+                });
+            } catch(e) {
+                alert('邀請失敗: ' + e.message);
+            }
+        }
+
+        // ── Lobby ─────────────────────────────────────────────────────
+        function cancelLobby() {
+            document.getElementById('lobbyModal').classList.remove('active');
+        }
 
         // ── Update Modal ───────────────────────────────────────────────
+
         function showUpdateModal() { document.getElementById('updateModal').classList.add('active'); }
         function closeUpdateModal() { document.getElementById('updateModal').classList.remove('active'); }
 

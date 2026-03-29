@@ -17,6 +17,12 @@
     <script src="js/core/friends.js"></script>
     <style>
         body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        @keyframes inviteSlideUp {
+            from { opacity:0; transform:translateY(40px) scale(0.95); }
+            to   { opacity:1; transform:translateY(0) scale(1); }
+        }
         .profile-page { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
         .back-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--neon-cyan); text-decoration: none; font-family: var(--font-heading); letter-spacing: 1px; font-size: 0.9rem; transition: all 0.2s; margin-bottom: 30px; }
         .back-btn:hover { text-shadow: 0 0 10px var(--neon-cyan); transform: translateX(-3px); }
@@ -233,6 +239,9 @@
         }
 
         // ── Init ──────────────────────────────────────────────────────
+        let _profileInviteTimer = null;
+        let _inviteUnsubscribe = null;
+
         AuthManager.init();
         AuthManager.onAuthChanged(async (user) => {
             if (!user) { location.href = 'index.html'; return; }
@@ -241,9 +250,81 @@
             renderProfile();
             loadFriends();
             loadPending();
+            // Listen for game invites even on profile page
+            _inviteUnsubscribe = FriendsManager.listenForGameInvites(showProfileGameInvite);
             document.getElementById('pageLoading').style.display = 'none';
             document.getElementById('profilePage').style.display = 'block';
         });
+
+        function showProfileGameInvite(invite) {
+            const existing = document.getElementById('profileInviteOverlay');
+            if (existing) existing.remove();
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+
+            const modeLabel = invite.gameMode === 'quick' ? '快速模式 (3張牌)' : '經典模式 (7張牌)';
+            let secsLeft = 45;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'profileInviteOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(6px);animation:fadeIn 0.25s ease;';
+            overlay.innerHTML = `
+                <div style="
+                    background:linear-gradient(135deg,rgba(15,15,40,0.98),rgba(10,10,30,0.98));
+                    border:2px solid var(--neon-gold);border-radius:20px;
+                    padding:32px 36px;max-width:400px;width:90%;text-align:center;
+                    animation:inviteSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+                    box-shadow:0 0 40px rgba(255,215,0,0.3);
+                ">
+                    <div style="font-size:3.5rem;margin-bottom:12px;animation:pulse 1s infinite;">⚔️</div>
+                    <div style="color:var(--text-muted);font-size:0.82rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">收到對戰邀請</div>
+                    <div style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.8rem;margin-bottom:6px;text-shadow:0 0 20px rgba(255,215,0,0.5);">${escHtml(invite.fromName)}</div>
+                    <div style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:24px;">${modeLabel}</div>
+                    <div style="display:flex;gap:12px;">
+                        <button class="btn btn-gold" style="flex:1;padding:14px;font-size:1rem;" onclick="acceptProfileInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">✅ 接受對戰</button>
+                        <button class="btn" style="flex:1;padding:14px;font-size:1rem;opacity:0.6;" onclick="declineProfileInvite('${invite.id}')">❌ 拒絕</button>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:14px;">邀請將於 <span id="profileInviteCountdown" style="color:var(--neon-cyan);font-weight:700;">${secsLeft}</span> 秒後失效</div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) declineProfileInvite(invite.id); });
+
+            _profileInviteTimer = setInterval(() => {
+                secsLeft--;
+                const el = document.getElementById('profileInviteCountdown');
+                if (el) el.textContent = secsLeft;
+                if (secsLeft <= 0) {
+                    clearInterval(_profileInviteTimer);
+                    FriendsManager.clearGameInvite(invite.id).catch(() => {});
+                    const ov = document.getElementById('profileInviteOverlay');
+                    if (ov) ov.remove();
+                }
+            }, 1000);
+        }
+
+        async function acceptProfileInvite(fromUid, roomId, gameMode, fromName) {
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+            const ov = document.getElementById('profileInviteOverlay');
+            if (ov) ov.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', 'join');
+            localStorage.setItem('onlineSubMode', gameMode);
+            localStorage.setItem('roomId', roomId);
+            localStorage.setItem('onlineMyName', myProfile?.displayName || '玩家');
+            localStorage.setItem('onlineOpponentName', fromName);
+            localStorage.removeItem('fromCompetitiveMode');
+            location.href = 'game.html';
+        }
+
+        async function declineProfileInvite(fromUid) {
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+            const ov = document.getElementById('profileInviteOverlay');
+            if (ov) ov.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+        }
+
+
 
         function renderProfile() {
             const p = myProfile;
