@@ -1,9 +1,14 @@
 /**
- * Neon Card Game - Friends Manager (Firestore)
- * Handles friend requests, friend list, and game invites
+ * Neon Card Game - Friends Manager (Realtime Database)
+ * All social features use RTDB to avoid Firestore cross-user permission issues.
+ *
+ * RTDB structure:
+ *   friendRequests/{targetUid}/{fromUid}  — incoming request, visible only to target
+ *   friends/{uid}/{friendUid}             — mutual friend list entry
+ *   gameInvites/{targetUid}/{fromUid}     — game invite
  */
 const FriendsManager = (() => {
-    const db = () => AuthManager.getDb();
+    const rtdb  = () => AuthManager.getRtdb();
     const myUid = () => { const u = AuthManager.getCurrentUser(); return u ? u.uid : null; };
 
     // ── Friend Requests ──────────────────────────────────────────────
@@ -11,34 +16,30 @@ const FriendsManager = (() => {
     async function sendFriendRequest(targetUid) {
         const uid = myUid();
         if (!uid || uid === targetUid) return;
-        const batch = db().batch();
-        batch.set(db().collection('friendships').doc(uid).collection('requests').doc(targetUid),
-            { type: 'outgoing', uid: targetUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        batch.set(db().collection('friendships').doc(targetUid).collection('requests').doc(uid),
-            { type: 'incoming', uid: uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        await batch.commit();
+        const myProfile = await UserProfile.getProfile(uid);
+        await rtdb().ref(`friendRequests/${targetUid}/${uid}`).set({
+            fromUid: uid,
+            fromName: myProfile?.displayName || '玩家',
+            sentAt: firebase.database.ServerValue.TIMESTAMP
+        });
     }
 
     async function acceptFriendRequest(fromUid) {
         const uid = myUid();
         if (!uid) return;
-        const batch = db().batch();
-        batch.set(db().collection('friendships').doc(uid).collection('friends').doc(fromUid),
-            { uid: fromUid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        batch.set(db().collection('friendships').doc(fromUid).collection('friends').doc(uid),
-            { uid: uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        batch.delete(db().collection('friendships').doc(uid).collection('requests').doc(fromUid));
-        batch.delete(db().collection('friendships').doc(fromUid).collection('requests').doc(uid));
-        await batch.commit();
+        const now = firebase.database.ServerValue.TIMESTAMP;
+        // Write friendship for both sides, delete request
+        await Promise.all([
+            rtdb().ref(`friends/${uid}/${fromUid}`).set({ since: now }),
+            rtdb().ref(`friends/${fromUid}/${uid}`).set({ since: now }),
+            rtdb().ref(`friendRequests/${uid}/${fromUid}`).remove()
+        ]);
     }
 
     async function declineFriendRequest(fromUid) {
         const uid = myUid();
         if (!uid) return;
-        const batch = db().batch();
-        batch.delete(db().collection('friendships').doc(uid).collection('requests').doc(fromUid));
-        batch.delete(db().collection('friendships').doc(fromUid).collection('requests').doc(uid));
-        await batch.commit();
+        await rtdb().ref(`friendRequests/${uid}/${fromUid}`).remove();
     }
 
     // ── Friend List ──────────────────────────────────────────────────
@@ -46,63 +47,64 @@ const FriendsManager = (() => {
     async function getFriendList() {
         const uid = myUid();
         if (!uid) return [];
-        const snap = await db().collection('friendships').doc(uid).collection('friends').get();
-        const profiles = await Promise.all(snap.docs.map(d => UserProfile.getProfile(d.id)));
+        const snap = await rtdb().ref(`friends/${uid}`).once('value');
+        const val  = snap.val() || {};
+        const uids = Object.keys(val);
+        const profiles = await Promise.all(uids.map(id => UserProfile.getProfile(id)));
         return profiles.filter(Boolean);
     }
 
     async function getPendingRequests() {
         const uid = myUid();
         if (!uid) return [];
-        const snap = await db().collection('friendships').doc(uid).collection('requests')
-            .where('type', '==', 'incoming').get();
-        const profiles = await Promise.all(snap.docs.map(d => UserProfile.getProfile(d.id)));
+        const snap = await rtdb().ref(`friendRequests/${uid}`).once('value');
+        const val  = snap.val() || {};
+        const uids = Object.keys(val);
+        const profiles = await Promise.all(uids.map(id => UserProfile.getProfile(id)));
         return profiles.filter(Boolean);
     }
 
     function listenForRequests(callback) {
         const uid = myUid();
         if (!uid) return () => {};
-        return db().collection('friendships').doc(uid).collection('requests')
-            .where('type', '==', 'incoming')
-            .onSnapshot(snap => {
-                snap.docChanges().forEach(change => {
-                    if (change.type === 'added') {
-                        UserProfile.getProfile(change.doc.id).then(p => { if (p) callback(p); });
-                    }
-                });
-            });
+        const ref  = rtdb().ref(`friendRequests/${uid}`);
+        const handler = ref.on('child_added', snap => {
+            if (snap.exists()) {
+                UserProfile.getProfile(snap.key).then(p => { if (p) callback(p); });
+            }
+        });
+        return () => ref.off('child_added', handler);
     }
 
     async function removeFriend(targetUid) {
         const uid = myUid();
         if (!uid) return;
-        const batch = db().batch();
-        batch.delete(db().collection('friendships').doc(uid).collection('friends').doc(targetUid));
-        batch.delete(db().collection('friendships').doc(targetUid).collection('friends').doc(uid));
-        await batch.commit();
+        await Promise.all([
+            rtdb().ref(`friends/${uid}/${targetUid}`).remove(),
+            rtdb().ref(`friends/${targetUid}/${uid}`).remove()
+        ]);
     }
 
     async function isFriend(targetUid) {
         const uid = myUid();
         if (!uid) return false;
-        const doc = await db().collection('friendships').doc(uid).collection('friends').doc(targetUid).get();
-        return doc.exists;
+        const snap = await rtdb().ref(`friends/${uid}/${targetUid}`).once('value');
+        return snap.exists();
     }
 
     async function hasOutgoingRequest(targetUid) {
         const uid = myUid();
         if (!uid) return false;
-        const doc = await db().collection('friendships').doc(uid).collection('requests').doc(targetUid).get();
-        return doc.exists && doc.data().type === 'outgoing';
+        const snap = await rtdb().ref(`friendRequests/${targetUid}/${uid}`).once('value');
+        return snap.exists();
     }
 
-    // ── Game Invites (RTDB — avoids Firestore cross-user write restrictions) ──
+    // ── Game Invites (RTDB) ──────────────────────────────────────────
 
     async function sendGameInvite(targetUid, roomId, gameMode, fromName) {
         const uid = myUid();
         if (!uid) return;
-        const ref = AuthManager.getRtdb().ref(`gameInvites/${targetUid}/${uid}`);
+        const ref = rtdb().ref(`gameInvites/${targetUid}/${uid}`);
         await ref.set({
             fromUid: uid,
             fromName,
@@ -110,14 +112,13 @@ const FriendsManager = (() => {
             gameMode,
             sentAt: firebase.database.ServerValue.TIMESTAMP
         });
-        // Auto-expire after 60 seconds
         setTimeout(() => ref.remove().catch(() => {}), 60000);
     }
 
     function listenForGameInvites(callback) {
         const uid = myUid();
         if (!uid) return () => {};
-        const ref = AuthManager.getRtdb().ref(`gameInvites/${uid}`);
+        const ref = rtdb().ref(`gameInvites/${uid}`);
         const handler = ref.on('child_added', snap => {
             if (snap.exists()) callback({ id: snap.key, ...snap.val() });
         });
@@ -127,7 +128,7 @@ const FriendsManager = (() => {
     async function clearGameInvite(fromUid) {
         const uid = myUid();
         if (!uid) return;
-        await AuthManager.getRtdb().ref(`gameInvites/${uid}/${fromUid}`).remove();
+        await rtdb().ref(`gameInvites/${uid}/${fromUid}`).remove();
     }
 
     return {
