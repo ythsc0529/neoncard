@@ -143,61 +143,75 @@
             }
         }
 
-        async function init() {
+        function init() {
             AuthManager.init();
 
-            const params  = new URLSearchParams(location.search);
+            const params    = new URLSearchParams(location.search);
             const targetUid = params.get('uid');
             if (!targetUid) { showError('缺少玩家 ID'); return; }
 
-            const profile = await UserProfile.getProfile(targetUid);
-            if (!profile) { showError('找不到此玩家'); return; }
-
-            // Render hero
-            if (profile.googlePhotoURL) {
-                document.getElementById('heroAvatarEmoji').style.display = 'none';
-                const img = document.getElementById('heroAvatarImg');
-                img.src = profile.googlePhotoURL;
-                img.style.display = 'block';
-            }
-            document.getElementById('heroName').textContent = profile.displayName || '玩家';
-            document.getElementById('heroBio').textContent  = profile.bio || '這位玩家沒有留下自我介紹';
-
-            const meta = [];
-            if (profile.createdAt) meta.push(`📅 加入於 ${formatJoinDate(profile.createdAt)}`);
-            document.getElementById('heroMeta').textContent = meta.join('  ·  ');
-
-            // Fav characters
-            if (profile.favCharacters?.length) {
-                document.getElementById('favChips').innerHTML =
-                    profile.favCharacters.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
-                document.getElementById('favSection').style.display = 'block';
-            }
-
-            // Stats
-            renderStats(profile.stats);
-
-            // Action bar (only if logged in and not own profile)
+            // Wait for auth to be confirmed, THEN read Firestore
             AuthManager.onAuthChanged(async (user) => {
-                if (!user || user.uid === targetUid) {
-                    document.getElementById('actionBar').innerHTML = '';
+                // user can be null (not logged in) — still show public profile
+                // but Firestore rules must allow read for auth != null
+                if (!user) {
+                    // Not logged in — redirect to home
+                    location.href = 'index.html';
                     return;
                 }
-                const isFriend   = await FriendsManager.isFriend(targetUid);
-                const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
-                let btn = '';
-                if (isFriend) {
-                    btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
-                } else if (hasPending) {
-                    btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
-                } else {
-                    btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
-                }
-                document.getElementById('actionBar').innerHTML = btn;
-            });
 
-            document.getElementById('pgLoading').style.display = 'none';
-            document.getElementById('playerPage').style.display = 'block';
+                try {
+                    const profile = await UserProfile.getProfile(targetUid);
+                    if (!profile) { showError('找不到此玩家'); return; }
+
+                    // Render avatar
+                    if (profile.googlePhotoURL) {
+                        document.getElementById('heroAvatarEmoji').style.display = 'none';
+                        const img = document.getElementById('heroAvatarImg');
+                        img.src = profile.googlePhotoURL;
+                        img.style.display = 'block';
+                    }
+
+                    document.getElementById('heroName').textContent = profile.displayName || '玩家';
+                    document.getElementById('heroBio').textContent  = profile.bio || '這位玩家沒有留下自我介紹';
+
+                    if (profile.createdAt) {
+                        document.getElementById('heroMeta').textContent = `📅 加入於 ${formatJoinDate(profile.createdAt)}`;
+                    }
+
+                    // Fav characters
+                    if (profile.favCharacters?.length) {
+                        document.getElementById('favChips').innerHTML =
+                            profile.favCharacters.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
+                        document.getElementById('favSection').style.display = 'block';
+                    }
+
+                    // Stats
+                    renderStats(profile.stats);
+
+                    // Action bar: add friend / already friend
+                    if (user.uid !== targetUid) {
+                        const isFriend   = await FriendsManager.isFriend(targetUid);
+                        const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
+                        let btn = '';
+                        if (isFriend) {
+                            btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
+                        } else if (hasPending) {
+                            btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
+                        } else {
+                            btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
+                        }
+                        document.getElementById('actionBar').innerHTML = btn;
+                    }
+
+                    document.getElementById('pgLoading').style.display = 'none';
+                    document.getElementById('playerPage').style.display = 'block';
+
+                } catch (e) {
+                    console.error('載入玩家資料失敗:', e);
+                    showError('載入失敗，請稍後再試（' + e.code + '）');
+                }
+            });
         }
 
         async function sendRequest(uid) {
@@ -205,10 +219,15 @@
             if (!btn) return;
             btn.disabled = true;
             btn.textContent = '送出中...';
-            await FriendsManager.sendFriendRequest(uid);
-            btn.textContent = '✓ 請求已送出';
-            btn.style.borderColor = 'var(--neon-green)';
-            btn.style.color = 'var(--neon-green)';
+            try {
+                await FriendsManager.sendFriendRequest(uid);
+                btn.textContent = '✓ 請求已送出';
+                btn.style.borderColor = 'var(--neon-green)';
+                btn.style.color = 'var(--neon-green)';
+            } catch(e) {
+                btn.textContent = '送出失敗';
+                btn.disabled = false;
+            }
         }
 
         function showError(msg) {
@@ -221,3 +240,4 @@
     </script>
 </body>
 </html>
+
