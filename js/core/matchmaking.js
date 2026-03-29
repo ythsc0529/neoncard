@@ -76,16 +76,18 @@ const MatchmakingManager = (() => {
             }
         });
 
-        // 60s timeout → auto bot match
+        // 25~35s timeout → auto bot match (random so it doesn't feel scripted)
+        const botDelay = (25 + Math.floor(Math.random() * 11)) * 1000; // 25–35 seconds
         _timeout = setTimeout(async () => {
             leaveQueue();
             if (onStatus) onStatus('bot_match_start');
-            // Brief delay so the UI can show a message
+            // Brief "found match" delay before redirecting
             await new Promise(r => setTimeout(r, 1800));
             const botName = getRandomBotName();
             _commitBotMatch(botName, gameMode);
             if (onStatus) onStatus('matched');
-        }, 60000);
+        }, botDelay);
+
     }
 
     function _commitBotMatch(botName, gameMode) {
