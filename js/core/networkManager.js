@@ -12,6 +12,7 @@ class NetworkManager {
         this.onDataReceived = null;
         this.onError = null;
         this.onPeerStateChange = null; // 'thinking', 'selecting', etc.
+        this.onNameReceived = null;
     }
 
     generateShortId() {
@@ -193,6 +194,8 @@ class NetworkManager {
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(data.emojiId, this.isHost ? 'player2' : 'player1');
                 }
+            } else if (data.type === 'name' && this.onNameReceived) {
+                this.onNameReceived(data.name);
             } else if (data.type === 'seed' && !this.isHost) {
                 // Host sends the game seed to client upon connection
                 if (!window.OriginalMathRandom) window.OriginalMathRandom = Math.random;
@@ -208,6 +211,10 @@ class NetworkManager {
             this.conn = null;
             if (this.onDisconnected) this.onDisconnected();
         });
+
+        // Exchange names immediately upon connection
+        const myName = localStorage.getItem('onlineMyName') || (this.isHost ? '玩家1' : '玩家2');
+        this.conn.send({ type: 'name', name: myName });
 
         if (this.isHost) {
             // Host generates seed and sends it

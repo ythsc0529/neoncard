@@ -458,6 +458,16 @@
                     }
                 };
 
+                NetManager.onNameReceived = (name) => {
+                    console.log('Received opponent name:', name);
+                    if (role === 'host') {
+                        GameState.player2.name = name;
+                    } else {
+                        GameState.player1.name = name;
+                    }
+                    updateUI(); // Refresh UI with the new name
+                };
+
                 NetManager.onDisconnected = () => {
                     if (window.isRematching) return;
                     alert('連線已中斷。對方已離開。');
@@ -580,7 +590,7 @@
             document.getElementById('battleContainer').style.display = 'none';
 
             document.getElementById('selectionTitle').textContent =
-                playerKey === 'player1' ? '玩家1 抽牌階段' : '玩家2 抽牌階段';
+                playerKey === 'player1' ? (GameState.player1.name + ' 抽牌階段') : (GameState.player2.name + ' 抽牌階段');
 
             // Show card draw animation
             await Animations.drawCards(cards);
