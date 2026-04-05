@@ -91,9 +91,19 @@ const MatchmakingManager = (() => {
         const snap = await queueRef.once('value');
         const all  = snap.val() || {};
 
+        const myData = all[myUid];
+        if (!myData) return false;
+
         // Sort by joinedAt so we always approach the oldest waiting player first
         const candidates = Object.entries(all)
-            .filter(([id]) => id !== myUid)
+            .filter(([id, data]) => {
+                if (id === myUid) return false;
+                // Only claim players OLDER than us to break symmetry in simultaneous joins
+                // Use ID string comparison as tiebreaker if timestamps perfectly match
+                if (data.joinedAt < myData.joinedAt) return true;
+                if (data.joinedAt === myData.joinedAt && id < myUid) return true;
+                return false;
+            })
             .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
 
         for (const [oppUid, oppData] of candidates) {

@@ -41,6 +41,9 @@ const Animations = {
             // If forcedResult is provided, use it. Otherwise, use Window.GameRNG or Math.random
             const result = forcedResult !== null ? forcedResult : (window.GameRNG ? (window.GameRNG.nextBoolean() ? 1 : 2) : (Math.random() < 0.5 ? 1 : 2));
 
+            const name1 = (typeof GameState !== 'undefined' && GameState.player1?.name) ? GameState.player1.name : '玩家 1';
+            const name2 = (typeof GameState !== 'undefined' && GameState.player2?.name) ? GameState.player2.name : '玩家 2';
+
             // coinToss3D ends at rotateX(3600deg) — front face showing (even multiples of 360).
             // We force the coin to show the correct face by setting a final rotation:
             // Front face (player 1) = rotateX(3600deg), back face (player 2) = rotateX(3780deg).
@@ -52,9 +55,9 @@ const Animations = {
                 <div class="coin-stage">
                     <!-- Player VS row -->
                     <div class="coin-vs-row">
-                        <div class="coin-player p1" id="coinP1">玩家 1</div>
+                        <div class="coin-player p1" id="coinP1">${name1}</div>
                         <div class="coin-vs-label">VS</div>
-                        <div class="coin-player p2" id="coinP2">玩家 2</div>
+                        <div class="coin-player p2" id="coinP2">${name2}</div>
                     </div>
 
                     <!-- 3-D coin -->
@@ -77,7 +80,7 @@ const Animations = {
                     <div class="coin-result" id="coinResult">
                         <span class="coin-result-name"
                               style="color:${result === 1 ? 'var(--neon-cyan)' : 'var(--neon-magenta)'}">
-                            玩家 ${result}
+                            ${result === 1 ? name1 : name2}
                         </span>
                         <span class="coin-result-label">先手出擊！</span>
                     </div>

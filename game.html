@@ -18,17 +18,67 @@
     <div class="animation-overlay hidden" id="animationOverlay"></div>
 
     <!-- Network Waiting Overlay -->
-    <div class="modal-overlay hidden" id="networkWaitingOverlay"
-        style="z-index: 1000; background: rgba(0, 0, 0, 0.85);">
-        <div class="modal glass" style="text-align: center;">
-            <h2 id="networkWaitingTitle" class="neon-text" style="color: var(--neon-cyan);">連線大廳</h2>
-            <p id="networkWaitingText" style="margin: 20px 0; font-size: 1.2rem; color: var(--text-secondary);">
-                初始化網路中...</p>
-            <div id="networkRoomCode"
-                style="font-size: 3rem; font-weight: bold; letter-spacing: 5px; color: var(--neon-gold); margin: 20px 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);"
-                class="hidden"></div>
-            <button class="btn" onclick="location.href='index.html'"
-                style="margin-top: 20px; opacity: 0.8;">取消連線</button>
+    <div class="modal-overlay hidden" id="networkWaitingOverlay" style="z-index: 1000; background: rgba(0, 0, 0, 0.85);">
+        <div class="modal glass" style="max-width:520px;padding:0;overflow:hidden;max-height:92vh;display:flex;flex-direction:column;text-align:left;">
+            <!-- Header -->
+            <div style="padding:22px 28px 16px;border-bottom:1px solid var(--glass-border);">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 id="networkWaitingTitle" style="color:var(--neon-cyan);font-family:var(--font-heading);margin:0;font-size:1.3rem;letter-spacing:2px;">🎮 連線大廳</h2>
+                    <div id="lobbyModeBadge" style="background:rgba(0,243,255,0.1);border:1px solid rgba(0,243,255,0.3);border-radius:20px;padding:4px 12px;font-size:0.78rem;color:var(--neon-cyan);">-</div>
+                </div>
+            </div>
+
+            <!-- Room Code Block -->
+            <div id="lobbyHostSection" class="hidden" style="padding:24px 28px;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--glass-border);">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">房間代碼</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div id="networkRoomCode" style="
+                        font-family:var(--font-heading);
+                        font-size:2.8rem;
+                        font-weight:900;
+                        letter-spacing:12px;
+                        color:var(--neon-gold);
+                        text-shadow:0 0 20px rgba(255,215,0,0.6),0 0 40px rgba(255,215,0,0.3);
+                        background:rgba(255,215,0,0.05);
+                        border:2px solid rgba(255,215,0,0.3);
+                        border-radius:12px;
+                        padding:12px 20px;
+                        flex:1;
+                        text-align:center;
+                        user-select:all;
+                        cursor:pointer;
+                    ">----</div>
+                    <button id="lobbyCopyBtn" onclick="copyRoomCode()" style="
+                        background:rgba(255,215,0,0.1);
+                        border:1px solid rgba(255,215,0,0.4);
+                        color:var(--neon-gold);
+                        border-radius:10px;
+                        padding:10px 14px;
+                        cursor:pointer;
+                        font-size:1.2rem;
+                        transition:all 0.2s;
+                        white-space:nowrap;
+                    " title="複製房號">📋</button>
+                </div>
+                <div id="lobbyCopyHint" style="color:var(--text-muted);font-size:0.8rem;margin-top:8px;min-height:18px;"></div>
+            </div>
+
+            <!-- Friends List (host only: invite friends) -->
+            <div id="lobbyFriendsSection" class="hidden" style="padding:20px 28px;border-bottom:1px solid var(--glass-border);max-height:200px;overflow-y:auto;">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">📨 邀請好友</div>
+                <div id="lobbyFriendsList" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="color:var(--text-muted);font-size:0.85rem;">載入好友中...</div>
+                </div>
+            </div>
+
+            <!-- Status & Actions — pinned at bottom -->
+            <div style="padding:16px 28px 20px;border-top:1px solid var(--glass-border);margin-top:auto;">
+                <div id="lobbyStatus" style="display:flex;align-items:center;gap:10px;color:var(--text-secondary);font-size:0.9rem;margin-bottom:14px;">
+                    <div class="lobby-pulse" style="width:10px;height:10px;border-radius:50%;background:var(--neon-green);box-shadow:0 0 8px var(--neon-green);animation:pulse 1.5s infinite;flex-shrink:0;"></div>
+                    <span id="networkWaitingText">初始化網路中...</span>
+                </div>
+                <button id="cancelLobbyBtn" class="btn" onclick="location.href='index.html'" style="width:100%;opacity:0.7;">取消連線</button>
+            </div>
         </div>
     </div>
 
@@ -474,13 +524,21 @@
                     location.href = 'index.html';
                 };
 
+                const isCompetitive = localStorage.getItem('fromCompetitiveMode') === 'true';
+                document.getElementById('lobbyModeBadge').textContent = onlineSubMode === 'quick' ? '快速3張' : '經典7張';
+
                 if (role === 'host') {
                     // Host Player is Player 1
                     document.getElementById('networkWaitingTitle').textContent = '連線大廳';
-                    document.getElementById('networkWaitingText').textContent = '等待朋友輸入代碼加入...';
-                    const codeLabel = document.getElementById('networkRoomCode');
-                    codeLabel.classList.remove('hidden');
-                    codeLabel.textContent = '生成中...';
+                    
+                    if (isCompetitive) {
+                        document.getElementById('networkWaitingText').textContent = '正在加入...';
+                    } else {
+                        document.getElementById('networkWaitingText').textContent = '等待對手加入...';
+                        document.getElementById('lobbyHostSection').classList.remove('hidden');
+                        document.getElementById('lobbyFriendsSection').classList.remove('hidden');
+                        document.getElementById('networkRoomCode').textContent = '生成中...';
+                    }
 
                     // Force show overlay just in case
                     document.getElementById('networkWaitingOverlay').classList.remove('hidden');
@@ -488,9 +546,10 @@
 
                     try {
                         const roomId = await NetManager.initHost();
-                        codeLabel.textContent = roomId;
-                        // Add invite friend button if Firebase available
-                        addInviteFriendBtn(roomId, onlineSubMode);
+                        document.getElementById('networkRoomCode').textContent = roomId;
+                        if (!isCompetitive) {
+                            loadLobbyFriends(roomId);
+                        }
                     } catch (err) {
                         alert('無法建立連線: ' + err);
                         location.href = 'index.html';
@@ -499,7 +558,12 @@
                     // Joined Player is Player 2
                     const roomId = localStorage.getItem('roomId');
                     document.getElementById('networkWaitingTitle').textContent = '連線大廳';
-                    document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]...`;
+                    
+                    if (isCompetitive) {
+                        document.getElementById('networkWaitingText').textContent = '正在加入...';
+                    } else {
+                        document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]...`;
+                    }
 
                     // Force show overlay just in case
                     document.getElementById('networkWaitingOverlay').classList.remove('hidden');
@@ -639,7 +703,12 @@
             const overlay = document.getElementById('networkWaitingOverlay');
             document.getElementById('networkWaitingTitle').textContent = '等待對手...';
             document.getElementById('networkWaitingText').textContent = '對手正在選擇出戰角色';
-            document.getElementById('networkRoomCode').classList.add('hidden');
+            
+            // Hide connection options
+            document.getElementById('lobbyHostSection').classList.add('hidden');
+            document.getElementById('lobbyFriendsSection').classList.add('hidden');
+            document.getElementById('cancelLobbyBtn').style.display = 'none';
+
             overlay.classList.remove('hidden');
             overlay.classList.add('active');
         }
@@ -1238,7 +1307,12 @@
                                         // Wait for remote action 'replace_death'
                                         document.getElementById('networkWaitingTitle').textContent = '等待對手替換角色...';
                                         document.getElementById('networkWaitingText').textContent = '對手正在考慮要派誰上場';
-                                        document.getElementById('networkRoomCode').classList.add('hidden');
+                                        
+                                        // Hide connection options
+                                        document.getElementById('lobbyHostSection').classList.add('hidden');
+                                        document.getElementById('lobbyFriendsSection').classList.add('hidden');
+                                        document.getElementById('cancelLobbyBtn').style.display = 'none';
+
                                         document.getElementById('networkWaitingOverlay').classList.remove('hidden');
                                         document.getElementById('networkWaitingOverlay').classList.add('active');
                                         await new Promise(resolve => window.resolveRemoteReplacement = resolve);
@@ -1741,36 +1815,78 @@
 
         let isProcessing = false;
 
-        // ── Friend Invite Button (for hosts in online lobby) ─────────────────
-        async function addInviteFriendBtn(roomId, gameMode) {
-            try {
-                AuthManager.init();
-                const user = AuthManager.getCurrentUser();
-                if (!user) return;
-                const profile = await UserProfile.getProfile(user.uid);
-                if (!profile) return;
+        // ── Utilities for Network Lobby ─────────────────
+        function copyRoomCode() {
+            const code = document.getElementById('networkRoomCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const el = document.getElementById('lobbyCopyHint');
+                el.textContent = '✅ 房號已複製！分享給好友吧';
+                el.style.color = 'var(--neon-green)';
+                const btn = document.getElementById('lobbyCopyBtn');
+                btn.textContent = '✅';
+                setTimeout(() => { btn.textContent = '📋'; el.textContent = ''; }, 2500);
+            }).catch(() => {
+                const range = document.createRange();
+                range.selectNode(document.getElementById('networkRoomCode'));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                document.getElementById('lobbyCopyHint').textContent = '已選取，可自行複製';
+            });
+        }
 
-                const overlay = document.getElementById('networkWaitingOverlay');
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-gold';
-                btn.style.marginTop = '10px';
-                btn.textContent = '📨 邀請好友加入';
-                btn.onclick = () => showFriendInviteList(roomId, gameMode, profile);
-                overlay.querySelector('.modal').appendChild(btn);
+        async function loadLobbyFriends(roomCode) {
+            AuthManager.init();
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            const section = document.getElementById('lobbyFriendsSection');
+            const list = document.getElementById('lobbyFriendsList');
+            try {
+                const friends = await FriendsManager.getFriendList();
+                if (!friends || friends.length === 0) {
+                    list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">還沒有好友，可分享房號給對方</div>';
+                } else {
+                    list.innerHTML = friends.map(f => `
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);">
+                            <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--glass-bg);flex-shrink:0;">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.displayName)}</div>
+                            </div>
+                            <button class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
+                        </div>`).join('');
+                }
+                section.classList.remove('hidden');
             } catch (e) {
-                console.log('[game] addInviteFriendBtn skipped (no auth):', e.message);
+                list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">無法載入好友</div>';
+                section.classList.remove('hidden');
             }
         }
 
-        async function showFriendInviteList(roomId, gameMode, myProfile) {
-            const friends = await FriendsManager.getFriendList();
-            if (friends.length === 0) { alert('你還沒有好友，請先在個人檔案中加好友！'); return; }
-            const names = friends.map((f, i) => `${i + 1}. ${f.displayName}`).join('\n');
-            const choice = prompt(`選擇要邀請的好友（輸入編號）：\n${names}`);
-            const idx = parseInt(choice) - 1;
-            if (isNaN(idx) || idx < 0 || idx >= friends.length) return;
-            await FriendsManager.sendGameInvite(friends[idx].uid, roomId, gameMode, myProfile.displayName);
-            alert(`已向 ${friends[idx].displayName} 發送遊戲邀請！`);
+        async function inviteFromLobby(friendUid, friendName, roomCode) {
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            const profile = await UserProfile.getProfile(user.uid);
+            if (!profile) return;
+            
+            try {
+                const gameMode = localStorage.getItem('onlineSubMode') || 'classic';
+                await FriendsManager.sendGameInvite(friendUid, roomCode, gameMode, profile.displayName);
+                // Find the invite button and show feedback
+                const btns = document.querySelectorAll('#lobbyFriendsList .btn-gold');
+                btns.forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(friendUid)) {
+                        btn.textContent = '已送出';
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                    }
+                });
+            } catch(e) {
+                alert('邀請失敗: ' + e.message);
+            }
+        }
+        
+        function escHtml(str) {
+            return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
         // Initialize game
