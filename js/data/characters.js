@@ -27,7 +27,7 @@ function getDrawableCharacters() {
 
 // Draw a random character based on rarity probabilities
 function drawRandomCharacter() {
-    const roll = Math.random() * 100;
+    const roll = window.GameRandom() * 100;
     let rarity;
 
     if (roll < 5) rarity = 'MYTHIC';           // 5%
@@ -40,9 +40,9 @@ function drawRandomCharacter() {
     if (candidates.length === 0) {
         // Fallback to common if no characters of that rarity
         const commons = getDrawableCharacters().filter(c => c.rarity === 'COMMON');
-        return commons[Math.floor(Math.random() * commons.length)];
+        return commons[Math.floor(window.GameRandom() * commons.length)];
     }
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return candidates[Math.floor(window.GameRandom() * candidates.length)];
 }
 
 // Get a specific character by name
@@ -71,11 +71,11 @@ function getRandomFromCategory(category) {
         default:
             const tagged = getCharactersByTag(category);
             if (tagged.length > 0) {
-                return tagged[Math.floor(Math.random() * tagged.length)];
+                return tagged[Math.floor(window.GameRandom() * tagged.length)];
             }
             return null;
     }
-    const name = list[Math.floor(Math.random() * list.length)];
+    const name = list[Math.floor(window.GameRandom() * list.length)];
     return getCharacterByName(name);
 }
 
@@ -85,7 +85,7 @@ function createCharacterInstance(character) {
 
     // Resolve random HP
     if (typeof instance.hp === 'object') {
-        instance.hp = Math.floor(Math.random() * (instance.hp.max - instance.hp.min + 1)) + instance.hp.min;
+        instance.hp = Math.floor(window.GameRandom() * (instance.hp.max - instance.hp.min + 1)) + instance.hp.min;
     }
     instance.maxHp = instance.hp;
 
@@ -93,7 +93,7 @@ function createCharacterInstance(character) {
     if (typeof instance.atk === 'object') {
         instance.baseAtkMin = instance.atk.min;
         instance.baseAtkMax = instance.atk.max;
-        instance.atk = Math.floor(Math.random() * (instance.atk.max - instance.atk.min + 1)) + instance.atk.min;
+        instance.atk = Math.floor(window.GameRandom() * (instance.atk.max - instance.atk.min + 1)) + instance.atk.min;
     }
     instance.baseAtk = instance.atk;
 

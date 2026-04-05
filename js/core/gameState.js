@@ -329,7 +329,7 @@ const GameState = {
                 this.addLog(`${card.name} 受到侵蝕，屬性下降`, 'status');
             } else if (effect.type === 'curable_burn_percent') {
                 // 火哥-著火: 每回合扣除當前生命值的burn_percent%，有cure_chance%概率消除
-                if (Math.random() * 100 < (effect.cure_chance || 40)) {
+                if (window.GameRandom() * 100 < (effect.cure_chance || 40)) {
                     this.addLog(`${card.name} 的著火效果被撲滅了！`, 'status');
                     return false; // remove
                 }
@@ -422,7 +422,7 @@ const GameState = {
         // Check sleep (50% wake chance)
         const sleep = card.statusEffects.find(e => e.type === 'sleep');
         if (sleep) {
-            if (Math.random() < 0.5) {
+            if (window.GameRandom() < 0.5) {
                 card.statusEffects = card.statusEffects.filter(e => e !== sleep);
                 this.addLog(`${card.name} 甦醒了！`, 'status');
             } else {
@@ -661,7 +661,7 @@ const GameState = {
                 }
                 break;
             case 'refresh_cooldowns':
-                if (trigger === 'on_turn_start' && Math.random() * 100 < effect.chance) {
+                if (trigger === 'on_turn_start' && window.GameRandom() * 100 < effect.chance) {
                     card.cooldowns.fill(0);
                     this.addLog(`${card.name} 重置了所有技能冷卻！`, 'skill');
                 }
@@ -674,7 +674,7 @@ const GameState = {
                 break;
             case 'summon_chance':
                 if (trigger === 'on_attack') {
-                    if (Math.random() * 100 < effect.chance) {
+                    if (window.GameRandom() * 100 < effect.chance) {
                         const targetChar = getCharacterByName(effect.target);
                         if (targetChar) {
                             const inst = createCharacterInstance(targetChar);
@@ -754,8 +754,8 @@ const GameState = {
                 break;
             case 'death_chance_range':
                 if (trigger === 'on_turn_start') {
-                    const chance = Math.floor(Math.random() * (effect.max - effect.min + 1)) + effect.min;
-                    if (Math.random() * 100 < chance) {
+                    const chance = Math.floor(window.GameRandom() * (effect.max - effect.min + 1)) + effect.min;
+                    if (window.GameRandom() * 100 < chance) {
                         card.hp = 0;
                         this.addLog(`${card.name} 迎來了死亡的隨機性 (判定機率 ${chance}%)！`, 'damage');
                     } else {

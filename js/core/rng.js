@@ -37,3 +37,4 @@ class SeededRNG {
 
 // Global instance for the game to use
 window.GameRNG = new SeededRNG();
+window.GameRandom = () => window.GameRNG ? window.GameRNG.next() : Math.random();

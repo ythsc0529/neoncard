@@ -198,9 +198,8 @@ class NetworkManager {
                 this.onNameReceived(data.name);
             } else if (data.type === 'seed' && !this.isHost) {
                 // Host sends the game seed to client upon connection
-                if (!window.OriginalMathRandom) window.OriginalMathRandom = Math.random;
                 window.GameRNG = new SeededRNG(data.seed);
-                Math.random = () => window.GameRNG.next(); // OVERRIDE NATIVE RNG
+                window.GameRandom = () => window.GameRNG.next();
                 console.log('Received RNG seed from host:', data.seed);
                 if (this.onConnected) this.onConnected(); // Setup game after seed
             }
@@ -219,9 +218,8 @@ class NetworkManager {
         if (this.isHost) {
             // Host generates seed and sends it
             const seed = Date.now();
-            if (!window.OriginalMathRandom) window.OriginalMathRandom = Math.random;
             window.GameRNG = new SeededRNG(seed);
-            Math.random = () => window.GameRNG.next(); // OVERRIDE NATIVE RNG
+            window.GameRandom = () => window.GameRNG.next();
             this.conn.send({ type: 'seed', seed: seed });
             setTimeout(() => {
                 if (this.onConnected) this.onConnected();

@@ -85,7 +85,7 @@ const BattleSystem = {
                     // Check dodge_reflect reflection!
                     const dodgeReflect = defender.statusEffects.find(e => e.type === 'dodge_reflect');
                     if (dodgeReflect) {
-                        if (Math.random() * 100 < (dodgeReflect.reflect_chance || 100)) {
+                        if (window.GameRandom() * 100 < (dodgeReflect.reflect_chance || 100)) {
                             const reflectDamage = baseDamage;
                             if (attacker && attacker.hp !== undefined) {
                                 attacker.hp -= reflectDamage;
@@ -286,7 +286,7 @@ const BattleSystem = {
         const reflect = defender.statusEffects.find(e => e.type === 'reflect' || e.type === 'dodge_reflect');
         if (reflect) {
             const rChance = reflect.type === 'dodge_reflect' ? (reflect.reflect_chance || 100) : 100;
-            if (rChance === 100 || Math.random() * 100 < rChance) {
+            if (rChance === 100 || window.GameRandom() * 100 < rChance) {
                 const rVal = reflect.type === 'dodge_reflect' ? 100 : (reflect.value || 100);
                 const reflectDamage = Math.floor(damage * rVal / 100);
                 if (attacker && attacker.hp !== undefined) {
@@ -376,7 +376,7 @@ const BattleSystem = {
                 // Should pass calculate damage to check? Assuming 'damage' here is final.
                 // But if we already deducted HP, we should add it back.
                 if (damage > defender.passive.effect.threshold) {
-                    if (Math.random() * 100 < defender.passive.effect.chance) {
+                    if (window.GameRandom() * 100 < defender.passive.effect.chance) {
                         defender.hp += damage; // Undo damage
                         defender.hp = Math.min(defender.maxHp, defender.hp + defender.passive.effect.heal);
                         GameState.addLog(`${defender.name} 觸發閃避恢復！`, 'heal');
@@ -539,7 +539,7 @@ const BattleSystem = {
                 }
             } else if (onSkillPassive.action === 'random_effect') {
                 await Animations.showSkillName(Animations.getCardEl(attacker), '抽取被動');
-                const buffRoll = Math.floor(Math.random() * 4);
+                const buffRoll = Math.floor(window.GameRandom() * 4);
                 switch (buffRoll) {
                     case 0:
                         attacker.atk += 20;
@@ -1000,7 +1000,7 @@ const BattleSystem = {
                                         window.NetManager.sendAction({ type: 'sync_mahjong_choice', characterId: chosenMahjong.id });
                                     }
                                 } else {
-                                    chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                                    chosenMahjong = mahjongChars[Math.floor(window.GameRandom() * mahjongChars.length)];
                                 }
                             } else {
                                 if (window.earlyRemoteMahjongChoice) {
@@ -1015,13 +1015,13 @@ const BattleSystem = {
                                     });
                                 }
                                 if (!chosenMahjong) {
-                                    chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                                    chosenMahjong = mahjongChars[Math.floor(window.GameRandom() * mahjongChars.length)];
                                 }
                             }
                         } else if (!isCPUTurn && window.showMahjongSelectionModal) {
                             chosenMahjong = await window.showMahjongSelectionModal(mahjongChars);
                         } else {
-                            chosenMahjong = mahjongChars[Math.floor(Math.random() * mahjongChars.length)];
+                            chosenMahjong = mahjongChars[Math.floor(window.GameRandom() * mahjongChars.length)];
                         }
 
                         if (chosenMahjong) {
@@ -1066,7 +1066,7 @@ const BattleSystem = {
                 case 'steal_card':
                     const targetOpp = GameState.getOpponent();
                     if (targetOpp.standbyCards.length > 0) {
-                        const idx = Math.floor(Math.random() * targetOpp.standbyCards.length);
+                        const idx = Math.floor(window.GameRandom() * targetOpp.standbyCards.length);
                         const stolen = targetOpp.standbyCards.splice(idx, 1)[0];
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', stolen);
                         GameState.addLog(`偷取了 ${stolen.name}！`, 'skill');
@@ -1076,7 +1076,7 @@ const BattleSystem = {
                     break;
                 case 'copy_skill':
                     if (defender.skills && defender.skills.length > 0) {
-                        const rSkill = defender.skills[Math.floor(Math.random() * defender.skills.length)];
+                        const rSkill = defender.skills[Math.floor(window.GameRandom() * defender.skills.length)];
                         attacker.skills.push({ ...rSkill });
                         attacker.cooldowns[attacker.skills.length - 1] = 0;
                         GameState.addLog(`複製了 ${rSkill.name}！`, 'skill');
@@ -1113,7 +1113,7 @@ const BattleSystem = {
 
                 // --- ADDITIONAL DAMAGE EFFECTS ---
                 case 'damage_double_random': // 蝦子-蝦攻
-                    const chanceRoll = Math.floor(Math.random() * (effect.chance_max - effect.chance_min + 1)) + effect.chance_min;
+                    const chanceRoll = Math.floor(window.GameRandom() * (effect.chance_max - effect.chance_min + 1)) + effect.chance_min;
                     if (await Animations.probabilityRoll(chanceRoll, '命中判定')) {
                         const dmgRoll = await Animations.showRandomNumber(effect.damage_min, effect.damage_max, '傷害判定');
                         await this.applyDamage(attacker, defender, dmgRoll);
@@ -1132,7 +1132,7 @@ const BattleSystem = {
                         }
                     } else {
                         let totalWeight = effect.options.reduce((sum, o) => sum + o.chance, 0);
-                        let weightedRoll = Math.random() * totalWeight;
+                        let weightedRoll = window.GameRandom() * totalWeight;
                         let selectedDamage = effect.options[0].damage;
                         for (const opt of effect.options) {
                             if (weightedRoll < opt.chance) {
@@ -1656,7 +1656,7 @@ const BattleSystem = {
                     }
                     break;
                 case 'heal_random': // 骰子怪獸
-                    const healRnd = Math.floor(Math.random() * (effect.max - effect.min + 1)) + effect.min;
+                    const healRnd = Math.floor(window.GameRandom() * (effect.max - effect.min + 1)) + effect.min;
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + healRnd);
                     GameState.addLog(`${attacker.name} 恢復(或扣除) ${healRnd} HP`, 'heal');
                     break;
@@ -1712,7 +1712,7 @@ const BattleSystem = {
                     const oppKey = GameState.currentPlayer === 1 ? 'player2' : 'player1';
                     const oppStandby = GameState[oppKey].standbyCards;
                     if (oppStandby.length > 0) {
-                        const stolenIndex = Math.floor(Math.random() * oppStandby.length);
+                        const stolenIndex = Math.floor(window.GameRandom() * oppStandby.length);
                         const stolenCard = oppStandby.splice(stolenIndex, 1)[0];
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', stolenCard);
                         GameState.addLog(`${attacker.name} 偷走了 ${stolenCard.name}！`, 'skill');
@@ -1792,7 +1792,7 @@ const BattleSystem = {
                     }
                     break;
                 case 'summon_random_ball': // 體育生-運動時間
-                    if (Math.random() < 0.5) {
+                    if (window.GameRandom() < 0.5) {
                         const ballChar = getRandomFromCategory('ball');
                         if (ballChar) {
                             const inst = createCharacterInstance(ballChar);
@@ -1978,7 +1978,7 @@ const BattleSystem = {
                 case 'transform_to_enemy_standby':
                     const oppObj = GameState.getOpponent();
                     if (oppObj.standbyCards.length > 0) {
-                        const randEnemy = oppObj.standbyCards[Math.floor(Math.random() * oppObj.standbyCards.length)];
+                        const randEnemy = oppObj.standbyCards[Math.floor(window.GameRandom() * oppObj.standbyCards.length)];
                         await this.evolveCharacter(attacker, randEnemy.name);
                     } else {
                         GameState.addLog('敵方備戰區沒有角色可以複製！', 'status');
@@ -2015,7 +2015,7 @@ const BattleSystem = {
                 case 'copy_enemy_standby':
                     const oppState = GameState.getOpponent();
                     if (oppState.standbyCards.length > 0) {
-                        const target = oppState.standbyCards[Math.floor(Math.random() * oppState.standbyCards.length)];
+                        const target = oppState.standbyCards[Math.floor(window.GameRandom() * oppState.standbyCards.length)];
                         const clone = createCharacterInstance(getCharacterByName(target.name));
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', clone);
                         GameState.addLog(`複製了 ${target.name}！`, 'skill');
@@ -2166,12 +2166,12 @@ const BattleSystem = {
                         const p1Standby = GameState.player1.standbyCards;
                         const p2Standby = GameState.player2.standbyCards;
                         if (p1Standby.length > 0) {
-                            const idx = Math.floor(Math.random() * p1Standby.length);
+                            const idx = Math.floor(window.GameRandom() * p1Standby.length);
                             const rm = p1Standby.splice(idx, 1)[0];
                             GameState.addLog(`玩家1的 ${rm.name} 被空間坍方吞噬了！`, 'damage');
                         }
                         if (p2Standby.length > 0) {
-                            const idx = Math.floor(Math.random() * p2Standby.length);
+                            const idx = Math.floor(window.GameRandom() * p2Standby.length);
                             const rm = p2Standby.splice(idx, 1)[0];
                             GameState.addLog(`玩家2的 ${rm.name} 被空間坍方吞噬了！`, 'damage');
                         }
@@ -2224,7 +2224,7 @@ const BattleSystem = {
                     {
                         const oppState = GameState.getOpponent();
                         if (oppState.standbyCards.length > 0) {
-                            const idx = Math.floor(Math.random() * oppState.standbyCards.length);
+                            const idx = Math.floor(window.GameRandom() * oppState.standbyCards.length);
                             const oldCard = oppState.standbyCards[idx];
                             const tk = getCharacterByName(effect.target);
                             if (tk) {
@@ -2373,8 +2373,8 @@ const BattleSystem = {
                 case 'transform_both_random':
                     {
                         const allCharsList = ALL_CHARACTERS;
-                        const c1 = allCharsList[Math.floor(Math.random() * allCharsList.length)];
-                        const c2 = allCharsList[Math.floor(Math.random() * allCharsList.length)];
+                        const c1 = allCharsList[Math.floor(window.GameRandom() * allCharsList.length)];
+                        const c2 = allCharsList[Math.floor(window.GameRandom() * allCharsList.length)];
                         const p1Obj = GameState.player1.battleCard;
                         const p2Obj = GameState.player2.battleCard;
                         if (p1Obj) await this.evolveCharacter(p1Obj, c1.name);
@@ -2421,7 +2421,7 @@ const BattleSystem = {
                     break;
                 case 'summon_gacha_damage':
                     {
-                        const targetName = effect.targets[Math.floor(Math.random() * effect.targets.length)];
+                        const targetName = effect.targets[Math.floor(window.GameRandom() * effect.targets.length)];
                         const gc = getCharacterByName(targetName);
                         if (gc) {
                             const inst = createCharacterInstance(gc);
@@ -2530,7 +2530,7 @@ const BattleSystem = {
 
                 case 'buff_atk_mult_chance_range': // 概率學-概率學概論
                     {
-                        const rollChance = Math.floor(Math.random() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
+                        const rollChance = Math.floor(window.GameRandom() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
                         if (await Animations.probabilityRoll(rollChance, '強化判定')) {
                             attacker.atk = Math.floor(attacker.atk * (effect.mult || 3));
                             GameState.addLog(`${attacker.name} 攻擊力提升到 ${attacker.atk}！`, 'skill');
@@ -2542,7 +2542,7 @@ const BattleSystem = {
 
                 case 'debuff_enemy_atk_half_chance_range': // 概率學-概率為100
                     {
-                        const rollChance = Math.floor(Math.random() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
+                        const rollChance = Math.floor(window.GameRandom() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
                         if (await Animations.probabilityRoll(rollChance, '削弱判定')) {
                             defender.atk = Math.floor(defender.atk / 2);
                             GameState.addLog(`${defender.name} 攻擊力減半！`, 'status');
@@ -2649,12 +2649,12 @@ const BattleSystem = {
                         const tbTarget = getCharacterByName(effect.target);
                         if (tbTarget) {
                             if (p1Sb.length > 0) {
-                                const idx1 = Math.floor(Math.random() * p1Sb.length);
+                                const idx1 = Math.floor(window.GameRandom() * p1Sb.length);
                                 p1Sb[idx1] = createCharacterInstance(tbTarget);
                                 GameState.addLog(`玩家1備戰區一張牌變成了 ${effect.target}`, 'skill');
                             }
                             if (p2Sb.length > 0) {
-                                const idx2 = Math.floor(Math.random() * p2Sb.length);
+                                const idx2 = Math.floor(window.GameRandom() * p2Sb.length);
                                 p2Sb[idx2] = createCharacterInstance(tbTarget);
                                 GameState.addLog(`玩家2備戰區一張牌變成了 ${effect.target}`, 'skill');
                             }
@@ -2763,7 +2763,7 @@ const BattleSystem = {
 
                 // --- RANDOM BUFF (史詩-史詩) ---
                 case 'random_buff':
-                    const buffRoll = Math.floor(Math.random() * 4);
+                    const buffRoll = Math.floor(window.GameRandom() * 4);
                     switch (buffRoll) {
                         case 0:
                             attacker.atk += 20;

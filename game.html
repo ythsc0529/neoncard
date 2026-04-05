@@ -625,7 +625,7 @@
                     }
 
                     // NPC selects a random card
-                    GameState.setBattleCard('player2', Math.floor(Math.random() * GameState.getCardCount()));
+                    GameState.setBattleCard('player2', Math.floor(window.GameRandom() * GameState.getCardCount()));
 
                     // Player 1 draw, regardless of firstPlayer
                     selectionPhase = 'player1_draw';
@@ -1369,7 +1369,7 @@
             if (thinkingUI) thinkingUI.classList.remove('hidden');
 
             // Simulate thinking time (random between 1 to 2.5 seconds)
-            const thinkTime = Math.floor(Math.random() * 1500) + 1000;
+            const thinkTime = Math.floor(window.GameRandom() * 1500) + 1000;
 
             setTimeout(async () => {
                 const availableSkills = [];
@@ -1443,17 +1443,17 @@
                         // 2. High priority: Defensive skills when HP is low
                         else if (hpPercent < 0.65 && defensiveSkills.length > 0) {
                             actionType = 'skill';
-                            skillIdx = defensiveSkills[Math.floor(Math.random() * defensiveSkills.length)];
+                            skillIdx = defensiveSkills[Math.floor(window.GameRandom() * defensiveSkills.length)];
                         }
                         // 3. Offensive skills when opponent has enough HP to warrant it
                         else if (offensiveSkills.length > 0 && totalOpponentHp > expectedAtk) {
                             actionType = 'skill';
-                            skillIdx = offensiveSkills[Math.floor(Math.random() * offensiveSkills.length)];
+                            skillIdx = offensiveSkills[Math.floor(window.GameRandom() * offensiveSkills.length)];
                         }
                         // 4. Other skills (buffs, etc.) with a high chance
-                        else if (otherSkills.length > 0 && Math.random() < 0.8) {
+                        else if (otherSkills.length > 0 && window.GameRandom() < 0.8) {
                             actionType = 'skill';
-                            skillIdx = otherSkills[Math.floor(Math.random() * otherSkills.length)];
+                            skillIdx = otherSkills[Math.floor(window.GameRandom() * otherSkills.length)];
                         }
                         // 5. Default to attack (e.g., HP is high so we skip defensive skills, or no skills left)
                         else {
@@ -1465,7 +1465,7 @@
                     const hpPercent = card.hp / card.maxHp;
                     if (hpPercent < 0.3 && GameState.player2.standbyCards.length > 0) {
                         const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.6);
-                        if (healthyStandbys.length > 0 && Math.random() < 0.8) { // 80% retreat chance when low HP
+                        if (healthyStandbys.length > 0 && window.GameRandom() < 0.8) { // 80% retreat chance when low HP
                             // Find the one with highest HP
                             let bestIdx = 0;
                             let maxHp = 0;
@@ -1490,12 +1490,12 @@
                                     card.skills[idx].desc.includes('無敵')
                                 );
                                 if (defensiveSkills.length > 0) {
-                                    skillIdx = defensiveSkills[Math.floor(Math.random() * defensiveSkills.length)];
+                                    skillIdx = defensiveSkills[Math.floor(window.GameRandom() * defensiveSkills.length)];
                                 } else {
-                                    skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                                    skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
                                 }
                             } else {
-                                skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                                skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
                             }
                         } else {
                             actionType = 'attack';
@@ -1503,17 +1503,17 @@
                     }
                 } else if (difficulty === 'easy') {
                     // Easy mode: Never retreats. 50% chance to forget to use skills.
-                    if (availableSkills.length > 0 && Math.random() < 0.5) {
+                    if (availableSkills.length > 0 && window.GameRandom() < 0.5) {
                         actionType = 'skill';
-                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
                     } else {
                         actionType = 'attack';
                     }
                 } else {
                     // Default logic for 'normal' difficulty
-                    if (availableSkills.length > 0 && Math.random() < 0.6) {
+                    if (availableSkills.length > 0 && window.GameRandom() < 0.6) {
                         actionType = 'skill';
-                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
                     } else {
                         actionType = 'attack';
                     }
@@ -1524,7 +1524,7 @@
                     if (availableSkills.length > 0) {
                         actionType = 'skill';
                         // Pick any available skill
-                        skillIdx = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
                     } else {
                         // If no skills available and can't attack, just skip turn by trying to do an empty action or retreat if possible
                         // Here we just map it back to attack which will be blocked and skip effectively by passing the turn.

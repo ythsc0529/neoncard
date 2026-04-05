@@ -39,7 +39,7 @@ const Animations = {
         return new Promise(resolve => {
             this.show();
             // If forcedResult is provided, use it. Otherwise, use Window.GameRNG or Math.random
-            const result = forcedResult !== null ? forcedResult : (window.GameRNG ? (window.GameRNG.nextBoolean() ? 1 : 2) : (Math.random() < 0.5 ? 1 : 2));
+            const result = forcedResult !== null ? forcedResult : (window.GameRNG ? (window.GameRNG.nextBoolean() ? 1 : 2) : (window.GameRandom() < 0.5 ? 1 : 2));
 
             const name1 = (typeof GameState !== 'undefined' && GameState.player1?.name) ? GameState.player1.name : '玩家 1';
             const name2 = (typeof GameState !== 'undefined' && GameState.player2?.name) ? GameState.player2.name : '玩家 2';
@@ -127,7 +127,7 @@ const Animations = {
     async diceRoll() {
         return new Promise(resolve => {
             this.show();
-            const result = Math.floor(Math.random() * 6) + 1;
+            const result = Math.floor(window.GameRandom() * 6) + 1;
 
             this.container.innerHTML = `
                 <div style="text-align: center;">
@@ -170,7 +170,7 @@ const Animations = {
             try {
                 this.show();
                 // Decide result NOW so the gauge sweep aims for the correct zone
-                const rolled = Math.floor(Math.random() * 100) + 1; // 1-100
+                const rolled = Math.floor(window.GameRandom() * 100) + 1; // 1-100
                 const success = rolled <= chance;
 
                 // ── SVG arc helpers ──────────────────────────────────────────
@@ -283,7 +283,7 @@ const Animations = {
                 const rollLoop = () => {
                     const elapsed = Date.now() - rollStart;
                     if (elapsed < rollDuration) {
-                        const fakeVal = Math.floor((window.OriginalMathRandom || Math.random)() * 100) + 1;
+                        const fakeVal = Math.floor(Math.random() * 100) + 1;
                         numEl.textContent = fakeVal;
                         // Animate arc to fake value — use setAttribute for SVG compat
                         arcEl.setAttribute('stroke-dashoffset', offsetFor(fakeVal));
@@ -325,7 +325,7 @@ const Animations = {
                                 const p = document.createElement('div');
                                 p.className = 'prob-particle';
                                 const angle = (i / PARTICLE_COUNT) * 360;
-                                const dist = 60 + (window.OriginalMathRandom || Math.random)() * 60;
+                                const dist = 60 + Math.random() * 60;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
@@ -333,7 +333,7 @@ const Animations = {
                                 p.style.setProperty('--py', py + 'px');
                                 p.style.background = pColors[i % pColors.length];
                                 p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (4 + (window.OriginalMathRandom || Math.random)() * 6) + 'px';
+                                p.style.width = (4 + Math.random() * 6) + 'px';
                                 p.style.height = p.style.width;
                                 gaugeWrap.style.position = 'relative';
                                 gaugeWrap.appendChild(p);
@@ -353,7 +353,7 @@ const Animations = {
             } catch (e) {
                 console.error("Animation Error:", e);
                 this.hide();
-                resolve(Math.random() * 100 < chance);
+                resolve(window.GameRandom() * 100 < chance);
             }
         });
     },
@@ -363,7 +363,7 @@ const Animations = {
         return new Promise(resolve => {
             try {
                 this.show();
-                const result = Math.floor(Math.random() * (max - min + 1)) + min;
+                const result = Math.floor(window.GameRandom() * (max - min + 1)) + min;
 
                 this.container.innerHTML = `
                     <div class="rand-panel">
@@ -404,7 +404,7 @@ const Animations = {
                     const elapsed = Date.now() - startTime;
                     if (elapsed < duration) {
                         // High speed rolling
-                        const fakeVal = Math.floor((window.OriginalMathRandom || Math.random)() * (max - min + 1)) + min;
+                        const fakeVal = Math.floor(Math.random() * (max - min + 1)) + min;
                         // pad to at least 2 chars if possible to keep width roughly stable
                         el.textContent = fakeVal.toString().padStart(2, '0');
                         requestAnimationFrame(animate);
@@ -427,7 +427,7 @@ const Animations = {
                                 const p = document.createElement('div');
                                 p.className = 'prob-particle'; // reuse prob-particle css
                                 const angle = (i / PARTICLE_COUNT) * 360;
-                                const dist = 40 + (window.OriginalMathRandom || Math.random)() * 40;
+                                const dist = 40 + Math.random() * 40;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
@@ -435,7 +435,7 @@ const Animations = {
                                 p.style.setProperty('--py', py + 'px');
                                 p.style.background = pColors[i % pColors.length];
                                 p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (3 + (window.OriginalMathRandom || Math.random)() * 5) + 'px';
+                                p.style.width = (3 + Math.random() * 5) + 'px';
                                 p.style.height = p.style.width;
                                 wrapEl.appendChild(p);
                                 setTimeout(() => p.remove(), 900);
@@ -452,7 +452,7 @@ const Animations = {
             } catch (e) {
                 console.error("Animation Error:", e);
                 this.hide();
-                resolve(Math.floor((window.OriginalMathRandom || Math.random)() * (max - min + 1)) + min); // Fallback
+                resolve(Math.floor(window.GameRandom() * (max - min + 1)) + min); // Fallback
             }
         });
     },
@@ -491,7 +491,7 @@ const Animations = {
 
         const rect = element.getBoundingClientRect();
         // Random horizontal scatter so multiple hits don't overlap
-        const scatter = ((window.OriginalMathRandom || Math.random)() - 0.5) * rect.width * 0.5;
+        const scatter = (Math.random() - 0.5) * rect.width * 0.5;
         num.style.left = (rect.left + rect.width / 2 + scatter) + 'px';
         num.style.top = (rect.top + rect.height * 0.25) + 'px';
 
