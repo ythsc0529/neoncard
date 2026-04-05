@@ -577,6 +577,29 @@ const GameState = {
                     this.addLog(`${card.name} 特選 +1 (${card.resources[effect.resource]})`, 'skill');
                 }
                 break;
+            case 'damage':
+                if (trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] >= effect.count) {
+                            card.resources[countKey] = 0;
+                            const opp = this.getOpponent().battleCard;
+                            if (opp) {
+                                opp.hp -= (effect.value || effect.damage || 0);
+                                this.addLog(`${card.name} 被動 [${card.passive.name}] 觸發！對 ${opp.name} 造成 ${effect.value || effect.damage} 傷害`, 'damage');
+                            }
+                        }
+                    }
+                } else if (trigger === 'on_death') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp) {
+                        opp.hp -= (effect.value || effect.damage || 0);
+                        this.addLog(`${card.name} 死亡時觸發被動 [${card.passive.name}]！對 ${opp.name} 造成 ${effect.value || effect.damage} 傷害`, 'damage');
+                    }
+                }
+                break;
 
             // --- NEW PASSIVE HANDLERS ---
             // --- PART 5 & 6 PASSIVE EFFECTS ---
@@ -778,9 +801,16 @@ const GameState = {
             case 'revive_decaying_chance':
                 break;
             case 'tiger_tank_wear':
-                if (trigger === 'on_turn_end') {
-                    card.maxHp = Math.max(1, card.maxHp - effect.hp_loss);
-                    if (card.hp > card.maxHp) card.hp = card.maxHp;
+                if (trigger === 'on_attack' || trigger === 'on_skill_success') {
+                    if (!card.resources) card.resources = {};
+                    if (card.resources.broken) break;
+
+                    card.resources.wear_chance = (card.resources.wear_chance || 0) + 5;
+                    if (window.GameRandom() * 100 < card.resources.wear_chance) {
+                        card.resources.broken = true;
+                        card.atk = Math.max(0, card.atk - 50);
+                        this.addLog(`${card.name} 觸發品質不良，砲管損壞！ATK 下降 50`, 'status');
+                    }
                 }
                 break;
             case 'believer_passive':
