@@ -675,15 +675,22 @@ const Animations = {
             let secondaryBtnContent = '';
 
             if (isOnline) {
-                const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
-                if (localRole === 'host') {
-                    btnAction = "window.isRematching = true; let nextRoom = typeof NetManager !== 'undefined' ? NetManager.generateShortId() : Math.random().toString(36).substr(2, 4).toUpperCase(); sessionStorage.setItem('last_host_room_id', nextRoom); NetManager.conn.send({ type: 'lobby_rematch', newRoomId: nextRoom }); setTimeout(() => window.location.reload(), 200);";
-                    btnText = "與對手重新開始（聯機）";
-                    secondaryBtnContent = '<div style="margin-top: 15px;"><button class="btn btn-magenta" onclick="location.href=\'index.html\'">退出連線大廳</button></div>';
-                } else {
+                const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
+                if (isComp) {
                     btnAction = "location.href='index.html'";
-                    btnText = "退出連線大廳";
-                    secondaryBtnContent = '<p style="color:var(--neon-gold); font-size:1.1rem; margin-top:20px; text-shadow:none;">等待房主決定是否重新開始...</p>';
+                    btnText = "返回主選單";
+                    secondaryBtnContent = '';
+                } else {
+                    const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                    if (localRole === 'host') {
+                        btnAction = "window.isRematching = true; let nextRoom = typeof NetManager !== 'undefined' ? NetManager.generateShortId() : Math.random().toString(36).substr(2, 4).toUpperCase(); sessionStorage.setItem('last_host_room_id', nextRoom); NetManager.sendAction({ type: 'lobby_rematch', newRoomId: nextRoom }); setTimeout(() => window.location.reload(), 200);";
+                        btnText = "與對手重新開始（聯機）";
+                        secondaryBtnContent = '<div style="margin-top: 15px;"><button class="btn btn-magenta" onclick="location.href=\'index.html\'">退出連線大廳</button></div>';
+                    } else {
+                        btnAction = "location.href='index.html'";
+                        btnText = "退出連線大廳";
+                        secondaryBtnContent = '<p style="color:var(--neon-gold); font-size:1.1rem; margin-top:20px; text-shadow:none;">等待房主決定是否重新開始...</p>';
+                    }
                 }
             }
 

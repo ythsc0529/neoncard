@@ -795,7 +795,7 @@
                 localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
                 localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家1');
                 localStorage.removeItem('fromCompetitiveMode');
-                openLobbyAsHost(roomCode);
+                location.href = 'game.html';
             } else {
                 // Join: show the join-code section in lobby
                 openLobbyAsJoiner();
