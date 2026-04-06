@@ -33,7 +33,7 @@ const MatchmakingManager = (() => {
     // ─────────────────────────────────────────────────────────────────
     // joinQueue: main entry point
     // ─────────────────────────────────────────────────────────────────
-    async function joinQueue(gameMode, displayName, onStatus) {
+    async function joinQueue(gameMode, displayName, onStatus, rankedInfo) {
         const user = AuthManager.getCurrentUser();
         if (!user) return;
 
@@ -45,10 +45,14 @@ const MatchmakingManager = (() => {
         _myRef         = queueRef.child(uid);
 
         // 1. Write own entry
+        const myRankScore = rankedInfo
+            ? (typeof RankedSystem !== 'undefined' ? RankedSystem.getRankScore(rankedInfo) : 0)
+            : 0;
         await _myRef.set({
             uid,
             displayName,
             roomCode,
+            rankScore: myRankScore,
             joinedAt: firebase.database.ServerValue.TIMESTAMP
         });
         _myRef.onDisconnect().remove();
@@ -94,17 +98,22 @@ const MatchmakingManager = (() => {
         const myData = all[myUid];
         if (!myData) return false;
 
-        // Sort by joinedAt so we always approach the oldest waiting player first
+        // Sort by rankScore similarity first, then by joinedAt for tiebreaking
+        const myRankScore = myData.rankScore || 0;
         const candidates = Object.entries(all)
             .filter(([id, data]) => {
                 if (id === myUid) return false;
-                // Only claim players OLDER than us to break symmetry in simultaneous joins
-                // Use ID string comparison as tiebreaker if timestamps perfectly match
                 if (data.joinedAt < myData.joinedAt) return true;
                 if (data.joinedAt === myData.joinedAt && id < myUid) return true;
                 return false;
             })
-            .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+            .sort((a, b) => {
+                // Prefer closest rank score
+                const aDiff = Math.abs((a[1].rankScore || 0) - myRankScore);
+                const bDiff = Math.abs((b[1].rankScore || 0) - myRankScore);
+                if (aDiff !== bDiff) return aDiff - bDiff;
+                return (a[1].joinedAt || 0) - (b[1].joinedAt || 0);
+            });
 
         for (const [oppUid, oppData] of candidates) {
             let claimSucceeded = false;

@@ -638,48 +638,117 @@ const Animations = {
 
     // Victory animation
     async victory(winner) {
-        // Track win/loss in Firestore (silent, non-blocking)
-        try {
-            if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
+        // Clear ranked ongoing flag so we don't get penalized since game ended naturally
+        localStorage.removeItem('inRankedMatchOngoing');
+
+        // ── Ranked result processing ─────────────────────────────────────────
+        const isRankedMatch = localStorage.getItem('isRankedMatch') === 'true';
+        if (isRankedMatch &&
+            typeof AuthManager !== 'undefined' &&
+            typeof UserProfile !== 'undefined' &&
+            typeof RankedSystem !== 'undefined' &&
+            typeof GameState !== 'undefined' &&
+            GameState.mode === 'online') {
+            try {
                 const user = AuthManager.getCurrentUser();
-                if (user && typeof GameState !== 'undefined') {
-                    const mode = GameState.mode;
-                    let statMode = null;
-                    let iWon = false;
-                    if (mode === 'pve' || mode === 'story') {
-                        statMode = 'pve';
-                        iWon = (GameState.winner === 1);
-                    } else if (mode === 'online') {
-                        const role = window.localOnlineRole || localStorage.getItem('onlineRole');
-                        const myPlayer = (role === 'host') ? 1 : 2;
-                        const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
-                        statMode = isComp ? 'competitive' : 'online';
-                        iWon = (GameState.winner === myPlayer);
+                if (user) {
+                    const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                    const myPlayer = role === 'host' ? 1 : 2;
+                    const iWon = GameState.winner === myPlayer;
+
+                    // Increment stats
+                    UserProfile.incrementStat(user.uid, 'ranked', iWon).catch(() => {});
+
+                    // Get current ranked, process result
+                    const profile = await UserProfile.getProfile(user.uid);
+                    const currentRanked = profile?.ranked || RankedSystem.defaultRanked();
+                    const { ranked: newRanked, description } = RankedSystem.processMatchResult(currentRanked, iWon);
+
+                    // Save updated ranked
+                    await UserProfile.updateRanked(user.uid, newRanked);
+
+                    // Check title unlock (apex)
+                    let titleUnlocked = null;
+                    if (RankedSystem.shouldGrantApexTitle(newRanked)) {
+                        const titles = profile?.titles || [];
+                        if (!titles.includes(RankedSystem.SEASON.apexTitle)) {
+                            await UserProfile.addTitle(user.uid, RankedSystem.SEASON.apexTitle);
+                            titleUnlocked = RankedSystem.SEASON.apexTitle;
+                        }
                     }
-                    if (statMode) {
-                        UserProfile.incrementStat(user.uid, statMode, iWon).catch(() => {});
+
+                    // Show ranked result overlay (after a short delay)
+                    const overlay = document.getElementById('rankedResultOverlay');
+                    if (overlay) {
+                        document.getElementById('rr-icon').textContent = iWon ? '🏆' : '💀';
+                        document.getElementById('rr-title').textContent = iWon ? '勝利！' : '敗北';
+                        document.getElementById('rr-desc').textContent = description;
+                        document.getElementById('rr-rankImg').src  = RankedSystem.getImgPath(newRanked);
+                        document.getElementById('rr-rankName').textContent = RankedSystem.getDisplayName(newRanked);
+                        document.getElementById('rr-rankStars').innerHTML = RankedSystem.getStarsHtml(newRanked);
+                        // Title unlock section
+                        const titleBlock = document.getElementById('rr-titleUnlock');
+                        if (titleUnlocked) {
+                            const tInfo = RankedSystem.getTitleInfo(titleUnlocked);
+                            document.getElementById('rr-titleImg').src = tInfo?.img || '';
+                            document.getElementById('rr-titleName').textContent = titleUnlocked;
+                            titleBlock.style.display = 'block';
+                        } else {
+                            titleBlock.style.display = 'none';
+                        }
+                        setTimeout(() => overlay.classList.add('active'), 1800);
+                        // Clean up ranked flags
+                        localStorage.removeItem('isRankedMatch');
+                        localStorage.removeItem('myRankedInfo');
                     }
                 }
+            } catch (e) {
+                console.error('[Ranked] Failed to process match result:', e);
             }
-        } catch (_e) { /* silent */ }
+        }
+
+        // Track win/loss in Firestore (for non-ranked modes)
+        if (!isRankedMatch) {
+            try {
+                if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
+                    const user = AuthManager.getCurrentUser();
+                    if (user && typeof GameState !== 'undefined') {
+                        const mode = GameState.mode;
+                        let statMode = null;
+                        let iWon = false;
+                        if (mode === 'pve' || mode === 'story') {
+                            statMode = 'pve';
+                            iWon = (GameState.winner === 1);
+                        } else if (mode === 'online') {
+                            const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                            const myPlayer = (role === 'host') ? 1 : 2;
+                            const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
+                            statMode = isComp ? 'competitive' : 'online';
+                            iWon = (GameState.winner === myPlayer);
+                        }
+                        if (statMode) {
+                            UserProfile.incrementStat(user.uid, statMode, iWon).catch(() => {});
+                        }
+                    }
+                }
+            } catch (_e) { /* silent */ }
+        }
 
         return new Promise(resolve => {
             this.show();
 
-
             const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
             const isOnline = typeof GameState !== 'undefined' && GameState.mode === 'online';
-            
+
             let btnAction = isStory ? "finishStoryBattle()" : "location.href='index.html'";
             let btnText = isStory ? "繼續" : "返回主選單";
             let secondaryBtnContent = '';
 
-            if (isOnline) {
+            if (isOnline && !isRankedMatch) {
                 const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
                 if (isComp) {
                     btnAction = "location.href='index.html'";
                     btnText = "返回主選單";
-                    secondaryBtnContent = '';
                 } else {
                     const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
                     if (localRole === 'host') {
@@ -700,10 +769,7 @@ const Animations = {
                     <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
                         ${winner} 勝利！
                     </div>
-                    <button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">
-                        ${btnText}
-                    </button>
-                    ${secondaryBtnContent}
+                    ${!isRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
                 </div>
             `;
 

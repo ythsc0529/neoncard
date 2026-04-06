@@ -9,6 +9,68 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/theme.js"></script>
+    <style>
+        /* Rank & Title badges in battle headers */
+        .rank-badge-text {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            color: var(--neon-gold);
+            background: rgba(255,215,0,0.1);
+            border: 1px solid rgba(255,215,0,0.4);
+            border-radius: 10px;
+            padding: 1px 7px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .title-badge-text {
+            font-size: 0.65rem;
+            color: var(--neon-cyan);
+            letter-spacing: 1px;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+        /* Rank reveal overlay (shown when a character enters battlefield) */
+        #rankRevealOverlay {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 8000; pointer-events: none;
+        }
+        .rank-reveal-card {
+            background: linear-gradient(135deg, rgba(10,10,30,0.97), rgba(20,20,50,0.97));
+            border: 2px solid var(--neon-gold);
+            border-radius: 20px;
+            padding: 28px 40px;
+            text-align: center;
+            animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                       rankRevealOut 0.4s ease 2.2s forwards;
+            box-shadow: 0 0 50px rgba(255,215,0,0.35);
+        }
+        @keyframes rankRevealIn {
+            from { opacity:0; transform:scale(0.85) translateY(20px); }
+            to   { opacity:1; transform:scale(1)  translateY(0); }
+        }
+        @keyframes rankRevealOut {
+            from { opacity:1; transform:scale(1); }
+            to   { opacity:0; transform:scale(0.9); }
+        }
+        /* Ranked result overlay */
+        #rankedResultOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none; align-items: center; justify-content: center;
+            z-index: 8500; backdrop-filter: blur(6px);
+        }
+        #rankedResultOverlay.active { display: flex; }
+        .ranked-result-card {
+            background: linear-gradient(135deg, rgba(10,10,35,0.98), rgba(20,15,40,0.98));
+            border: 2px solid var(--neon-gold);
+            border-radius: 22px;
+            padding: 32px 40px;
+            text-align: center;
+            max-width: 420px; width: 90%;
+            animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+    </style>
 </head>
 
 <body>
@@ -96,7 +158,13 @@
         <!-- Player 1 Area (Left / Top) -->
         <div class="player-area player1" id="player1Area">
             <div class="player-header glass">
-                <span class="player-name">玩家1</span>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="player-name">玩家1</span>
+                        <span id="p1RankBadge" class="rank-badge-text" style="display:none;"></span>
+                    </div>
+                    <span id="p1TitleBadge" class="title-badge-text" style="display:none;"></span>
+                </div>
                 <span class="thinking-indicator hidden" id="p1Thinking"
                     style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
                     思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
@@ -146,7 +214,7 @@
         <!-- Center Battle Info -->
         <div class="battle-center glass">
             <div class="turn-indicator" id="turnIndicator">
-                回合 <span id="turnCount">0</span>
+                回合 <span id="turnCount">0</span><span id="turnTimerDisplay" style="display:none; color:var(--neon-green); margin-left: 8px;">| ⏱ <span id="turnTimerSecs">60</span>s</span>
             </div>
 
             <button class="btn btn-gold emoji-btn hidden" id="p1EmojiBtn" onclick="openEmojiMenu()"
@@ -160,7 +228,13 @@
         <!-- Player 2 Area (Right / Bottom) -->
         <div class="player-area player2" id="player2Area">
             <div class="player-header glass">
-                <span class="player-name">玩家2</span>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="player-name">玩家2</span>
+                        <span id="p2RankBadge" class="rank-badge-text" style="display:none;"></span>
+                    </div>
+                    <span id="p2TitleBadge" class="title-badge-text" style="display:none;"></span>
+                </div>
                 <span class="thinking-indicator hidden" id="p2Thinking"
                     style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
                     思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
@@ -320,6 +394,29 @@
         </div>
     </div>
 
+    <!-- Rank Reveal Overlay (on game start) -->
+    <div id="rankRevealOverlay" style="display:none;"></div>
+
+    <!-- Ranked Result Overlay (post-game for ranked mode) -->
+    <div id="rankedResultOverlay">
+        <div class="ranked-result-card">
+            <div id="rr-icon" style="font-size:3rem;margin-bottom:12px;"></div>
+            <div id="rr-title" style="font-family:var(--font-heading);font-size:1.4rem;color:var(--neon-gold);margin-bottom:6px;"></div>
+            <div id="rr-desc" style="font-size:1.1rem;color:var(--text-primary);margin-bottom:16px;"></div>
+            <div id="rr-newRank" style="margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <img id="rr-rankImg" style="width:80px;height:80px;object-fit:contain;" src="race_pic/骸1.png" alt="rank">
+                <div id="rr-rankName" style="font-family:var(--font-heading);font-size:1.3rem;color:var(--neon-gold);"></div>
+                <div id="rr-rankStars" style="font-size:1.2rem;letter-spacing:4px;"></div>
+            </div>
+            <div id="rr-titleUnlock" style="display:none;margin-bottom:16px;padding:12px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:12px;">
+                <div style="color:var(--neon-gold);font-size:0.8rem;letter-spacing:2px;margin-bottom:6px;">🎖 稱號解鎖</div>
+                <img id="rr-titleImg" style="width:220px;height:auto;object-fit:contain;max-height:80px;" src="" alt="title">
+                <div id="rr-titleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1rem;margin-top:6px;"></div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;padding:14px;" onclick="document.getElementById('rankedResultOverlay').classList.remove('active');location.href='index.html';">返回主選單</button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <!-- Firebase (for display names & invites) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -331,6 +428,7 @@
     <script src="js/core/friends.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/networkManager.js"></script>
     <script src="js/data/story.js"></script>
     <script src="js/data/characters_part1.js"></script>
@@ -401,6 +499,11 @@
             const type = localStorage.getItem('gameType') || 'pvp';
             const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
 
+            // Set ranked match disconnect penalty flag 
+            if (localStorage.getItem('isRankedMatch') === 'true') {
+                localStorage.setItem('inRankedMatchOngoing', 'true');
+            }
+
             // Show emoji button for online mode
             if (mode === 'online') {
                 document.getElementById('p1EmojiBtn').classList.remove('hidden');
@@ -455,6 +558,11 @@
                         NetManager.sendState({ type: 'first_player', firstPlayer });
                         GameState.firstPlayer = firstPlayer;
                         GameState.currentPlayer = firstPlayer;
+
+                        // Show rank reveal if ranked match
+                        if (localStorage.getItem('isRankedMatch') === 'true') {
+                            await showRankReveal();
+                        }
 
                         // Play synced coin flip
                         await Animations.coinFlip(firstPlayer);
@@ -515,7 +623,44 @@
                     } else {
                         GameState.player1.name = name;
                     }
-                    updateUI(); // Refresh UI with the new name
+                    updateUI();
+                };
+
+                NetManager.onPlayerInfoReceived = (info) => {
+                    console.log('Received opponent player info:', info);
+                    const oppKey = role === 'host' ? 'player2' : 'player1';
+                    const oppPrefix = role === 'host' ? 'p2' : 'p1';
+                    // Store opponent info for rank reveal
+                    window.opponentPlayerInfo = info;
+                    // Show rank badge in header
+                    if (info.isRanked && info.rankDisplay) {
+                        const rankBadge = document.getElementById(oppPrefix + 'RankBadge');
+                        if (rankBadge) {
+                            rankBadge.textContent = info.rankDisplay;
+                            rankBadge.style.display = 'inline-block';
+                        }
+                    }
+                    // Show title badge in header
+                    if (info.activeTitle) {
+                        const titleBadge = document.getElementById(oppPrefix + 'TitleBadge');
+                        if (titleBadge) {
+                            titleBadge.textContent = '〔' + info.activeTitle + '〕';
+                            titleBadge.style.display = 'block';
+                        }
+                    }
+                    // Also show own rank badge (from localStorage)
+                    const myPrefix = role === 'host' ? 'p1' : 'p2';
+                    const myInfo = (() => {
+                        try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
+                    })();
+                    if (myInfo && myInfo.isRanked && myInfo.rankDisplay) {
+                        const myBadge = document.getElementById(myPrefix + 'RankBadge');
+                        if (myBadge) { myBadge.textContent = myInfo.rankDisplay; myBadge.style.display = 'inline-block'; }
+                    }
+                    if (myInfo && myInfo.activeTitle) {
+                        const myTitle = document.getElementById(myPrefix + 'TitleBadge');
+                        if (myTitle) { myTitle.textContent = '〔' + myInfo.activeTitle + '〕'; myTitle.style.display = 'block'; }
+                    }
                 };
 
                 NetManager.onDisconnected = () => {
@@ -868,6 +1013,83 @@
             }
         }
 
+        let turnTimerInterval = null;
+        let turnEndTime = 0;
+
+        function stopTurnTimer() {
+            if (turnTimerInterval) {
+                clearInterval(turnTimerInterval);
+                turnTimerInterval = null;
+            }
+            document.getElementById('turnTimerDisplay').style.display = 'none';
+        }
+
+        function startTurnTimer() {
+            stopTurnTimer();
+            if (GameState.mode !== 'online') return;
+
+            turnEndTime = Date.now() + 60000;
+            document.getElementById('turnTimerDisplay').style.display = 'inline';
+            
+            const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+            const isLocalTurn = (GameState.currentPlayer === 1 && localRole === 'host') || 
+                                (GameState.currentPlayer === 2 && localRole === 'join');
+
+            // Force visual update instantly
+            document.getElementById('turnTimerSecs').textContent = '60';
+
+            turnTimerInterval = setInterval(() => {
+                const left = Math.ceil((turnEndTime - Date.now()) / 1000);
+                if (left <= 0) {
+                    stopTurnTimer();
+                    document.getElementById('turnTimerSecs').textContent = '0';
+                    if (isLocalTurn && GameState.phase === 'battle') {
+                        fallbackAutoPlay();
+                    }
+                } else {
+                    document.getElementById('turnTimerSecs').textContent = left;
+                }
+            }, 500); // Check half-second to avoid visual skipping
+        }
+
+        function fallbackAutoPlay() {
+            const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+            const card = GameState[playerKey].battleCard;
+            
+            if (!card) return;
+            
+            // Try to find any available action
+            const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+            
+            if (!isSilenced && card.skills) {
+                for (let i = 0; i < card.skills.length; i++) {
+                    if (card.cooldowns[i] <= 0) {
+                        const speedCost = card.skills[i].speedCost || 0;
+                        const currentSpeed = card.resources?.speed || 0;
+                        if (currentSpeed >= speedCost) {
+                            doAction('skill', i);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            const noAttackPassive = card.passive?.effect?.action === 'no_attack_dot_revive';
+            if (!noAttackPassive) {
+                doAction('attack');
+                return;
+            }
+            
+            const sbIndex = GameState[playerKey].standbyCards.findIndex(c => c.hp > 0);
+            if (sbIndex !== -1) {
+                doAction('swap', sbIndex);
+                return;
+            }
+            
+            // Force attack to push game state if totally blocked
+            doAction('attack');
+        }
+
         function updateUI() {
             // Update turn indicator
             document.getElementById('turnCount').textContent = GameState.turnCount;
@@ -1044,6 +1266,9 @@
                     }
                 }
             }
+            
+            // Start or refresh turn timer
+            startTurnTimer();
         }
 
         function updatePlayerCard(playerKey, prefix) {
@@ -1887,6 +2112,55 @@
         
         function escHtml(str) {
             return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // Rank reveal animation (shown at the start of a ranked match)
+        async function showRankReveal() {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('rankRevealOverlay');
+                if (!overlay) { resolve(); return; }
+
+                const myInfo = (() => {
+                    try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
+                })();
+                const oppInfo = window.opponentPlayerInfo;
+                const isHost = (window.localOnlineRole || localStorage.getItem('onlineRole')) === 'host';
+                const myName = isHost ? (GameState.player1?.name || '我') : (GameState.player2?.name || '我');
+                const oppName = isHost ? (GameState.player2?.name || '對手') : (GameState.player1?.name || '對手');
+
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="rank-reveal-card" style="min-width:320px;">
+                        <div style="color:var(--neon-gold);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">⚔ 排位對戰</div>
+                        <div style="display:flex;justify-content:center;gap:32px;align-items:flex-start;">
+                            <!-- Me -->
+                            <div style="text-align:center;min-width:100px;">
+                                <div style="font-size:0.75rem;color:var(--neon-cyan);letter-spacing:2px;margin-bottom:8px;">我</div>
+                                <img src="${myInfo?.rankImg || 'race_pic/骸1.png'}" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(0,243,255,0.5));">
+                                <div style="font-family:var(--font-heading);color:var(--neon-cyan);font-size:0.9rem;margin-top:6px;">${escHtml(myName)}</div>
+                                <div style="color:var(--neon-gold);font-size:0.8rem;margin-top:2px;">${myInfo?.rankDisplay || '骸1'}</div>
+                                ${myInfo?.activeTitle ? `<div style="color:var(--text-muted);font-size:0.7rem;margin-top:2px;">〔${escHtml(myInfo.activeTitle)}〕</div>` : ''}
+                            </div>
+                            <div style="font-family:var(--font-heading);font-size:2rem;color:var(--text-muted);padding-top:24px;">VS</div>
+                            <!-- Opponent -->
+                            <div style="text-align:center;min-width:100px;">
+                                <div style="font-size:0.75rem;color:var(--neon-magenta);letter-spacing:2px;margin-bottom:8px;">對手</div>
+                                <img src="${oppInfo?.rankImg || 'race_pic/骸1.png'}" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(255,0,255,0.5));">
+                                <div style="font-family:var(--font-heading);color:var(--neon-magenta);font-size:0.9rem;margin-top:6px;">${escHtml(oppName)}</div>
+                                <div style="color:var(--neon-gold);font-size:0.8rem;margin-top:2px;">${oppInfo?.rankDisplay || '骸1'}</div>
+                                ${oppInfo?.activeTitle ? `<div style="color:var(--text-muted);font-size:0.7rem;margin-top:2px;">〔${escHtml(oppInfo.activeTitle)}〕</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Auto-hide after 2.8s (matches animation)
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    overlay.innerHTML = '';
+                    resolve();
+                }, 2800);
+            });
         }
 
         // Initialize game

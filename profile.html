@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/friends.js"></script>
     <style>
         body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
@@ -143,6 +144,30 @@
                     <div id="joinDateDisplay" style="color:var(--text-muted);font-size:0.85rem;">-</div>
                 </div>
 
+                <!-- Ranked Info Section -->
+                <div class="meta-row" id="rankedSection" style="display:none;">
+                    <div class="bio-label" style="margin-bottom:10px;">🏅 排位資訊</div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <img id="profileRankImg" src="" alt="rank" style="width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,215,0,0.4));">
+                        <div id="profileRankName" style="font-family:var(--font-heading);font-size:1.1rem;color:var(--neon-gold);"></div>
+                        <div id="profileRankStars" style="font-size:1.1rem;letter-spacing:3px;"></div>
+                    </div>
+                    <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--glass-border);">
+                        <div class="bio-label" style="margin-bottom:3px;">歷史最高</div>
+                        <div id="profilePeakRank" style="color:var(--text-secondary);font-size:0.85rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Title Selector Section -->
+                <div class="meta-row" id="titleSection" style="display:none;">
+                    <div class="bio-label" style="margin-bottom:8px;">🎖 當前稱號</div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <img id="profileTitleImg" src="" alt="title" style="height:32px;object-fit:contain;">
+                        <span id="profileTitleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:0.95rem;"></span>
+                        <button class="btn btn-sm" style="margin-left:auto;font-size:0.75rem;padding:5px 10px;" onclick="openTitlePicker()">更換</button>
+                    </div>
+                </div>
+
                 <button class="btn logout-btn btn-sm" onclick="handleLogout()">登出</button>
             </div>
 
@@ -195,6 +220,15 @@
                 <button class="btn" style="flex:1;" onclick="saveCharPicker()">確認</button>
                 <button class="btn" style="flex:1;opacity:0.6;" onclick="closeCharPicker()">取消</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Title Picker Modal -->
+    <div class="modal-overlay" id="titlePickerModal">
+        <div class="modal glass" style="max-width:460px;">
+            <h2 style="margin-bottom:16px;">🎖 選擇稱號</h2>
+            <div id="titlePickerList" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <button class="btn" style="width:100%;margin-top:16px;opacity:0.6;" onclick="closeTitlePicker()">取消</button>
         </div>
     </div>
 
@@ -342,6 +376,86 @@
             const dateStr = formatJoinDate(p.createdAt);
             joinEl.textContent = dateStr || '未知';
             renderFavChars();
+            renderRanked();
+            renderTitle();
+        }
+
+        function renderRanked() {
+            const p = myProfile;
+            if (!p.ranked || typeof RankedSystem === 'undefined') return;
+            const ranked = p.ranked;
+            document.getElementById('profileRankImg').src = RankedSystem.getImgPath(ranked);
+            document.getElementById('profileRankName').textContent = RankedSystem.getDisplayName(ranked);
+            document.getElementById('profileRankStars').innerHTML = RankedSystem.getStarsHtml(ranked);
+            document.getElementById('profilePeakRank').textContent = RankedSystem.getPeakDisplay(ranked);
+            document.getElementById('rankedSection').style.display = 'block';
+        }
+
+        function renderTitle() {
+            const p = myProfile;
+            if (!p.titles || !p.titles.length || typeof RankedSystem === 'undefined') return;
+            const active = p.activeTitle || p.titles[0];
+            const tInfo = RankedSystem.getTitleInfo(active);
+            if (tInfo) {
+                document.getElementById('profileTitleImg').src = tInfo.img;
+                document.getElementById('profileTitleName').textContent = active;
+            } else {
+                document.getElementById('profileTitleName').textContent = active;
+                document.getElementById('profileTitleImg').style.display = 'none';
+            }
+            document.getElementById('titleSection').style.display = 'block';
+        }
+
+        // ── Title Picker ────────────────────────────────────────────────
+        function openTitlePicker() {
+            const p = myProfile;
+            const myTitles = p.titles || ['初到新星'];
+            const active = p.activeTitle || myTitles[0];
+            const allTitles = typeof RankedSystem !== 'undefined' ? RankedSystem.getAllTitles() : [];
+            const list = document.getElementById('titlePickerList');
+            
+            list.innerHTML = allTitles.map(tInfo => {
+                const key = tInfo.key;
+                const isOwned = myTitles.includes(key);
+                const isActive = key === active;
+                
+                const clickHandler = isOwned ? `onclick="selectTitle('${key}')"` : '';
+                const opacity = isOwned ? '1' : '0.5';
+                const cursor = isOwned ? 'cursor:pointer;' : 'cursor:not-allowed;';
+                const borderHover = isOwned ? `onmouseover="this.style.borderColor='var(--neon-gold)'" onmouseout="this.style.borderColor='${isActive ? 'var(--neon-gold)' : 'var(--glass-border)'}'"` : '';
+                
+                return `
+                    <div ${clickHandler} style="
+                        display:flex;align-items:center;gap:14px;padding:12px 16px;
+                        border-radius:12px;border:1px solid ${isActive ? 'var(--neon-gold)' : 'var(--glass-border)'};
+                        background:${isActive ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)'};
+                        ${cursor} transition:all 0.2s; opacity:${opacity};
+                    " ${borderHover}>
+                        <img src="${tInfo.img}" style="height:36px;object-fit:contain;${!isOwned ? 'filter:grayscale(100%);' : ''}">
+                        <div style="flex:1;">
+                            <div style="font-family:var(--font-heading);color:${isActive ? 'var(--neon-gold)' : 'var(--text-primary)'};font-size:1rem;display:flex;align-items:center;gap:8px;">
+                                ${key} ${!isOwned ? '<span style="font-size:0.7rem;color:var(--neon-pink);border:1px solid var(--neon-pink);border-radius:4px;padding:1px 4px;line-height:1;">未解鎖</span>' : ''}
+                            </div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${tInfo.desc}</div>
+                        </div>
+                        ${isActive ? '<span style="color:var(--neon-gold);font-size:1rem;">✓</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('titlePickerModal').classList.add('active');
+        }
+
+        async function selectTitle(key) {
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            await UserProfile.setActiveTitle(user.uid, key);
+            myProfile.activeTitle = key;
+            renderTitle();
+            closeTitlePicker();
+        }
+
+        function closeTitlePicker() {
+            document.getElementById('titlePickerModal').classList.remove('active');
         }
 
         function renderFavChars() {

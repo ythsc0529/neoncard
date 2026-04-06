@@ -13,6 +13,7 @@ class NetworkManager {
         this.onError = null;
         this.onPeerStateChange = null; // 'thinking', 'selecting', etc.
         this.onNameReceived = null;
+        this.onPlayerInfoReceived = null; // { name, rankDisplay, rankImg, starsHtml, activeTitle }
     }
 
     generateShortId() {
@@ -196,6 +197,9 @@ class NetworkManager {
                 }
             } else if (data.type === 'name' && this.onNameReceived) {
                 this.onNameReceived(data.name);
+            } else if (data.type === 'player_info') {
+                if (this.onNameReceived) this.onNameReceived(data.name);
+                if (this.onPlayerInfoReceived) this.onPlayerInfoReceived(data);
             } else if (data.type === 'seed' && !this.isHost) {
                 // Host sends the game seed to client upon connection
                 window.GameRNG = new SeededRNG(data.seed);
@@ -211,9 +215,20 @@ class NetworkManager {
             if (this.onDisconnected) this.onDisconnected();
         });
 
-        // Exchange names immediately upon connection
+        // Exchange player info (name + ranked + title) immediately upon connection
         const myName = localStorage.getItem('onlineMyName') || (this.isHost ? '玩家1' : '玩家2');
-        this.conn.send({ type: 'name', name: myName });
+        const myRankedInfo = (() => {
+            try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
+        })();
+        this.conn.send({
+            type: 'player_info',
+            name: myName,
+            rankDisplay: myRankedInfo ? myRankedInfo.rankDisplay : '骸1',
+            rankImg:     myRankedInfo ? myRankedInfo.rankImg     : 'race_pic/骸1.png',
+            starsHtml:   myRankedInfo ? myRankedInfo.starsHtml   : '',
+            activeTitle: myRankedInfo ? myRankedInfo.activeTitle : '初到新星',
+            isRanked:    myRankedInfo ? myRankedInfo.isRanked    : false
+        });
 
         if (this.isHost) {
             // Host generates seed and sends it

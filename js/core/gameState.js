@@ -256,14 +256,23 @@ const GameState = {
 
     // Check win condition
     checkWin() {
-        if (!this.player1.battleCard && this.player1.standbyCards.length === 0) {
-            this.winner = 2;
+        const p1Alive = this.player1.battleCard || this.player1.standbyCards.length > 0;
+        const p2Alive = this.player2.battleCard || this.player2.standbyCards.length > 0;
+
+        if (!p1Alive && !p2Alive) {
+            this.winner = 0; // Draw
             this.phase = 'game_over';
+            if (typeof stopTurnTimer === 'function') stopTurnTimer();
             return true;
-        }
-        if (!this.player2.battleCard && this.player2.standbyCards.length === 0) {
-            this.winner = 1;
+        } else if (!p1Alive) {
+            this.winner = 2; // P2 wins
             this.phase = 'game_over';
+            if (typeof stopTurnTimer === 'function') stopTurnTimer();
+            return true;
+        } else if (!p2Alive) {
+            this.winner = 1; // P1 wins
+            this.phase = 'game_over';
+            if (typeof stopTurnTimer === 'function') stopTurnTimer();
             return true;
         }
         return false;

@@ -278,15 +278,71 @@
         </div>
     </div>
 
-    <!-- ── Tournament Modal ── -->
+    <!-- ── Tournament Modal: Casual / Ranked Choice ── -->
     <div class="modal-overlay" id="tournamentModal">
-        <div class="modal glass" style="text-align:center;">
+        <div class="modal glass" style="text-align:center;max-width:420px;">
             <h2 style="color:var(--neon-gold);">🏆 競賽模式</h2>
-            <p style="color:var(--text-secondary);margin:12px 0 24px;line-height:1.6;">與全球玩家自動配對<br>選擇你的對戰規則</p>
-            <div class="modal-buttons">
-                <button class="btn" style="border-color:var(--neon-cyan);color:var(--neon-cyan);" onclick="startMatchmaking('quick')">⚡ 快速模式 (3張牌)</button>
-                <button class="btn btn-magenta" onclick="startMatchmaking('classic')">📜 經典模式 (7張牌)</button>
-                <button class="btn" onclick="closeTournamentModal()" style="margin-top:20px;opacity:0.7;">返回</button>
+            <p style="color:var(--text-secondary);margin:10px 0 22px;line-height:1.6;">與全球玩家自動配對，選擇模式</p>
+            <div class="modal-buttons" style="gap:14px;">
+                <button class="btn" style="border-color:var(--neon-cyan);color:var(--neon-cyan);padding:16px;font-size:1rem;" onclick="startCasualMatchmaking()">
+                    ⚡ 休閒模式
+                    <div style="font-size:0.75rem;opacity:0.7;margin-top:4px;">自由配對・無段位影響</div>
+                </button>
+                <button class="btn btn-gold" style="padding:16px;font-size:1rem;" onclick="showRankedLobby()">
+                    🏅 排位賽
+                    <div style="font-size:0.75rem;opacity:0.7;margin-top:4px;">段位匹配・影響排名</div>
+                </button>
+                <button class="btn" onclick="closeTournamentModal()" style="margin-top:8px;opacity:0.7;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Ranked Lobby Modal ── -->
+    <div class="modal-overlay" id="rankedLobbyModal">
+        <div class="modal glass" style="text-align:center;max-width:450px;padding:0;overflow:hidden;">
+            <!-- Season header -->
+            <div style="background:linear-gradient(135deg,rgba(255,180,0,0.15),rgba(255,100,0,0.08));padding:20px 28px 16px;border-bottom:1px solid rgba(255,215,0,0.2);">
+                <div style="color:var(--neon-gold);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">當前賽季</div>
+                <div style="color:#fff;font-family:var(--font-heading);font-size:1.1rem;letter-spacing:1px;" id="rl-seasonName">S1：淵底甦醒</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;margin-top:3px;">賽季結束：2026/05/31</div>
+            </div>
+            <!-- Rank display -->
+            <div style="padding:24px 28px;" id="rl-rankBody">
+                <div style="color:var(--text-secondary);font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">我的段位</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <img id="rl-rankImg" src="race_pic/骸1.png" alt="rank" style="width:100px;height:100px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(255,215,0,0.4));">
+                    <div id="rl-rankName" style="font-family:var(--font-heading);font-size:1.6rem;color:var(--neon-gold);">骸1</div>
+                    <div id="rl-rankStars" style="font-size:1.4rem;letter-spacing:4px;">★☆☆☆☆</div>
+                    <div id="rl-rankPoints" style="color:var(--text-muted);font-size:0.85rem;display:none;"></div>
+                </div>
+                <!-- Peak rank -->
+                <div style="margin-top:14px;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid var(--glass-border);">
+                    <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">歷史最高</div>
+                    <div id="rl-peakRank" style="color:var(--text-secondary);font-size:0.9rem;">-</div>
+                </div>
+            </div>
+            <!-- Buttons -->
+            <div style="padding:0 28px 24px;display:flex;flex-direction:column;gap:10px;">
+                <button class="btn" style="border-color:rgba(255,255,255,0.3);color:var(--text-secondary);font-size:0.85rem;padding:10px;" onclick="showRankList()">
+                    📋 查看段位列表
+                </button>
+                <button class="btn btn-gold" style="padding:14px;font-size:1.05rem;" onclick="startRankedMatchmaking()">
+                    🔍 開始匹配
+                </button>
+                <button class="btn" onclick="closeRankedLobby()" style="opacity:0.6;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Rank List Modal ── -->
+    <div class="modal-overlay" id="rankListModal">
+        <div class="modal glass" style="max-width:500px;max-height:80vh;padding:0;overflow:hidden;display:flex;flex-direction:column;">
+            <div style="padding:20px 24px 14px;border-bottom:1px solid var(--glass-border);">
+                <h2 style="color:var(--neon-gold);margin:0;font-size:1.1rem;letter-spacing:2px;">📋 段位列表</h2>
+            </div>
+            <div id="rankListGrid" style="overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+            <div style="padding:14px 24px;border-top:1px solid var(--glass-border);">
+                <button class="btn" style="width:100%;opacity:0.7;" onclick="closeRankList()">關閉</button>
             </div>
         </div>
     </div>
@@ -418,6 +474,7 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/networkManager.js"></script>
     <script>
         // ── State ──────────────────────────────────────────────────────
@@ -435,7 +492,19 @@
         AuthManager.onAuthChanged(async (user) => {
             if (isGuest) return; // Guest already set up
             if (user) {
-                const profile = await UserProfile.getProfile(user.uid);
+                let profile = await UserProfile.getProfile(user.uid);
+                
+                // 檢查是否有排位中離標記
+                if (localStorage.getItem('inRankedMatchOngoing') === 'true' && profile && profile.ranked) {
+                    const result = typeof RankedSystem !== 'undefined' ? RankedSystem.penalizeLeave(profile.ranked) : null;
+                    if (result) {
+                        profile.ranked = result.ranked;
+                        await UserProfile.updateRanked(user.uid, result.ranked);
+                        alert('⚠️ 系統偵測到您在先前的排位賽中途斷線或離開。\n\n' + result.description);
+                    }
+                    localStorage.removeItem('inRankedMatchOngoing');
+                }
+
                 if (!profile || !profile.isProfileSetup) {
                     showFirstTimeSetup(user);
                 } else {
@@ -621,11 +690,96 @@
             document.getElementById('tournamentModal').classList.remove('active');
         }
 
-        function startMatchmaking(mode) {
+        // ── Casual Matchmaking ───────────────────────────────────────────────
+        function startCasualMatchmaking() {
             document.getElementById('tournamentModal').classList.remove('active');
+            startMatchmaking('classic'); // casual always classic (7 cards)
+        }
+
+        // ── Ranked Lobby ─────────────────────────────────────────────────────
+        let _myRanked = null; // cached for this session
+
+        async function showRankedLobby() {
+            document.getElementById('tournamentModal').classList.remove('active');
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+
+            // Ensure legacy account has titles + ranked
+            await UserProfile.ensureTitles(user.uid);
+
+            const profile = await UserProfile.getProfile(user.uid);
+            _myRanked = profile?.ranked || RankedSystem.defaultRanked();
+
+            // Season name
+            document.getElementById('rl-seasonName').textContent = RankedSystem.SEASON.name;
+
+            // Rank image + name + stars
+            document.getElementById('rl-rankImg').src = RankedSystem.getImgPath(_myRanked);
+            document.getElementById('rl-rankName').textContent = RankedSystem.getDisplayName(_myRanked);
+            document.getElementById('rl-rankStars').innerHTML = RankedSystem.getStarsHtml(_myRanked);
+
+            if (RankedSystem.isApex(_myRanked.tierIdx)) {
+                document.getElementById('rl-rankPoints').style.display = 'block';
+                document.getElementById('rl-rankPoints').textContent = `${_myRanked.points || 0} 積分`;
+            } else {
+                document.getElementById('rl-rankPoints').style.display = 'none';
+            }
+
+            document.getElementById('rl-peakRank').textContent = RankedSystem.getPeakDisplay(_myRanked);
+
+            document.getElementById('rankedLobbyModal').classList.add('active');
+        }
+
+        function closeRankedLobby() {
+            document.getElementById('rankedLobbyModal').classList.remove('active');
+            document.getElementById('tournamentModal').classList.add('active');
+        }
+
+        // ── Rank List ────────────────────────────────────────────────────────
+        function showRankList() {
+            const grid = document.getElementById('rankListGrid');
+            grid.innerHTML = RankedSystem.getAllTiers().map(t => `
+                <div style="display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);${t.isApex ? 'border-color:rgba(255,215,0,0.4);background:rgba(255,215,0,0.06);' : ''}">
+                    <img src="${t.img}" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;" alt="${t.name}">
+                    <div>
+                        <div style="font-family:var(--font-heading);font-size:1rem;color:${t.isApex ? 'var(--neon-gold)' : 'var(--text-primary)'};">${ t.name }</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${t.isApex ? '★ 最高段位・改用積分制' : '每5顆星升段'}</div>
+                    </div>
+                    ${t.isApex ? '<span style="margin-left:auto;color:var(--neon-gold);font-size:1.2rem;">👑</span>' : ''}
+                </div>`).join('');
+            document.getElementById('rankListModal').classList.add('active');
+        }
+
+        function closeRankList() {
+            document.getElementById('rankListModal').classList.remove('active');
+        }
+
+        // ── Ranked Matchmaking Start ─────────────────────────────────────────
+        function startRankedMatchmaking() {
+            document.getElementById('rankedLobbyModal').classList.remove('active');
+            // Store ranked info for networkManager to send to opponent
+            if (_myRanked) {
+                const info = {
+                    rankDisplay: RankedSystem.getDisplayName(_myRanked),
+                    rankImg: RankedSystem.getImgPath(_myRanked),
+                    starsHtml: RankedSystem.getStarsHtml(_myRanked),
+                    activeTitle: currentUserProfile?.activeTitle || '初到新星',
+                    isRanked: true
+                };
+                localStorage.setItem('myRankedInfo', JSON.stringify(info));
+                localStorage.setItem('isRankedMatch', 'true');
+            }
+            startMatchmaking('classic', true); // ranked always classic 7 cards
+        }
+
+        function startMatchmaking(mode, isRanked) {
+            localStorage.removeItem('isRankedMatch');
+            if (!isRanked) localStorage.removeItem('myRankedInfo');
+            if (isRanked) localStorage.setItem('isRankedMatch', 'true');
+
             matchmakingSeconds = 0;
             document.getElementById('matchmakingTimer').textContent = '0:00';
-            document.getElementById('matchmakingStatusText').textContent = '正在配對中，請稍候...';
+            document.getElementById('matchmakingStatusText').textContent = isRanked ? '🏅 排位配對中，請稍候...' : '正在配對中，請稍候...';
             document.getElementById('matchmakingModal').classList.add('active');
 
             matchmakingTimerInterval = setInterval(() => {
@@ -636,19 +790,18 @@
             }, 1000);
 
             const displayName = currentUserProfile?.displayName || '玩家';
+            const rankedInfo = isRanked ? _myRanked : null;
             MatchmakingManager.joinQueue(mode, displayName, (status) => {
                 if (status === 'matched' || status === 'bot_match_start') {
                     clearInterval(matchmakingTimerInterval);
                 }
                 if (status === 'bot_match_start') {
-                    // Show a fake "match found" message before redirect
                     document.getElementById('matchmakingStatusText').textContent = '✅ 找到對手！即將開始...';
-                    document.querySelector('#matchmakingModal .btn').style.display = 'none'; // hide cancel
+                    document.querySelector('#matchmakingModal .btn').style.display = 'none';
                 } else if (status === 'matched') {
                     document.getElementById('matchmakingStatusText').textContent = '✅ 配對成功！即將開始...';
                 }
-            });
-
+            }, rankedInfo);
         }
 
         function cancelMatchmaking() {

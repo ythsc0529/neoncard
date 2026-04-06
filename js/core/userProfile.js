@@ -7,7 +7,38 @@ const UserProfile = (() => {
     async function getProfile(uid) {
         try {
             const doc = await db().collection('users').doc(uid).get();
-            return doc.exists ? { uid: doc.id, ...doc.data() } : null;
+            if (!doc.exists) return null;
+            
+            const data = doc.data();
+            let needsUpdate = false;
+            const updates = {};
+            
+            if (!data.titles || !data.titles.includes('初到新星')) {
+                updates.titles = firebase.firestore.FieldValue.arrayUnion('初到新星');
+                data.titles = data.titles || [];
+                if (!data.titles.includes('初到新星')) data.titles.push('初到新星');
+                needsUpdate = true;
+            }
+            if (!data.activeTitle) {
+                updates.activeTitle = '初到新星';
+                data.activeTitle = '初到新星';
+                needsUpdate = true;
+            }
+            if (!data.ranked) {
+                const def = typeof RankedSystem !== 'undefined'
+                    ? RankedSystem.defaultRanked()
+                    : { tierIdx: 0, stars: 1, points: 0, peakTierIdx: 0, peakSeason: 'S1' };
+                updates.ranked = def;
+                data.ranked = def;
+                needsUpdate = true;
+            }
+            
+            if (needsUpdate) {
+                // Fire and forget update
+                db().collection('users').doc(uid).set(updates, { merge: true }).catch(e => console.error('[UserProfile] auto-update failed:', e));
+            }
+            
+            return { uid: doc.id, ...data };
         } catch (e) {
             console.error('[UserProfile] getProfile:', e);
             return null;
@@ -15,6 +46,9 @@ const UserProfile = (() => {
     }
 
     async function createProfile(uid, displayName, googlePhotoURL) {
+        const def = typeof RankedSystem !== 'undefined'
+            ? RankedSystem.defaultRanked()
+            : { tierIdx: 0, stars: 1, points: 0, peakTierIdx: 0, peakSeason: 'S1' };
         const profile = {
             displayName: displayName.trim(),
             googlePhotoURL: googlePhotoURL || '',
@@ -22,7 +56,10 @@ const UserProfile = (() => {
             favoriteChars: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             isProfileSetup: true,
-            uid
+            uid,
+            ranked: def,
+            titles: ['初到新星'],
+            activeTitle: '初到新星'
         };
         await db().collection('users').doc(uid).set(profile);
         return profile;
@@ -48,12 +85,11 @@ const UserProfile = (() => {
             .where('displayName', '==', name.trim())
             .limit(2).get();
         if (snap.empty) return false;
-        // Only taken if there's a doc that's NOT the excluding uid
         return snap.docs.some(d => d.id !== excludeUid);
     }
 
     // Increment win or loss stat for a game mode
-    // mode: 'pve' | 'pvp' | 'online' | 'competitive'
+    // mode: 'pve' | 'pvp' | 'online' | 'competitive' | 'ranked'
     async function incrementStat(uid, mode, isWin) {
         const field = isWin ? 'wins' : 'losses';
         const updateData = {};
@@ -61,7 +97,6 @@ const UserProfile = (() => {
         try {
             await db().collection('users').doc(uid).update(updateData);
         } catch (e) {
-            // If stats field doesn't exist yet, set it
             await db().collection('users').doc(uid).set(
                 { stats: { [mode]: { [field]: 1 } } },
                 { merge: true }
@@ -74,7 +109,55 @@ const UserProfile = (() => {
         return !!(p && p.isProfileSetup);
     }
 
-    return { getProfile, createProfile, updateProfile, searchByDisplayName, isNameTaken, incrementStat, isProfileSetup };
+    // ── Ranked helpers ───────────────────────────────────────────────────────
+    async function updateRanked(uid, rankedData) {
+        await db().collection('users').doc(uid).set(
+            { ranked: rankedData },
+            { merge: true }
+        );
+    }
+
+    // ── Title helpers ────────────────────────────────────────────────────────
+    // Ensure legacy accounts get 初到新星 title and default ranked
+    async function ensureTitles(uid) {
+        const p = await getProfile(uid);
+        if (!p) return;
+        const updates = {};
+        const titles = p.titles || [];
+        if (!titles.includes('初到新星')) {
+            updates.titles = firebase.firestore.FieldValue.arrayUnion('初到新星');
+        }
+        if (!p.activeTitle) {
+            updates.activeTitle = '初到新星';
+        }
+        if (!p.ranked) {
+            const def = typeof RankedSystem !== 'undefined'
+                ? RankedSystem.defaultRanked()
+                : { tierIdx: 0, stars: 1, points: 0, peakTierIdx: 0, peakSeason: 'S1' };
+            updates.ranked = def;
+        }
+        if (Object.keys(updates).length > 0) {
+            await db().collection('users').doc(uid).set(updates, { merge: true });
+        }
+    }
+
+    async function addTitle(uid, titleKey) {
+        await db().collection('users').doc(uid).set(
+            { titles: firebase.firestore.FieldValue.arrayUnion(titleKey) },
+            { merge: true }
+        );
+    }
+
+    async function setActiveTitle(uid, titleKey) {
+        await db().collection('users').doc(uid).update({ activeTitle: titleKey });
+    }
+
+    return {
+        getProfile, createProfile, updateProfile,
+        searchByDisplayName, isNameTaken,
+        incrementStat, isProfileSetup,
+        updateRanked, ensureTitles, addTitle, setActiveTitle
+    };
 })();
 
 window.UserProfile = UserProfile;

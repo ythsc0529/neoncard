@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/friends.js"></script>
     <style>
         body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
@@ -83,6 +84,23 @@
             <div class="fav-section" id="favSection" style="display:none;">
                 <div class="section-label">愛用角色</div>
                 <div class="fav-chips" id="favChips"></div>
+            </div>
+
+            <!-- Ranked + Title -->
+            <div class="fav-section" id="rankTitleSection" style="display:none;border-top:1px solid var(--glass-border);margin-top:16px;padding-top:16px;">
+                <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+                    <div style="text-align:center;">
+                        <div class="section-label" style="margin-bottom:8px;">🏅 排位</div>
+                        <img id="playerRankImg" src="" style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,215,0,0.4));" alt="rank">
+                        <div id="playerRankName" style="font-family:var(--font-heading);color:var(--neon-gold);font-size:0.95rem;margin-top:4px;"></div>
+                        <div id="playerRankStars" style="font-size:0.9rem;letter-spacing:2px;"></div>
+                    </div>
+                    <div id="playerTitleBlock" style="text-align:center;display:none;">
+                        <div class="section-label" style="margin-bottom:8px;">🎖 稱號</div>
+                        <img id="playerTitleImg" src="" style="height:36px;object-fit:contain;" alt="title">
+                        <div id="playerTitleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:0.85rem;margin-top:4px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -184,6 +202,23 @@
                         document.getElementById('favChips').innerHTML =
                             profile.favCharacters.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
                         document.getElementById('favSection').style.display = 'block';
+                    }
+
+                    // Ranked + Title
+                    if (profile.ranked && typeof RankedSystem !== 'undefined') {
+                        const ranked = profile.ranked;
+                        document.getElementById('playerRankImg').src = RankedSystem.getImgPath(ranked);
+                        document.getElementById('playerRankName').textContent = RankedSystem.getDisplayName(ranked);
+                        document.getElementById('playerRankStars').innerHTML = RankedSystem.getStarsHtml(ranked);
+                        document.getElementById('rankTitleSection').style.display = 'block';
+                    }
+                    if (profile.activeTitle && typeof RankedSystem !== 'undefined') {
+                        const tInfo = RankedSystem.getTitleInfo(profile.activeTitle);
+                        if (tInfo) {
+                            document.getElementById('playerTitleImg').src = tInfo.img;
+                            document.getElementById('playerTitleName').textContent = profile.activeTitle;
+                            document.getElementById('playerTitleBlock').style.display = 'block';
+                        }
                     }
 
                     // Stats
