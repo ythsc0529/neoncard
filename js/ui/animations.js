@@ -643,18 +643,27 @@ const Animations = {
 
         // ── Ranked result processing ─────────────────────────────────────────
         const isRankedMatch = localStorage.getItem('isRankedMatch') === 'true';
-        if (isRankedMatch &&
+        const isBotRankedMatch = localStorage.getItem('isBotRankedMatch') === 'true';
+        const isAnyRankedMatch = isRankedMatch || isBotRankedMatch;
+
+        if (isAnyRankedMatch &&
             typeof AuthManager !== 'undefined' &&
             typeof UserProfile !== 'undefined' &&
             typeof RankedSystem !== 'undefined' &&
             typeof GameState !== 'undefined' &&
-            GameState.mode === 'online') {
+            (GameState.mode === 'online' || isBotRankedMatch)) {
             try {
                 const user = AuthManager.getCurrentUser();
                 if (user) {
-                    const role = window.localOnlineRole || localStorage.getItem('onlineRole');
-                    const myPlayer = role === 'host' ? 1 : 2;
-                    const iWon = GameState.winner === myPlayer;
+                    let iWon = false;
+                    if (isBotRankedMatch) {
+                        // In bot matchmaking, we are always player 1
+                        iWon = GameState.winner === 1;
+                    } else {
+                        const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                        const myPlayer = role === 'host' ? 1 : 2;
+                        iWon = GameState.winner === myPlayer;
+                    }
 
                     // Increment stats
                     UserProfile.incrementStat(user.uid, 'ranked', iWon).catch(() => {});
@@ -696,9 +705,13 @@ const Animations = {
                         } else {
                             titleBlock.style.display = 'none';
                         }
-                        setTimeout(() => overlay.classList.add('active'), 1800);
+                        setTimeout(() => {
+                            this.hide(); // Bug 4 Fix: Hide victory overlay before showing ranked result
+                            overlay.classList.add('active');
+                        }, 1800);
                         // Clean up ranked flags
                         localStorage.removeItem('isRankedMatch');
+                        localStorage.removeItem('isBotRankedMatch');
                         localStorage.removeItem('myRankedInfo');
                     }
                 }

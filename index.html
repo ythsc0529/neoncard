@@ -1178,6 +1178,9 @@
             localStorage.setItem('onlineSubMode', gameMode);
             localStorage.setItem('roomId', roomId);
             localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家');
+            localStorage.removeItem('isRankedMatch');
+            localStorage.removeItem('myRankedInfo');
+            localStorage.removeItem('isBotRankedMatch');
             localStorage.setItem('onlineOpponentName', fromName);
             location.href = 'game.html';
         }
@@ -1228,6 +1231,9 @@
             localStorage.setItem('gameType', type);
             localStorage.setItem('pveDifficulty', difficulty);
             localStorage.removeItem('onlineMyName');
+            localStorage.removeItem('isRankedMatch');
+            localStorage.removeItem('myRankedInfo');
+            localStorage.removeItem('isBotRankedMatch');
             localStorage.removeItem('onlineOpponentName');
             location.href = 'game.html';
         }
@@ -1243,6 +1249,9 @@
                 localStorage.setItem('onlineRole', 'host');
                 localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
                 localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家1');
+                localStorage.removeItem('isRankedMatch');
+                localStorage.removeItem('myRankedInfo');
+                localStorage.removeItem('isBotRankedMatch');
                 localStorage.removeItem('fromCompetitiveMode');
                 location.href = 'game.html';
             } else {
@@ -1287,6 +1296,9 @@
             localStorage.setItem('onlineRole', 'join');
             localStorage.setItem('onlineSubMode', selectedOnlineSubMode);
             localStorage.setItem('onlineMyName', currentUserProfile?.displayName || '玩家2');
+            localStorage.removeItem('isRankedMatch');
+            localStorage.removeItem('myRankedInfo');
+            localStorage.removeItem('isBotRankedMatch');
             localStorage.removeItem('fromCompetitiveMode');
             document.getElementById('lobbyStatusText').textContent = '連線中，請稍候...';
             setTimeout(() => { location.href = 'game.html'; }, 800);

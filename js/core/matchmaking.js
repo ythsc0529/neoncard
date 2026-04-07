@@ -154,6 +154,13 @@ const MatchmakingManager = (() => {
         localStorage.setItem('fromCompetitiveMode', 'true');
         localStorage.setItem('onlineSubMode', gameMode);
         localStorage.removeItem('onlineRole');
+        
+        // If we were in a ranked queue, set bot ranked flag
+        if (localStorage.getItem('isRankedMatch') === 'true') {
+            localStorage.setItem('isBotRankedMatch', 'true');
+            localStorage.removeItem('isRankedMatch'); // Use bot specific flag
+        }
+        
         setTimeout(() => { location.href = 'game.html'; }, 600);
     }
 

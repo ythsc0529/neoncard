@@ -541,6 +541,12 @@
                     else GameState.player2.name = myName;
                 }
 
+                // Helper to check if we are playing against a bot disguised as a human
+                window.isDisguisedBot = () => {
+                    return localStorage.getItem('fromCompetitiveMode') === 'true' && 
+                           (GameState.mode === 'pve' || GameState.type === 'pve');
+                };
+
                 NetManager.onConnected = async () => {
                     overlay.classList.remove('active');
                     overlay.classList.add('hidden');
@@ -548,9 +554,9 @@
                     GameState.onlineSubMode = onlineSubMode; // For getCardCount()
                     // Restore names after init
                     const myN = localStorage.getItem('onlineMyName');
-                    const oppN = localStorage.getItem('onlineOpponentName');
                     if (myN) { if (role === 'host') GameState.player1.name = myN; else GameState.player2.name = myN; }
-                    if (oppN) { if (role === 'host') GameState.player2.name = oppN; else GameState.player1.name = oppN; }
+                    // Opponent name will be set by onPlayerInfoReceived via P2P exchange.
+                    // Do NOT read from localStorage to avoid stale names from previous matches.
 
                     if (role === 'host') {
                         // Host defines first player using RNG
@@ -590,6 +596,11 @@
 
                         GameState.firstPlayer = state.firstPlayer;
                         GameState.currentPlayer = state.firstPlayer;
+
+                        // Joiner also shows rank reveal if ranked match (Bug 1)
+                        if (localStorage.getItem('isRankedMatch') === 'true') {
+                            await showRankReveal();
+                        }
 
                         // Play synced coin flip
                         await Animations.coinFlip(state.firstPlayer);
@@ -968,9 +979,9 @@
                     // In story mode, opponent (NPC) automatically selects the first card
                     const npcPick = 0;
                     GameState.setBattleCard('player2', npcPick);
-                    GameState.addLog(`[NPC] 玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
                 } else {
-                    GameState.addLog(`[NPC] ${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
                 }
                 startBattle();
                 return;
@@ -1761,9 +1772,9 @@
                 if (thinkingUI) thinkingUI.classList.add('hidden');
 
                 if (actionType === 'retreat') {
-                    GameState.addLog(`[NPC] 認為情勢不利，選擇撤換角色為 ${GameState.player2.standbyCards[skillIdx].name}`, 'status');
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}認為情勢不利，選擇撤換角色為 ${GameState.player2.standbyCards[skillIdx].name}`, 'status');
                 } else {
-                    GameState.addLog(`[NPC] 決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
                 }
                 updateBattleLog();
 
@@ -1807,7 +1818,7 @@
                             }
 
                             player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
-                            GameState.addLog(`[NPC] ${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
+                            GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
                             updateUI();
                             updateBattleLog();
                             resolve();
