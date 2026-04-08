@@ -495,6 +495,14 @@
         }
 
         async function initGame() {
+            // Ensure Auth is ready for all modes (especially ranked bot matches)
+            if (typeof AuthManager !== 'undefined') {
+                AuthManager.init();
+                AuthManager.onAuthChanged((user) => {
+                    if (user) console.log('[Auth] User detected:', user.displayName);
+                });
+            }
+
             const mode = localStorage.getItem('gameMode') || 'classic';
             const type = localStorage.getItem('gameType') || 'pvp';
             const difficulty = localStorage.getItem('pveDifficulty') || 'normal';

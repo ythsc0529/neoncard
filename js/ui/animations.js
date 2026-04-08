@@ -646,6 +646,8 @@ const Animations = {
         const isBotRankedMatch = localStorage.getItem('isBotRankedMatch') === 'true';
         const isAnyRankedMatch = isRankedMatch || isBotRankedMatch;
 
+        let rankedProcessed = false;
+
         if (isAnyRankedMatch &&
             typeof AuthManager !== 'undefined' &&
             typeof UserProfile !== 'undefined' &&
@@ -653,7 +655,15 @@ const Animations = {
             typeof GameState !== 'undefined' &&
             (GameState.mode === 'online' || isBotRankedMatch)) {
             try {
-                const user = AuthManager.getCurrentUser();
+                let user = AuthManager.getCurrentUser();
+                
+                // Retry once if user is missing (e.g. state recovery delay)
+                if (!user) {
+                    console.warn('[Ranked] User missing at victory, retrying Auth init...');
+                    AuthManager.init();
+                    user = AuthManager.getCurrentUser();
+                }
+
                 if (user) {
                     let iWon = false;
                     if (isBotRankedMatch) {
@@ -705,23 +715,28 @@ const Animations = {
                         } else {
                             titleBlock.style.display = 'none';
                         }
+                        
+                        rankedProcessed = true;
                         setTimeout(() => {
                             this.hide(); // Bug 4 Fix: Hide victory overlay before showing ranked result
                             overlay.classList.add('active');
                         }, 1800);
+                        
                         // Clean up ranked flags
                         localStorage.removeItem('isRankedMatch');
                         localStorage.removeItem('isBotRankedMatch');
                         localStorage.removeItem('myRankedInfo');
                     }
+                } else {
+                    console.error('[Ranked] Skipping processing: No user found even after retry.');
                 }
             } catch (e) {
                 console.error('[Ranked] Failed to process match result:', e);
             }
         }
 
-        // Track win/loss in Firestore (for non-ranked modes)
-        if (!isAnyRankedMatch) {
+        // Track win/loss in Firestore (for non-ranked modes or as backup)
+        if (!isAnyRankedMatch || !rankedProcessed) {
             try {
                 if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
                     const user = AuthManager.getCurrentUser();
@@ -782,9 +797,23 @@ const Animations = {
                     <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
                         ${winner} 勝利！
                     </div>
-                    ${!isAnyRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
+                    <div id="victoryActions" class="victory-btn-container">
+                        ${!isAnyRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
+                    </div>
                 </div>
             `;
+
+            // Safety check: If ranked match but no overlay appears after 5.5s, show the exit button
+            if (isAnyRankedMatch) {
+                setTimeout(() => {
+                    const overlay = document.getElementById('rankedResultOverlay');
+                    const actionsDiv = document.getElementById('victoryActions');
+                    if (overlay && !overlay.classList.contains('active') && actionsDiv) {
+                        console.warn('[Ranked] Settlement UI timeout, showing recovery button.');
+                        actionsDiv.innerHTML = `<button class="btn btn-gold" style="margin-top: 40px;" onclick="location.href='index.html'">返回主選單 (結算超時)</button>`;
+                    }
+                }, 5500);
+            }
 
             setTimeout(resolve, 1000);
         });

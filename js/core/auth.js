@@ -55,6 +55,7 @@ const AuthManager = (() => {
     }
 
     function getCurrentUser() {
+        if (!_auth) init();
         return _currentUser || (_auth ? _auth.currentUser : null);
     }
 
