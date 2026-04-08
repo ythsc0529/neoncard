@@ -1,7 +1,7 @@
 /**
  * Neon Card Game - Matchmaking Manager (Realtime Database)
  * Uses RTDB transactions for atomic slot-claiming to eliminate race conditions.
- * After 25–35s with no real opponent, silently falls back to a bot disguised as a real player.
+ * After ~15s with no real opponent, silently falls back to a bot disguised as a real player.
  */
 const MatchmakingManager = (() => {
     const rtdb = () => AuthManager.getRtdb();
@@ -74,8 +74,8 @@ const MatchmakingManager = (() => {
             }
         });
 
-        // 4. Bot-match fallback after 25–35 s
-        const botDelay = (25 + Math.floor(Math.random() * 11)) * 1000;
+        // 4. Bot-match fallback after ~15 s (13-17s)
+        const botDelay = (13 + Math.floor(Math.random() * 5)) * 1000;
         _timeout = setTimeout(async () => {
             if (_committed) return;
             _committed = true;
