@@ -386,6 +386,42 @@
             border-color: var(--neon-gold);
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
         }
+
+        /* ── Entertainment Mode Styles ── */
+        .btn-entertainment {
+            border-color: var(--neon-magenta) !important;
+            color: var(--neon-magenta) !important;
+            background: rgba(124, 58, 237, 0.05) !important;
+        }
+
+        .btn-entertainment:hover:not(:disabled) {
+            background: rgba(124, 58, 237, 0.15) !important;
+            box-shadow: 0 0 25px rgba(124, 58, 237, 0.35) !important;
+        }
+
+        .btn-maintenance {
+            position: relative;
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            border-color: var(--text-muted) !important;
+            color: var(--text-muted) !important;
+            padding: 18px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .badge-maintenance {
+            font-size: 0.65rem;
+            background: rgba(255, 0, 85, 0.15);
+            color: var(--neon-pink);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 0, 85, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 
@@ -460,6 +496,9 @@
             <button class="btn menu-btn btn-magenta" onclick="location.href='tutorial.html'">新手教學</button>
             <button class="btn menu-btn btn-primary" onclick="location.href='story_menu.html'">劇情模式</button>
             <button class="btn menu-btn btn-tournament" id="tournamentBtn" onclick="showTournamentMenu()">匹配模式</button>
+            <button class="btn menu-btn btn-entertainment" onclick="showEntertainmentMenu()">娛樂模式</button>
+            <button class="btn menu-btn btn-pass" style="border-color:var(--neon-green);color:var(--neon-green);opacity:0.6;cursor:not-allowed;">通行證 (維護中)</button>
+            <button class="btn menu-btn btn-team" style="border-color:var(--neon-cyan);color:var(--neon-cyan);opacity:0.6;cursor:not-allowed;">隊伍配置 (維護中)</button>
             <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" style="border-color:#00f3ff;color:#00f3ff;"
                 onclick="location.href='strategy.html'">攻略專區</button>
@@ -532,6 +571,33 @@
                 <button class="btn" onclick="startGame('quick','pvp')">快速模式 (3張牌)</button>
                 <button class="btn btn-magenta" onclick="startGame('classic','pvp')">經典模式 (7張牌)</button>
                 <button class="btn" onclick="showSubMenu('main')" style="margin-top:20px;opacity:0.7;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Entertainment Mode Modal ── -->
+    <div class="modal-overlay" id="entertainmentModal">
+        <div class="modal glass" style="text-align:center;max-width:450px;">
+            <h2 style="color:var(--neon-magenta);">🎮 娛樂模式</h2>
+            <p style="color:var(--text-secondary);margin:10px 0 22px;line-height:1.6;">多樣化的趣味玩法，盡情享受對戰樂趣</p>
+            <div class="modal-buttons" style="gap:14px;">
+                <button class="btn btn-maintenance" disabled>
+                    🔮 神話亂鬥
+                    <span class="badge-maintenance">維護中</span>
+                </button>
+                <button class="btn btn-maintenance" disabled>
+                    🌟 全明星對決
+                    <span class="badge-maintenance">維護中</span>
+                </button>
+                <button class="btn btn-maintenance" disabled>
+                    👾 Bug 競技場
+                    <span class="badge-maintenance">維護中</span>
+                </button>
+                <button class="btn btn-maintenance" disabled>
+                    ♟️ 霓虹自走棋
+                    <span class="badge-maintenance">維護中</span>
+                </button>
+                <button class="btn" onclick="closeEntertainmentModal()" style="margin-top:8px;opacity:0.7;">返回</button>
             </div>
         </div>
     </div>
@@ -986,6 +1052,15 @@
             document.getElementById('tournamentModal').classList.remove('active');
         }
 
+        // ── Entertainment Mode ──────────────────────────────────────
+        function showEntertainmentMenu() {
+            document.getElementById('entertainmentModal').classList.add('active');
+        }
+
+        function closeEntertainmentModal() {
+            document.getElementById('entertainmentModal').classList.remove('active');
+        }
+
         // ── Casual Matchmaking ───────────────────────────────────────────────
         function startCasualMatchmaking() {
             document.getElementById('tournamentModal').classList.remove('active');
@@ -1386,6 +1461,7 @@
         document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
         document.getElementById('updateModal').addEventListener('click', e => { if (e.target === document.getElementById('updateModal')) closeUpdateModal(); });
         document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
+        document.getElementById('entertainmentModal').addEventListener('click', e => { if (e.target === document.getElementById('entertainmentModal')) closeEntertainmentModal(); });
 
         // ── Win Rate Stats Display ─────────────────────────────────────
         async function loadStatsDisplay(uid) {
