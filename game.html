@@ -504,6 +504,12 @@
                 localStorage.setItem('inRankedMatchOngoing', 'true');
             }
 
+            // Helper to check if we are playing against a bot disguised as a human
+            window.isDisguisedBot = () => {
+                return localStorage.getItem('fromCompetitiveMode') === 'true' && 
+                       (GameState.mode === 'pve' || GameState.type === 'pve');
+            };
+
             // Show emoji button for online mode
             if (mode === 'online') {
                 document.getElementById('p1EmojiBtn').classList.remove('hidden');
@@ -540,12 +546,6 @@
                     if (role === 'host') GameState.player1.name = myName;
                     else GameState.player2.name = myName;
                 }
-
-                // Helper to check if we are playing against a bot disguised as a human
-                window.isDisguisedBot = () => {
-                    return localStorage.getItem('fromCompetitiveMode') === 'true' && 
-                           (GameState.mode === 'pve' || GameState.type === 'pve');
-                };
 
                 NetManager.onConnected = async () => {
                     overlay.classList.remove('active');
