@@ -25,6 +25,7 @@ const GameState = {
     },
 
     battleLog: [],
+    rarityDistribution: null,
 
     // Initialize new game
     init(mode = 'classic', type = 'pvp', difficulty = 'normal') {
@@ -128,12 +129,30 @@ const GameState = {
     drawCards(playerKey, count) {
         const cards = [];
         for (let i = 0; i < count; i++) {
-            const char = drawRandomCharacter();
+            // If fair rarity distribution is set, use it
+            const targetRarity = (this.rarityDistribution && this.rarityDistribution[i]) ? this.rarityDistribution[i] : null;
+            const char = drawRandomCharacter(targetRarity);
             const instance = createCharacterInstance(char);
             cards.push(instance);
         }
         this[playerKey].allCards = cards;
         return cards;
+    },
+
+    // Pre-generate rarity distribution for fair matches (Ranked)
+    setupRankedDistribution(count) {
+        this.rarityDistribution = [];
+        for (let i = 0; i < count; i++) {
+            const roll = window.GameRandom() * 100;
+            let rarity;
+            if (roll < 5) rarity = 'MYTHIC';           // 5%
+            else if (roll < 17) rarity = 'LEGENDARY';  // 12%
+            else if (roll < 35) rarity = 'EPIC';       // 18%
+            else if (roll < 60) rarity = 'RARE';       // 25%
+            else rarity = 'COMMON';                     // 40%
+            this.rarityDistribution.push(rarity);
+        }
+        console.log('[FairMatch] Generated rarity distribution:', this.rarityDistribution);
     },
 
     // Set battle card

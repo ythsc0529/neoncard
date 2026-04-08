@@ -26,15 +26,17 @@ function getDrawableCharacters() {
 }
 
 // Draw a random character based on rarity probabilities
-function drawRandomCharacter() {
-    const roll = window.GameRandom() * 100;
-    let rarity;
+function drawRandomCharacter(targetRarity = null) {
+    let rarity = targetRarity;
 
-    if (roll < 5) rarity = 'MYTHIC';           // 5%
-    else if (roll < 17) rarity = 'LEGENDARY';  // 12%
-    else if (roll < 35) rarity = 'EPIC';       // 18%
-    else if (roll < 60) rarity = 'RARE';       // 25%
-    else rarity = 'COMMON';                     // 40%
+    if (!rarity) {
+        const roll = window.GameRandom() * 100;
+        if (roll < 5) rarity = 'MYTHIC';           // 5%
+        else if (roll < 17) rarity = 'LEGENDARY';  // 12%
+        else if (roll < 35) rarity = 'EPIC';       // 18%
+        else if (roll < 60) rarity = 'RARE';       // 25%
+        else rarity = 'COMMON';                     // 40%
+    }
 
     const candidates = getDrawableCharacters().filter(c => c.rarity === rarity);
     if (candidates.length === 0) {

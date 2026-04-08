@@ -568,6 +568,8 @@
                         // Show rank reveal if ranked match
                         if (localStorage.getItem('isRankedMatch') === 'true') {
                             await showRankReveal();
+                            // Define same rarity sets for both players in Ranked
+                            GameState.setupRankedDistribution(GameState.getCardCount());
                         }
 
                         // Play synced coin flip
@@ -600,6 +602,8 @@
                         // Joiner also shows rank reveal if ranked match (Bug 1)
                         if (localStorage.getItem('isRankedMatch') === 'true') {
                             await showRankReveal();
+                            // Define same rarity sets for both players in Ranked
+                            GameState.setupRankedDistribution(GameState.getCardCount());
                         }
 
                         // Play synced coin flip
@@ -750,6 +754,11 @@
 
             } else {
                 GameState.init(mode, type, difficulty);
+
+                const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
+                if (isRanked) {
+                    GameState.setupRankedDistribution(GameState.getCardCount());
+                }
 
                 // Determine names for bot match / PvP (for coin flip)
                 const botMatchName = localStorage.getItem('botMatchName');
