@@ -160,7 +160,7 @@
             <div class="player-header glass">
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span class="player-name">玩家1</span>
+                        <span class="player-name" id="p1Name">玩家1</span>
                         <span id="p1RankBadge" class="rank-badge-text" style="display:none;"></span>
                     </div>
                     <span id="p1TitleBadge" class="title-badge-text" style="display:none;"></span>
@@ -230,7 +230,7 @@
             <div class="player-header glass">
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span class="player-name">玩家2</span>
+                        <span class="player-name" id="p2Name">玩家2</span>
                         <span id="p2RankBadge" class="rank-badge-text" style="display:none;"></span>
                     </div>
                     <span id="p2TitleBadge" class="title-badge-text" style="display:none;"></span>
@@ -751,10 +751,14 @@
             } else {
                 GameState.init(mode, type, difficulty);
 
-                // If this is a bot match from competitive matchmaking, apply sub-mode card count
+                // Determine names for bot match / PvP (for coin flip)
                 const botMatchName = localStorage.getItem('botMatchName');
+                const myName = localStorage.getItem('onlineMyName');
                 if (botMatchName) {
+                    GameState.player2.name = botMatchName;
                     GameState.onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
+                    if (myName) GameState.player1.name = myName;
+                    // Clean up botMatchName later during pve init
                 }
 
                 // Coin flip
@@ -766,10 +770,9 @@
                     // Draw cards silently for NPC
                     const npcCards = GameState.drawCards('player2', GameState.getCardCount());
 
-                    // Use fake name if this is a bot match, otherwise show difficulty label
+                    // Final name cleanup/override for NPC
                     if (botMatchName) {
-                        GameState.player2.name = botMatchName;
-                        localStorage.removeItem('botMatchName'); // clean up
+                        localStorage.removeItem('botMatchName'); // clean up now
                     } else if (difficulty === 'hell') {
                         GameState.player2.name = 'NPC (地獄)';
                     } else if (difficulty === 'hard') {
@@ -1148,6 +1151,10 @@
             const p2SkillBtn = document.getElementById('p2SkillBtn');
             const p1ViewBtn = document.getElementById('p1ViewSkillBtn');
             const p2ViewBtn = document.getElementById('p2ViewSkillBtn');
+            
+            // Sync player names to HUD
+            document.getElementById('p1Name').textContent = GameState.player1.name;
+            document.getElementById('p2Name').textContent = GameState.player2.name;
 
             if (isP1Turn) {
                 p1Btns.forEach(btn => btn.disabled = false);
