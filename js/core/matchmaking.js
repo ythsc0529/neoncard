@@ -82,7 +82,7 @@ const MatchmakingManager = (() => {
             leaveQueue();
             if (onStatus) onStatus('bot_match_start');
             await new Promise(r => setTimeout(r, 1800));
-            _commitBotMatch(getRandomBotName(), gameMode);
+            _commitBotMatch(getRandomBotName(), gameMode, displayName);
             if (onStatus) onStatus('matched');
         }, botDelay);
     }
@@ -146,7 +146,7 @@ const MatchmakingManager = (() => {
     // ─────────────────────────────────────────────────────────────────
     // Commit helpers
     // ─────────────────────────────────────────────────────────────────
-    function _commitBotMatch(botName, gameMode) {
+    function _commitBotMatch(botName, gameMode, myName) {
         localStorage.setItem('gameMode', 'pve');
         localStorage.setItem('gameType', 'pve');
         localStorage.setItem('pveDifficulty', 'normal');
@@ -154,6 +154,7 @@ const MatchmakingManager = (() => {
         localStorage.setItem('fromCompetitiveMode', 'true');
         localStorage.setItem('onlineSubMode', gameMode);
         localStorage.removeItem('onlineRole');
+        if (myName) localStorage.setItem('onlineMyName', myName);
         
         // If we were in a ranked queue, set bot ranked flag
         if (localStorage.getItem('isRankedMatch') === 'true') {

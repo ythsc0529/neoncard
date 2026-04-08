@@ -770,7 +770,16 @@
 
                 // Determine names for bot match / PvP (for coin flip)
                 const botMatchName = localStorage.getItem('botMatchName');
-                const myName = localStorage.getItem('onlineMyName');
+                let myName = localStorage.getItem('onlineMyName');
+                
+                // Fallback for ranked NPC matches where myName might be missing or generic
+                if (!myName || myName === '玩家1' || myName === '玩家') {
+                    const user = typeof AuthManager !== 'undefined' ? AuthManager.getCurrentUser() : null;
+                    if (user && user.displayName) {
+                        myName = user.displayName;
+                    }
+                }
+
                 if (botMatchName) {
                     GameState.player2.name = botMatchName;
                     GameState.onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
