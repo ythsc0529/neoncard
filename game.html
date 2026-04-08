@@ -500,7 +500,7 @@
             const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
 
             // Set ranked match disconnect penalty flag 
-            if (localStorage.getItem('isRankedMatch') === 'true') {
+            if (localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true') {
                 localStorage.setItem('inRankedMatchOngoing', 'true');
             }
 

@@ -721,7 +721,7 @@ const Animations = {
         }
 
         // Track win/loss in Firestore (for non-ranked modes)
-        if (!isRankedMatch) {
+        if (!isAnyRankedMatch) {
             try {
                 if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
                     const user = AuthManager.getCurrentUser();
@@ -730,7 +730,7 @@ const Animations = {
                         let statMode = null;
                         let iWon = false;
                         if (mode === 'pve' || mode === 'story') {
-                            statMode = 'pve';
+                            statMode = isBotRankedMatch ? 'competitive' : 'pve';
                             iWon = (GameState.winner === 1);
                         } else if (mode === 'online') {
                             const role = window.localOnlineRole || localStorage.getItem('onlineRole');
@@ -757,7 +757,7 @@ const Animations = {
             let btnText = isStory ? "繼續" : "返回主選單";
             let secondaryBtnContent = '';
 
-            if (isOnline && !isRankedMatch) {
+            if (isOnline && !isAnyRankedMatch) {
                 const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
                 if (isComp) {
                     btnAction = "location.href='index.html'";
@@ -782,7 +782,7 @@ const Animations = {
                     <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
                         ${winner} 勝利！
                     </div>
-                    ${!isRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
+                    ${!isAnyRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
                 </div>
             `;
 
