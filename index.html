@@ -14,6 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
+    <script src="js/core/titleManager.js"></script>
     <script src="js/core/friends.js"></script>
     <script src="js/core/matchmaking.js"></script>
     <style>
@@ -833,10 +835,34 @@
         </div>
     </div>
 
+    <!-- ── Title Congratulation Modal ── -->
+    <div class="modal-overlay" id="titleCongratModal">
+        <div class="modal glass" style="max-width:480px; text-align:center; padding: 40px 30px;">
+            <div id="tc-icon" style="font-size: 5rem; margin-bottom: 20px;">🎉</div>
+            <h2 id="tc-greeting" style="color: var(--neon-gold); margin-bottom: 15px;">恭喜獲得新稱號！</h2>
+            <div id="tc-title-box" style="
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid var(--neon-gold);
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 25px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
+            ">
+                <img id="tc-img" src="" style="width: 120px; height: 120px; object-fit: contain;">
+                <div id="tc-name" style="font-size: 1.8rem; font-family: var(--font-heading); color: white; text-shadow: 0 0 15px var(--neon-gold);">稱號名稱</div>
+                <div id="tc-desc" style="color: var(--text-secondary); font-size: 0.95rem;">稱號達成條件描述</div>
+            </div>
+            <button class="btn btn-gold" onclick="closeTitleCongrat()" style="width: 100%; padding: 16px; font-size: 1.1rem;">太棒了！</button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
-    <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/networkManager.js"></script>
     <script>
         // ── State ──────────────────────────────────────────────────────
@@ -878,6 +904,43 @@
             }
         });
 
+        // --- Title Achievement Checks ---
+        async function checkPendingTitles() {
+            if (typeof TitleManager === 'undefined' || typeof RankedSystem === 'undefined') return;
+            const pending = TitleManager.getPendingUnlocks();
+            if (pending.length === 0) return;
+
+            // Show one by one (or just the first one for simplicity, or queue them)
+            const titleKey = pending[0];
+            const info = RankedSystem.getTitleInfo(titleKey);
+            if (!info) {
+                TitleManager.clearPendingUnlocks();
+                return;
+            }
+
+            // Populate modal
+            document.getElementById('tc-img').src = info.img;
+            document.getElementById('tc-name').textContent = titleKey;
+            document.getElementById('tc-desc').textContent = info.desc;
+            
+            // Show modal
+            document.getElementById('titleCongratModal').classList.add('active');
+            
+            // Remove from queue
+            const remaining = pending.slice(1);
+            if (remaining.length > 0) {
+                localStorage.setItem('neonCard_newlyUnlockedTitles', JSON.stringify(remaining));
+            } else {
+                TitleManager.clearPendingUnlocks();
+            }
+        }
+
+        function closeTitleCongrat() {
+            document.getElementById('titleCongratModal').classList.remove('active');
+            // Check if there are more
+            setTimeout(checkPendingTitles, 500);
+        }
+
         function showScreen(screen) {
             document.getElementById('loadingScreen').classList.toggle('hidden', screen !== 'loading');
             document.getElementById('loginScreen').classList.toggle('hidden', screen !== 'login');
@@ -901,6 +964,9 @@
             loadStatsDisplay(user.uid);
             // Sync cloud story progress to localStorage
             syncStoryProgressFromCloud(user.uid);
+
+            // Check for new titles!
+            checkPendingTitles();
 
             // Auto-show update modal on new version
             const APP_VERSION = '3.0.0';

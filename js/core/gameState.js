@@ -50,6 +50,7 @@ const GameState = {
         });
 
         this.battleLog = [];
+        this.didSwapOrDie = { player1: false, player2: false };
     },
 
     // Initialize story game
@@ -136,6 +137,17 @@ const GameState = {
             cards.push(instance);
         }
         this[playerKey].allCards = cards;
+
+        // --- Title Check: Fate Usurper / Lightless ---
+        if (cards.length > 0 && typeof TitleManager !== 'undefined') {
+            const rarities = cards.map(c => c.rarity);
+            if (rarities.every(r => r === 'MYTHIC')) {
+                TitleManager.unlockTitle('命運篡奪者');
+            } else if (rarities.every(r => r === 'COMMON')) {
+                TitleManager.unlockTitle('無光之徒');
+            }
+        }
+
         return cards;
     },
 
@@ -168,6 +180,7 @@ const GameState = {
         const oldBattle = player.battleCard;
         player.battleCard = player.standbyCards[standbyIndex];
         player.standbyCards[standbyIndex] = oldBattle;
+        this.didSwapOrDie[playerKey] = true;
     },
 
     // Add card to standby
@@ -188,6 +201,7 @@ const GameState = {
             if (!revived) {
                 this.processPassive(deadCard, 'on_death');
                 player.battleCard = null;
+                this.didSwapOrDie[playerKey] = true;
             }
 
             return !revived;
@@ -273,25 +287,33 @@ const GameState = {
         return false;
     },
 
-    // Check win condition
     checkWin() {
         const p1Alive = this.player1.battleCard || this.player1.standbyCards.length > 0;
         const p2Alive = this.player2.battleCard || this.player2.standbyCards.length > 0;
 
         if (!p1Alive && !p2Alive) {
             this.winner = 0; // Draw
-            this.phase = 'game_over';
-            if (typeof stopTurnTimer === 'function') stopTurnTimer();
-            return true;
         } else if (!p1Alive) {
             this.winner = 2; // P2 wins
-            this.phase = 'game_over';
-            if (typeof stopTurnTimer === 'function') stopTurnTimer();
-            return true;
         } else if (!p2Alive) {
             this.winner = 1; // P1 wins
+        }
+
+        if (this.winner !== null) {
             this.phase = 'game_over';
             if (typeof stopTurnTimer === 'function') stopTurnTimer();
+
+            // --- Title Check: Absolute Dictator ---
+            if (this.winner === 1 || this.winner === 2) {
+                const winnerKey = `player${this.winner}`;
+                const cardCount = this.getCardCount();
+                
+                // If 7-card mode AND player never swapped/died
+                if (cardCount === 7 && !this.didSwapOrDie[winnerKey] && typeof TitleManager !== 'undefined') {
+                    TitleManager.unlockTitle('絕對獨裁');
+                }
+            }
+
             return true;
         }
         return false;
@@ -318,6 +340,11 @@ const GameState = {
         // If back to first player, increment turn count
         if (this.currentPlayer === this.firstPlayer) {
             this.turnCount++;
+
+            // --- Title Check: Immortal ---
+            if (this.turnCount === 300 && typeof TitleManager !== 'undefined') {
+                TitleManager.unlockTitle('不朽者');
+            }
         }
 
         // Process start-of-turn effects for new player

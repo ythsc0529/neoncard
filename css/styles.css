@@ -166,6 +166,55 @@ body {
     text-shadow: 0 0 12px #4facfe, 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
+/* --- Title Toast --- */
+@keyframes titleToastIn {
+    0% { transform: translateX(120%); opacity: 0; }
+    10% { transform: translateX(0); opacity: 1; }
+    90% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(120%); opacity: 0; }
+}
+
+.title-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px;
+    background: rgba(15, 15, 35, 0.95);
+    border: 1px solid var(--neon-gold);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    animation: titleToastIn 5s ease-in-out forwards;
+    backdrop-filter: blur(10px);
+}
+
+.title-toast-img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.title-toast-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-toast-label {
+    font-size: 0.75rem;
+    color: var(--neon-gold);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.title-toast-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+}
+
 @keyframes shake {
 
     0%,

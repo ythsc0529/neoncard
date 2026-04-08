@@ -57,6 +57,10 @@ const RankedSystem = (() => {
     const TITLES = {
         '初到新星':   { img: 'hao_pic/初到新星.png',   color: '#00f3ff', desc: '所有玩家初始稱號' },
         '極夜加冕者': { img: 'hao_pic/極夜加冕者.png', color: '#ffd700', desc: `${SEASON.name} 賽季達到永劫之顛` },
+        '命運篡奪者': { img: 'hao_pic/命運篡奪者.png', color: '#ff00ff', desc: '當在任意模式中抽到的卡片全部神話時' },
+        '無光之徒':   { img: 'hao_pic/無光之徒.png',   color: '#aaaaaa', desc: '當在任意模式中抽到的卡片全部一般時' },
+        '絕對獨裁':   { img: 'hao_pic/絕對獨裁.png',   color: '#ff4400', desc: '在任意7張牌的模式中以1張牌打贏對手所有牌時' },
+        '不朽者':     { img: 'hao_pic/不朽者.png',     color: '#00ff44', desc: '在戰鬥中回合數達到300回合時獲得' },
     };
 
     // ── Default ranked state ─────────────────────────────────────────────────

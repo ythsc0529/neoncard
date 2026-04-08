@@ -817,6 +817,26 @@ const Animations = {
 
             setTimeout(resolve, 1000);
         });
+    },
+
+    // Small in-battle title unlock notification
+    showSmallTitleUnlock(titleKey) {
+        if (typeof RankedSystem === 'undefined') return;
+        const info = RankedSystem.getTitleInfo(titleKey);
+        if (!info) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'title-toast';
+        toast.innerHTML = `
+            <img src="${info.img}" class="title-toast-img">
+            <div class="title-toast-content">
+                <div class="title-toast-label">獲得稱號！</div>
+                <div class="title-toast-name">${titleKey}</div>
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5500);
     }
 };
 
