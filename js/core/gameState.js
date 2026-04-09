@@ -319,6 +319,22 @@ const GameState = {
         return false;
     },
 
+    // Handle explicit surrender
+    handleSurrender(surrenderingPlayerKey) {
+        if (this.winner !== null) return;
+        
+        const surrenderingPlayer = surrenderingPlayerKey === 'player1' ? 1 : 2;
+        this.winner = surrenderingPlayer === 1 ? 2 : 1;
+        this.phase = 'game_over';
+        
+        if (typeof stopTurnTimer === 'function') stopTurnTimer();
+        
+        const loserName = surrenderingPlayerKey === 'player1' ? this.player1.name : this.player2.name;
+        this.addLog(`${loserName} 投降了！`, 'status');
+        
+        return true;
+    },
+
     // End turn
     endTurn() {
         // Process end-of-turn effects

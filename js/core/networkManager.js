@@ -188,6 +188,8 @@ class NetworkManager {
         this.conn.on('data', (data) => {
             if (data.type === 'action' && this.onDataReceived) {
                 this.onDataReceived(data.action);
+            } else if (data.type === 'surrender' && this.onDataReceived) {
+                this.onDataReceived({ type: 'surrender' });
             } else if (data.type === 'state' && this.onPeerStateChange) {
                 this.onPeerStateChange(data.state);
             } else if (data.type === 'emoji' && window.Animations) {
@@ -245,6 +247,11 @@ class NetworkManager {
     sendAction(action) {
         if (!this.connected || !this.conn) return;
         this.conn.send({ type: 'action', action: action });
+    }
+
+    sendSurrender() {
+        if (!this.connected || !this.conn) return;
+        this.conn.send({ type: 'surrender' });
     }
 
     sendState(state) {

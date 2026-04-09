@@ -220,6 +220,9 @@
             <button class="btn btn-gold emoji-btn hidden" id="p1EmojiBtn" onclick="openEmojiMenu()"
                 style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem;">💬 表情</button>
 
+            <button class="btn btn-magenta surrender-btn hidden" id="surrenderBtn" onclick="surrenderBattle()"
+                style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem; background: #661111; color: #fff; border-color: #ff4444;">🏳 投降</button>
+
             <button class="btn btn-magenta mobile-toggle-btn" id="mobileToggleBtn"
                 onclick="toggleMobileView()">查看對手</button>
             <div class="battle-log" id="battleLog"></div>
@@ -519,9 +522,10 @@
                        (GameState.mode === 'pve' || GameState.type === 'pve');
             };
 
-            // Show emoji button for online mode
+            // Show emoji & surrender button for online mode
             if (mode === 'online') {
                 document.getElementById('p1EmojiBtn').classList.remove('hidden');
+                document.getElementById('surrenderBtn').classList.remove('hidden');
 
                 // Expose emoji function to global Animations object
                 window.Animations = window.Animations || {};
@@ -941,6 +945,12 @@
                 } else {
                     window.earlyRemoteMahjongChoice = action.characterId;
                 }
+            } else if (action.type === 'surrender') {
+                GameState.handleSurrender(opponentKey);
+                updateUI();
+                updateBattleLog();
+                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
+                Animations.victory(winnerName);
             } else if (action.type === 'emoji' && window.Animations) {
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(action.emojiId, opponentKey);
@@ -2080,6 +2090,27 @@
                 }
             } else {
                 document.getElementById('storyFailModal').classList.add('active');
+            }
+        }
+
+        function surrenderBattle() {
+            if (GameState.phase === 'game_over') return;
+            
+            if (confirm("確定要投降嗎？\n如果是排位賽，這將會判定為敗北並扣除星數。")) {
+                const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                const localKey = localRole === 'host' ? 'player1' : 'player2';
+                
+                // Set game over locally
+                GameState.handleSurrender(localKey);
+                updateUI();
+                updateBattleLog();
+
+                // Broadcast to opponent
+                NetManager.sendSurrender();
+
+                // Trigger victory animation (for opponent)
+                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
+                Animations.victory(winnerName);
             }
         }
 
