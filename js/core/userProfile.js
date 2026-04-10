@@ -142,6 +142,33 @@ const UserProfile = (() => {
         );
     }
 
+    // ── Match History helpers ────────────────────────────────────────────────
+    async function recordMatch(uid, matchData) {
+        if (!uid || uid.startsWith('NPC_')) return; // Don't record for bots
+        
+        try {
+            const docRef = db().collection('users').doc(uid);
+            const doc = await docRef.get();
+            if (!doc.exists) return;
+
+            const data = doc.data();
+            const recentMatches = data.recentMatches || [];
+
+            // Add new match at the beginning
+            const newMatch = {
+                ...matchData,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Prepend and limit to 5
+            const updatedMatches = [newMatch, ...recentMatches].slice(0, 5);
+
+            await docRef.set({ recentMatches: updatedMatches }, { merge: true });
+        } catch (e) {
+            console.error('[UserProfile] recordMatch failed:', e);
+        }
+    }
+
     // ── Title helpers ────────────────────────────────────────────────────────
     // Ensure legacy accounts get 初到新星 title and default ranked
     async function ensureTitles(uid) {
@@ -181,7 +208,7 @@ const UserProfile = (() => {
         getProfile, createProfile, updateProfile,
         searchByDisplayName, isNameTaken,
         incrementStat, isProfileSetup,
-        updateRanked, ensureTitles, addTitle, setActiveTitle
+        updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle
     };
 })();
 

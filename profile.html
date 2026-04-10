@@ -580,6 +580,78 @@
             letter-spacing: 1px;
             margin-top: 4px;
         }
+
+        /* Match History Styles */
+        .match-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .match-item:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .match-result-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .match-result-badge.win {
+            background: rgba(0, 255, 104, 0.15);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 10px rgba(0, 255, 104, 0.2);
+        }
+        .match-result-badge.loss {
+            background: rgba(255, 68, 102, 0.15);
+            color: var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+        }
+        .match-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .match-opponent {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .match-opponent a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .match-opponent a:hover {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px var(--neon-cyan);
+        }
+        .match-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .match-time {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
     </style>
 </head>
 
@@ -705,6 +777,7 @@
             <div class="right-panel glass" style="padding:0;overflow:hidden;">
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('friends')" id="tab-friends">好友</button>
+                    <button class="tab-btn" onclick="switchTab('history')" id="tab-history">最近對戰</button>
                     <button class="tab-btn" onclick="switchTab('search')" id="tab-search">搜尋玩家</button>
                     <button class="tab-btn" onclick="switchTab('pending')" id="tab-pending">
                         待確認 <span class="badge-count hidden" id="pendingBadge">0</span>
@@ -716,6 +789,15 @@
                         <div class="friend-list" id="friendList">
                             <div class="empty-state">
                                 <div class="icon">👥</div>載入好友中...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Tab -->
+                    <div class="tab-content" id="tab-content-history">
+                        <div id="historyList">
+                            <div class="empty-state">
+                                <div class="icon">⚔️</div>目前沒有對戰紀錄
                             </div>
                         </div>
                     </div>
@@ -1302,10 +1384,73 @@
 
         // ── Tabs ──────────────────────────────────────────────────────
         function switchTab(tab) {
-            ['friends', 'search', 'pending'].forEach(t => {
+            ['friends', 'history', 'search', 'pending'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
                 document.getElementById(`tab-content-${t}`).classList.toggle('active', t === tab);
             });
+            if (tab === 'history') renderRecentMatches();
+        }
+
+        // ── Match History ──────────────────────────────────────────────
+        function renderRecentMatches() {
+            const list = document.getElementById('historyList');
+            const matches = myProfile.recentMatches || [];
+            if (matches.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">⚔️</div>目前沒有對戰紀錄</div>';
+                return;
+            }
+
+            list.innerHTML = matches.map(m => {
+                const isWin = m.result === 'win';
+                const timeStr = formatTime(m.timestamp);
+                const modeLabel = getModeLabel(m.mode);
+                const opponentUrl = `player.html?uid=${m.opponentUid}`;
+
+                return `
+                    <div class="match-item">
+                        <div class="match-result-badge ${m.result}">
+                            ${isWin ? '勝' : '敗'}
+                        </div>
+                        <div class="match-info">
+                            <div class="match-opponent">
+                                <a href="${opponentUrl}">${escHtml(m.opponentName)}</a>
+                            </div>
+                            <div class="match-meta">
+                                <span>${modeLabel}</span>
+                                <span style="opacity:0.5;">|</span>
+                                <span style="color:${isWin ? 'var(--neon-green)' : 'var(--neon-pink)'}">${isWin ? '勝利' : '敗北'}</span>
+                            </div>
+                        </div>
+                        <div class="match-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getModeLabel(mode) {
+            const modes = {
+                'ranked': '🏆 排位賽',
+                'online': '🌐 線上對戰',
+                'pve': '🤖 PVE 模式',
+                'story': '📖 劇情模式'
+            };
+            return modes[mode] || '⚔️ 自由對戰';
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            const date = ts.toDate ? ts.toDate() : new Date(ts);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffMin < 1) return '剛剛';
+            if (diffMin < 60) return `${diffMin}分鐘前`;
+            if (diffHour < 24) return `${diffHour}小時前`;
+            if (diffDay < 7) return `${diffDay}天前`;
+            return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
         }
 
         // ── Logout ────────────────────────────────────────────────────

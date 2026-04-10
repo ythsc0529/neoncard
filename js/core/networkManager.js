@@ -14,6 +14,7 @@ class NetworkManager {
         this.onPeerStateChange = null; // 'thinking', 'selecting', etc.
         this.onNameReceived = null;
         this.onPlayerInfoReceived = null; // { name, rankDisplay, rankImg, starsHtml, activeTitle }
+        this.opponentUid = null;
     }
 
     generateShortId() {
@@ -200,6 +201,7 @@ class NetworkManager {
             } else if (data.type === 'name' && this.onNameReceived) {
                 this.onNameReceived(data.name);
             } else if (data.type === 'player_info') {
+                this.opponentUid = data.uid || null;
                 if (this.onNameReceived) this.onNameReceived(data.name);
                 if (this.onPlayerInfoReceived) this.onPlayerInfoReceived(data);
             } else if (data.type === 'seed' && !this.isHost) {

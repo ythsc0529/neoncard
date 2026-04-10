@@ -58,6 +58,19 @@
         /* Error / loading states */
         .pg-loading { display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.3rem;letter-spacing:3px;animation:pulse 1.5s infinite; }
         .pg-error   { max-width:500px;margin:80px auto;text-align:center;color:var(--text-muted); }
+
+        /* Match History Styles */
+        .match-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
+        .match-item:hover { border-color: rgba(0, 243, 255, 0.3); background: rgba(255, 255, 255, 0.05); }
+        .match-result-badge { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 1rem; flex-shrink: 0; }
+        .match-result-badge.win { background: rgba(0, 255, 104, 0.12); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .match-result-badge.loss { background: rgba(255, 68, 102, 0.12); color: var(--neon-pink); border: 1px solid var(--neon-pink); }
+        .match-info { flex: 1; min-width: 0; }
+        .match-opponent { font-weight: 600; font-size: 1rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .match-opponent a { color: var(--text-primary); text-decoration: none; transition: color 0.2s; }
+        .match-opponent a:hover { color: var(--neon-cyan); }
+        .match-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-muted); }
+        .match-time { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -114,6 +127,14 @@
             <div class="section-label" style="margin-bottom:14px;">📊 戰績</div>
             <div class="stats-grid" id="statsGrid">
                 <div style="color:var(--text-muted);font-size:0.9rem;">此玩家尚無戰績</div>
+            </div>
+        </div>
+
+        <!-- Recent Matches -->
+        <div class="glass stats-section" style="margin-top:16px;" id="historySection" style="display:none;">
+            <div class="section-label" style="margin-bottom:14px;">⚔️ 最近對戰</div>
+            <div id="historyList">
+                <div style="color:var(--text-muted);font-size:0.9rem;">尚無對戰紀錄</div>
             </div>
         </div>
 
@@ -178,6 +199,67 @@
                 grid.innerHTML = cards.join('');
                 document.getElementById('statsSection').style.display = 'block';
             }
+        }
+
+        function renderRecentMatches(matches) {
+            const list = document.getElementById('historyList');
+            if (!matches || matches.length === 0) {
+                document.getElementById('historySection').style.display = 'none';
+                return;
+            }
+
+            list.innerHTML = matches.map(m => {
+                const isWin = m.result === 'win';
+                const timeStr = formatTimeAgo(m.timestamp);
+                const modeLabel = getModeLabel(m.mode);
+                const opponentUrl = `player.html?uid=${m.opponentUid}`;
+
+                return `
+                    <div class="match-item">
+                        <div class="match-result-badge ${m.result}">
+                            ${isWin ? '勝' : '敗'}
+                        </div>
+                        <div class="match-info">
+                            <div class="match-opponent">
+                                <a href="${opponentUrl}">${escHtml(m.opponentName)}</a>
+                            </div>
+                            <div class="match-meta">
+                                <span>${modeLabel}</span>
+                                <span style="opacity:0.5;">|</span>
+                                <span style="color:${isWin ? 'var(--neon-green)' : 'var(--neon-pink)'}">${isWin ? '勝利' : '敗北'}</span>
+                            </div>
+                        </div>
+                        <div class="match-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('historySection').style.display = 'block';
+        }
+
+        function getModeLabel(mode) {
+            const modes = {
+                'ranked': '🏆 排位賽',
+                'online': '🌐 線上對戰',
+                'pve': '🤖 PVE 模式',
+                'story': '📖 劇情模式'
+            };
+            return modes[mode] || '⚔️ 自由對戰';
+        }
+
+        function formatTimeAgo(ts) {
+            if (!ts) return '';
+            const date = ts.toDate ? ts.toDate() : new Date(ts);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffMin < 1) return '剛剛';
+            if (diffMin < 60) return `${diffMin}分鐘前`;
+            if (diffHour < 24) return `${diffHour}小時前`;
+            if (diffDay < 7) return `${diffDay}天前`;
+            return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
         }
 
         function init() {
@@ -245,6 +327,9 @@
 
                     // Stats
                     renderStats(profile.stats);
+
+                    // Recent Matches
+                    renderRecentMatches(profile.recentMatches);
 
                     // Action bar: add friend / already friend
                     const isBot = profile.isBot || targetUid.startsWith('NPC_');

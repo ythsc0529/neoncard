@@ -762,6 +762,55 @@ const Animations = {
             } catch (_e) { /* silent */ }
         }
 
+        // ── Record Match History ─────────────────────────────────────────────
+        try {
+            if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
+                const user = AuthManager.getCurrentUser();
+                if (user && typeof GameState !== 'undefined' && GameState.winner !== 0) {
+                    let iWon = false;
+                    let oppName = '';
+                    let oppUid = '';
+                    let matchMode = GameState.mode;
+
+                    const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
+                    
+                    if (localStorage.getItem('isBotRankedMatch') === 'true') {
+                        iWon = GameState.winner === 1;
+                        oppName = localStorage.getItem('botMatchName') || '機器人';
+                        oppUid = 'NPC_' + oppName;
+                        matchMode = 'ranked';
+                    } else if (localStorage.getItem('isRankedMatch') === 'true') {
+                        const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                        const myPlayer = (role === 'host') ? 1 : 2;
+                        iWon = GameState.winner === myPlayer;
+                        oppName = role === 'host' ? GameState.player2.name : GameState.player1.name;
+                        oppUid = (typeof NetManager !== 'undefined' && NetManager.opponentUid) || 'unknown';
+                        matchMode = 'ranked';
+                    } else if (GameState.mode === 'online') {
+                        const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                        const myPlayer = (role === 'host') ? 1 : 2;
+                        iWon = GameState.winner === myPlayer;
+                        oppName = role === 'host' ? GameState.player2.name : GameState.player1.name;
+                        oppUid = (typeof NetManager !== 'undefined' && NetManager.opponentUid) || 'unknown';
+                    } else {
+                        // PvE / Story
+                        iWon = GameState.winner === 1;
+                        oppName = GameState.player2.name;
+                        oppUid = 'NPC_' + oppName;
+                    }
+
+                    if (oppName && oppUid) {
+                        UserProfile.recordMatch(user.uid, {
+                            opponentName: oppName,
+                            opponentUid: oppUid,
+                            mode: matchMode,
+                            result: iWon ? 'win' : 'loss'
+                        });
+                    }
+                }
+            }
+        } catch (e) { console.error('[History] Error:', e); }
+
         return new Promise(resolve => {
             this.show();
 
