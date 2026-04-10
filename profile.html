@@ -138,6 +138,15 @@
                     </div>
                 </div>
 
+                <!-- UID -->
+                <div class="meta-row">
+                    <div class="bio-label">UID</div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div id="uidDisplay" style="color:var(--text-muted);font-size:0.85rem;font-family:monospace;">-</div>
+                        <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="font-size:0.8rem;">📋</span>
+                    </div>
+                </div>
+
                 <!-- Join Date -->
                 <div class="meta-row">
                     <div class="bio-label">加入日期</div>
@@ -371,6 +380,8 @@
             }
             document.getElementById('nameDisplay').textContent = p.displayName || '-';
             document.getElementById('bioDisplay').textContent = p.bio || '點擊新增自我介紹...';
+            // UID
+            document.getElementById('uidDisplay').textContent = p.uid || '-';
             // Join date
             const joinEl = document.getElementById('joinDateDisplay');
             const dateStr = formatJoinDate(p.createdAt);
@@ -755,6 +766,20 @@
 
         function escHtml(str) {
             return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function copyUid() {
+            const uid = document.getElementById('uidDisplay').textContent;
+            if (!uid || uid === '-') return;
+            navigator.clipboard.writeText(uid).then(() => {
+                const btn = event.currentTarget;
+                const oldText = btn.textContent;
+                btn.textContent = '✅';
+                setTimeout(() => btn.textContent = oldText, 2000);
+            }).catch(err => {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動選取複製');
+            });
         }
     </script>
 </body>

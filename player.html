@@ -79,6 +79,10 @@
             <div class="hero-name" id="heroName">-</div>
             <div class="hero-bio"  id="heroBio"></div>
             <div class="hero-meta" id="heroMeta"></div>
+            <div class="hero-meta" id="heroUid" style="margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span id="uidText" style="color:var(--text-muted); font-family:monospace;"></span>
+                <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="cursor:pointer; font-size:0.8rem;">📋</span>
+            </div>
 
             <!-- Fav Characters -->
             <div class="fav-section" id="favSection" style="display:none;">
@@ -126,6 +130,20 @@
 
         function escHtml(s) {
             return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function copyUid() {
+            const text = document.getElementById('uidText').textContent;
+            const uid = text.replace('UID: ', '');
+            if (!uid) return;
+            navigator.clipboard.writeText(uid).then(() => {
+                const btn = event.currentTarget;
+                const oldText = btn.textContent;
+                btn.textContent = '✅';
+                setTimeout(() => btn.textContent = oldText, 2000);
+            }).catch(err => {
+                console.error('複製失敗:', err);
+            });
         }
 
         function formatJoinDate(ts) {
@@ -196,6 +214,9 @@
                     if (profile.createdAt) {
                         document.getElementById('heroMeta').textContent = `📅 加入於 ${formatJoinDate(profile.createdAt)}`;
                     }
+
+                    // UID
+                    document.getElementById('uidText').textContent = `UID: ${profile.uid}`;
 
                     // Fav characters
                     if (profile.favCharacters?.length) {
