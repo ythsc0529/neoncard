@@ -497,10 +497,18 @@
             <button class="btn menu-btn" onclick="showModeSelection()">開始遊戲</button>
             <button class="btn menu-btn btn-magenta" onclick="location.href='tutorial.html'">新手教學</button>
             <button class="btn menu-btn btn-primary" onclick="location.href='story_menu.html'">劇情模式</button>
-            <button class="btn menu-btn btn-tournament" id="tournamentBtn" onclick="showTournamentMenu()">匹配模式</button>
+            <button class="btn menu-btn btn-tournament" id="tournamentBtn"
+                onclick="showTournamentMenu()">排位/一般匹配模式</button>
             <button class="btn menu-btn btn-entertainment" onclick="showEntertainmentMenu()">娛樂模式</button>
-            <button class="btn menu-btn btn-pass" style="border-color:var(--neon-green);color:var(--neon-green);opacity:0.6;cursor:not-allowed;">通行證 (維護中)</button>
-            <button class="btn menu-btn btn-team" style="border-color:var(--neon-cyan);color:var(--neon-cyan);opacity:0.6;cursor:not-allowed;">隊伍配置 (維護中)</button>
+            <button class="btn menu-btn btn-store"
+                style="border-color:var(--neon-gold);color:var(--neon-gold);opacity:0.6;cursor:not-allowed;">商店
+                (暫未開放)</button>
+            <button class="btn menu-btn btn-pass"
+                style="border-color:var(--neon-green);color:var(--neon-green);opacity:0.6;cursor:not-allowed;">通行證
+                (暫未開放)</button>
+            <button class="btn menu-btn btn-team"
+                style="border-color:var(--neon-cyan);color:var(--neon-cyan);opacity:0.6;cursor:not-allowed;">隊伍配置
+                (暫未開放)</button>
             <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" style="border-color:#00f3ff;color:#00f3ff;"
                 onclick="location.href='strategy.html'">攻略專區</button>
@@ -853,10 +861,13 @@
                 box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
             ">
                 <img id="tc-img" src="" style="width: 120px; height: 120px; object-fit: contain;">
-                <div id="tc-name" style="font-size: 1.8rem; font-family: var(--font-heading); color: white; text-shadow: 0 0 15px var(--neon-gold);">稱號名稱</div>
+                <div id="tc-name"
+                    style="font-size: 1.8rem; font-family: var(--font-heading); color: white; text-shadow: 0 0 15px var(--neon-gold);">
+                    稱號名稱</div>
                 <div id="tc-desc" style="color: var(--text-secondary); font-size: 0.95rem;">稱號達成條件描述</div>
             </div>
-            <button class="btn btn-gold" onclick="closeTitleCongrat()" style="width: 100%; padding: 16px; font-size: 1.1rem;">太棒了！</button>
+            <button class="btn btn-gold" onclick="closeTitleCongrat()"
+                style="width: 100%; padding: 16px; font-size: 1.1rem;">太棒了！</button>
         </div>
     </div>
 
@@ -888,7 +899,7 @@
                     if (result) {
                         profile.ranked = result.ranked;
                         await UserProfile.updateRanked(user.uid, result.ranked);
-                        alert('⚠️ 系統偵測到您在先前的排位賽中途斷線或離開。\n\n' + result.description);
+                        alert('系統偵測到您在先前的排位賽中途斷線或離開。\n\n' + result.description);
                     }
                     localStorage.removeItem('inRankedMatchOngoing');
                 }
@@ -922,10 +933,10 @@
             document.getElementById('tc-img').src = info.img;
             document.getElementById('tc-name').textContent = titleKey;
             document.getElementById('tc-desc').textContent = info.desc;
-            
+
             // Show modal
             document.getElementById('titleCongratModal').classList.add('active');
-            
+
             // Remove from queue
             const remaining = pending.slice(1);
             if (remaining.length > 0) {
