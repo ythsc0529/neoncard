@@ -12,6 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/resourceManifest.js"></script>
+    <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
     <script src="js/core/rankedSystem.js"></script>
@@ -469,8 +471,23 @@
 </head>
 
 <body>
-    <!-- ① Loading Screen -->
-    <div class="fullscreen-cover" id="loadingScreen">
+    <!-- ① Resource Preloader -->
+    <div class="preloader-container" id="resourcePreloader">
+        <div class="preloader-logo">霓虹牌</div>
+        <div class="preloader-progress-info">
+            <div class="preloader-bar-outer">
+                <div class="preloader-bar-inner" id="preloadBar"></div>
+            </div>
+            <div class="preloader-status">
+                <span class="preloader-label" id="preloadLabel">資源載入中...</span>
+                <span class="preloader-percent" id="preloadPercent">0%</span>
+            </div>
+        </div>
+        <div class="preloader-loading-text">RESOURCES PRELOADING</div>
+    </div>
+
+    <!-- ② Loading Screen (Transition) -->
+    <div class="fullscreen-cover hidden" id="loadingScreen">
         <div class="neon-text"
             style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">
             霓 虹 牌</div>
@@ -936,31 +953,46 @@
         let friendRequestUnsubscribe = null;
 
         // ── App Init ──────────────────────────────────────────────────
-        AuthManager.init();
-        AuthManager.onAuthChanged(async (user) => {
-            if (isGuest) return; // Guest already set up
-            if (user) {
-                let profile = await UserProfile.getProfile(user.uid);
+        function startAppAfterLoading() {
+            document.getElementById('resourcePreloader').classList.add('hidden');
+            AuthManager.init();
+            AuthManager.onAuthChanged(async (user) => {
+                if (isGuest) return; // Guest already set up
+                if (user) {
+                    let profile = await UserProfile.getProfile(user.uid);
 
-                // 檢查是否有排位中離標記
-                if (localStorage.getItem('inRankedMatchOngoing') === 'true' && profile && profile.ranked) {
-                    const result = typeof RankedSystem !== 'undefined' ? RankedSystem.penalizeLeave(profile.ranked) : null;
-                    if (result) {
-                        profile.ranked = result.ranked;
-                        await UserProfile.updateRanked(user.uid, result.ranked);
-                        alert('系統偵測到您在先前的排位賽中途斷線或離開。\n\n' + result.description);
+                    // 檢查是否有排位中離標記
+                    if (localStorage.getItem('inRankedMatchOngoing') === 'true' && profile && profile.ranked) {
+                        const result = typeof RankedSystem !== 'undefined' ? RankedSystem.penalizeLeave(profile.ranked) : null;
+                        if (result) {
+                            profile.ranked = result.ranked;
+                            await UserProfile.updateRanked(user.uid, result.ranked);
+                            alert('系統偵測到您在先前的排位賽中途斷線或離開。\n\n' + result.description);
+                        }
+                        localStorage.removeItem('inRankedMatchOngoing');
                     }
-                    localStorage.removeItem('inRankedMatchOngoing');
-                }
 
-                if (!profile || !profile.isProfileSetup) {
-                    showFirstTimeSetup(user);
+                    if (!profile || !profile.isProfileSetup) {
+                        showFirstTimeSetup(user);
+                    } else {
+                        currentUserProfile = profile;
+                        showMain(user, profile);
+                    }
                 } else {
-                    currentUserProfile = profile;
-                    showMain(user, profile);
+                    showScreen('login');
                 }
-            } else {
-                showScreen('login');
+            });
+        }
+
+        // Start Resource Loading
+        ResourceLoader.load(RESOURCE_MANIFEST, {
+            onProgress: (percent, label) => {
+                document.getElementById('preloadBar').style.width = percent + '%';
+                document.getElementById('preloadPercent').textContent = percent + '%';
+                document.getElementById('preloadLabel').textContent = `正在載入 ${label}...`;
+            },
+            onComplete: () => {
+                setTimeout(startAppAfterLoading, 500); // Slight delay for smooth transition
             }
         });
 
