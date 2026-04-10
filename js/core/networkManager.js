@@ -219,12 +219,14 @@ class NetworkManager {
 
         // Exchange player info (name + ranked + title) immediately upon connection
         const myName = localStorage.getItem('onlineMyName') || (this.isHost ? '玩家1' : '玩家2');
+        const myUid  = AuthManager.getCurrentUser()?.uid || null;
         const myRankedInfo = (() => {
             try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
         })();
         this.conn.send({
             type: 'player_info',
             name: myName,
+            uid: myUid,
             rankDisplay: myRankedInfo ? myRankedInfo.rankDisplay : '骸1',
             rankImg:     myRankedInfo ? myRankedInfo.rankImg     : 'race_pic/骸1.png',
             starsHtml:   myRankedInfo ? myRankedInfo.starsHtml   : '',

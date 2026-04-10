@@ -160,7 +160,7 @@
             <div class="player-header glass">
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span class="player-name" id="p1Name">玩家1</span>
+                        <span class="player-name" id="p1Name" style="cursor:pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''" onclick="viewMyProfile()">玩家1</span>
                         <span id="p1RankBadge" class="rank-badge-text" style="display:none;"></span>
                     </div>
                     <span id="p1TitleBadge" class="title-badge-text" style="display:none;"></span>
@@ -233,7 +233,7 @@
             <div class="player-header glass">
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span class="player-name" id="p2Name">玩家2</span>
+                        <span class="player-name" id="p2Name" style="cursor:pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''" onclick="viewOpponentProfile()">玩家2</span>
                         <span id="p2RankBadge" class="rank-badge-text" style="display:none;"></span>
                     </div>
                     <span id="p2TitleBadge" class="title-badge-text" style="display:none;"></span>
@@ -522,8 +522,9 @@
                        (GameState.mode === 'pve' || GameState.type === 'pve');
             };
 
-            // Show emoji & surrender button for online mode
-            if (mode === 'online') {
+            // Show emoji & surrender button for online mode or ranked bot matches
+            const isBotRankedMatch = localStorage.getItem('isBotRankedMatch') === 'true';
+            if (mode === 'online' || isBotRankedMatch) {
                 document.getElementById('p1EmojiBtn').classList.remove('hidden');
                 document.getElementById('surrenderBtn').classList.remove('hidden');
 
@@ -797,12 +798,60 @@
                 GameState.firstPlayer = firstPlayer;
                 GameState.currentPlayer = firstPlayer;
 
+                // Show rank reveal if ranked match
+                if (localStorage.getItem('isBotRankedMatch') === 'true') {
+                    await showRankReveal();
+                }
+
                 if (type === 'pve') {
                     // Draw cards silently for NPC
                     const npcCards = GameState.drawCards('player2', GameState.getCardCount());
 
                     // Final name cleanup/override for NPC
                     if (botMatchName) {
+                        // Populate bot metadata for ranked display
+                        if (localStorage.getItem('isBotRankedMatch') === 'true' && typeof NPC_PROFILES !== 'undefined') {
+                            const bInfo = NPC_PROFILES[botMatchName];
+                            if (bInfo) {
+                                // Mock opponentPlayerInfo for rank reveal and header badges
+                                window.opponentPlayerInfo = {
+                                    name: bInfo.displayName,
+                                    isRanked: true,
+                                    rankDisplay: RankedSystem.getDisplayName(bInfo.ranked),
+                                    rankImg: RankedSystem.getImgPath(bInfo.ranked),
+                                    activeTitle: bInfo.activeTitle
+                                };
+
+                                // Show header badges for the bot (P2 in bot match)
+                                const p2Rank = document.getElementById('p2RankBadge');
+                                if (p2Rank) {
+                                    p2Rank.textContent = window.opponentPlayerInfo.rankDisplay;
+                                    p2Rank.style.display = 'inline-block';
+                                }
+                                const p2Title = document.getElementById('p2TitleBadge');
+                                if (p2Title) {
+                                    p2Title.textContent = '〔' + bInfo.activeTitle + '〕';
+                                    p2Title.style.display = 'block';
+                                }
+
+                                // Also show my own badges in header
+                                try {
+                                    const myRInfo = JSON.parse(localStorage.getItem('myRankedInfo') || 'null');
+                                    if (myRInfo) {
+                                        const p1Rank = document.getElementById('p1RankBadge');
+                                        if (p1Rank) {
+                                            p1Rank.textContent = myRInfo.rankDisplay;
+                                            p1Rank.style.display = 'inline-block';
+                                        }
+                                        const p1Title = document.getElementById('p1TitleBadge');
+                                        if (p1Title) {
+                                            p1Title.textContent = '〔' + myRInfo.activeTitle + '〕';
+                                            p1Title.style.display = 'block';
+                                        }
+                                    }
+                                } catch(e) {}
+                            }
+                        }
                         localStorage.removeItem('botMatchName'); // clean up now
                     } else if (difficulty === 'hell') {
                         GameState.player2.name = 'NPC (地獄)';
@@ -1060,7 +1109,9 @@
 
             // Trigger AI if it's Player 2's turn in story or pve
             if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
-                setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+                const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+                const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                setTimeout(playAITurn, delay); // Wait a bit before AI acts
             }
         }
 
@@ -1077,14 +1128,15 @@
 
         function startTurnTimer() {
             stopTurnTimer();
-            if (GameState.mode !== 'online') return;
+            const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+            if (GameState.mode !== 'online' && !isBotRanked) return;
 
             turnEndTime = Date.now() + 60000;
             document.getElementById('turnTimerDisplay').style.display = 'inline';
             
-            const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
-            const isLocalTurn = (GameState.currentPlayer === 1 && localRole === 'host') || 
-                                (GameState.currentPlayer === 2 && localRole === 'join');
+            const localKey = getLocalPlayerKey();
+            const isLocalTurn = (GameState.currentPlayer === 1 && localKey === 'player1') || 
+                                (GameState.currentPlayer === 2 && localKey === 'player2');
 
             // Force visual update instantly
             document.getElementById('turnTimerSecs').textContent = '60';
@@ -1620,7 +1672,9 @@
 
                 // Trigger AI if it's Player 2's turn in story mode or PvE
                 if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
-                    setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+                    const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+                    const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                    setTimeout(playAITurn, delay); // Wait a bit before AI acts
                 }
 
             } finally {
@@ -1646,7 +1700,10 @@
 
             // Show thinking indicator
             const thinkingUI = document.getElementById('p2Thinking');
-            if (thinkingUI) thinkingUI.classList.remove('hidden');
+            if (thinkingUI) {
+                thinkingUI.classList.remove('hidden');
+                thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+            }
 
             // Simulate thinking time (random between 1 to 2.5 seconds)
             const thinkTime = Math.floor(window.GameRandom() * 1500) + 1000;
@@ -2023,11 +2080,13 @@
             document.getElementById('emojiModal').classList.remove('active');
 
             // Show locally above my own avatar
-            const localKey = NetManager.isHost ? 'player1' : 'player2';
+            const localKey = getLocalPlayerKey();
             showEmojiAnimation(emoji, localKey);
 
             // Broadcast to opponent
-            NetManager.sendEmoji(emoji);
+            if (GameState.mode === 'online') {
+                NetManager.sendEmoji(emoji);
+            }
         }
 
         function showEmojiAnimation(emoji, playerKey) {
@@ -2097,8 +2156,7 @@
             if (GameState.phase === 'game_over') return;
             
             if (confirm("確定要投降嗎？\n如果是排位賽，這將會判定為敗北並扣除星數。")) {
-                const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
-                const localKey = localRole === 'host' ? 'player1' : 'player2';
+                const localKey = getLocalPlayerKey();
                 
                 // Set game over locally
                 GameState.handleSurrender(localKey);
@@ -2106,7 +2164,9 @@
                 updateBattleLog();
 
                 // Broadcast to opponent
-                NetManager.sendSurrender();
+                if (GameState.mode === 'online') {
+                    NetManager.sendSurrender();
+                }
 
                 // Trigger victory animation (for opponent)
                 const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
@@ -2191,6 +2251,14 @@
         }
 
         // Rank reveal animation (shown at the start of a ranked match)
+        function getLocalPlayerKey() {
+            if (GameState.mode === 'online') {
+                const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                return role === 'host' ? 'player1' : 'player2';
+            }
+            return 'player1';
+        }
+
         async function showRankReveal() {
             return new Promise(resolve => {
                 const overlay = document.getElementById('rankRevealOverlay');
@@ -2200,9 +2268,10 @@
                     try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
                 })();
                 const oppInfo = window.opponentPlayerInfo;
-                const isHost = (window.localOnlineRole || localStorage.getItem('onlineRole')) === 'host';
-                const myName = isHost ? (GameState.player1?.name || '我') : (GameState.player2?.name || '我');
-                const oppName = isHost ? (GameState.player2?.name || '對手') : (GameState.player1?.name || '對手');
+                const localKey = getLocalPlayerKey();
+                const isP1 = localKey === 'player1';
+                const myName = isP1 ? (GameState.player1?.name || '我') : (GameState.player2?.name || '我');
+                const oppName = isP1 ? (GameState.player2?.name || '對手') : (GameState.player1?.name || '對手');
 
                 overlay.style.display = 'flex';
                 overlay.innerHTML = `
@@ -2237,6 +2306,53 @@
                     resolve();
                 }, 2800);
             });
+        }
+
+        // Profile View Helpers
+        function viewMyProfile() {
+            const user = AuthManager.getCurrentUser();
+            if (user) {
+                window.open(`player.html?uid=${user.uid}`, '_blank');
+            }
+        }
+
+        let opponentUid = null;
+        // Listen for player info to get UID
+        window.addEventListener('load', () => {
+            const oldOnPlayerInfo = NetManager.onPlayerInfoReceived;
+            NetManager.onPlayerInfoReceived = (info) => {
+                if (oldOnPlayerInfo) oldOnPlayerInfo(info);
+                if (info && info.uid) {
+                    opponentUid = info.uid;
+                    console.log('Received opponent UID:', opponentUid);
+                }
+            };
+        });
+
+        function viewOpponentProfile() {
+            // Priority:
+            // 1. If disguised bot, use NPC_[botName]
+            // 2. If online pvp, use exchanged opponentUid
+            // 3. Fallback: check botMatchName
+            
+            if (localStorage.getItem('isDisguisedBot') === 'true') {
+                const botName = localStorage.getItem('botMatchName');
+                if (botName) {
+                    window.open(`player.html?uid=NPC_${botName}`, '_blank');
+                    return;
+                }
+            }
+
+            if (opponentUid) {
+                window.open(`player.html?uid=${opponentUid}`, '_blank');
+                return;
+            }
+
+            // Fallback for non-disguised bots or if info not yet received
+            const botName = localStorage.getItem('botMatchName');
+            if (botName) {
+                window.open(`player.html?uid=NPC_${botName}`, '_blank');
+            }
         }
 
         // Initialize game

@@ -5,6 +5,15 @@ const UserProfile = (() => {
     const db = () => AuthManager.getDb();
 
     async function getProfile(uid) {
+        // ── NPC Bot Profile Fallback ─────────────────────────────────────────
+        if (uid && uid.startsWith('NPC_')) {
+            const botName = uid.split('NPC_')[1];
+            if (typeof NPC_PROFILES !== 'undefined' && NPC_PROFILES[botName]) {
+                const botData = NPC_PROFILES[botName];
+                return { uid, ...botData, isBot: true };
+            }
+        }
+
         try {
             const doc = await db().collection('users').doc(uid).get();
             if (!doc.exists) return null;
@@ -44,7 +53,6 @@ const UserProfile = (() => {
             return null;
         }
     }
-
     async function createProfile(uid, displayName, googlePhotoURL) {
         const def = typeof RankedSystem !== 'undefined'
             ? RankedSystem.defaultRanked()
@@ -71,11 +79,28 @@ const UserProfile = (() => {
 
     async function searchByDisplayName(query) {
         if (!query) return [];
+        
+        // 1. Search bots first (local)
+        let botResults = [];
+        if (typeof NPC_PROFILES !== 'undefined') {
+            botResults = Object.keys(NPC_PROFILES)
+                .filter(name => name.toLowerCase().includes(query.toLowerCase()))
+                .map(name => ({
+                    uid: `NPC_${name}`,
+                    ...NPC_PROFILES[name],
+                    isBot: true
+                }));
+        }
+
+        // 2. Search Firestore
         const snap = await db().collection('users')
             .where('displayName', '>=', query)
             .where('displayName', '<=', query + '\uf8ff')
             .limit(10).get();
-        return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        const firestoreResults = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+
+        // Merge results (bots first for flavor, or mix them)
+        return [...botResults, ...firestoreResults].slice(0, 15);
     }
 
     // Check if a display name is already taken (optionally excluding a uid)

@@ -16,6 +16,7 @@
     <script src="js/core/userProfile.js"></script>
     <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/friends.js"></script>
+    <script src="js/data/botProfiles.js"></script>
     <style>
         body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
         @keyframes fadeIn   { from{opacity:0;} to{opacity:1;} }
@@ -219,9 +220,9 @@
                     document.getElementById('uidText').textContent = `UID: ${profile.uid}`;
 
                     // Fav characters
-                    if (profile.favCharacters?.length) {
+                    if (profile.favoriteChars?.length) {
                         document.getElementById('favChips').innerHTML =
-                            profile.favCharacters.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
+                            profile.favoriteChars.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
                         document.getElementById('favSection').style.display = 'block';
                     }
 
@@ -246,18 +247,32 @@
                     renderStats(profile.stats);
 
                     // Action bar: add friend / already friend
+                    const isBot = profile.isBot || targetUid.startsWith('NPC_');
                     if (user.uid !== targetUid) {
-                        const isFriend   = await FriendsManager.isFriend(targetUid);
-                        const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
-                        let btn = '';
-                        if (isFriend) {
-                            btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
-                        } else if (hasPending) {
-                            btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
+                        if (isBot) {
+                            // Bots cannot be added as friends, show as verified/special
+                            document.getElementById('actionBar').innerHTML = 
+                                `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);opacity:0.8;" disabled>✨ 認證玩家</button>`;
                         } else {
-                            btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
+                            const isFriend   = await FriendsManager.isFriend(targetUid);
+                            const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
+                            let btn = '';
+                            if (isFriend) {
+                                btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
+                            } else if (hasPending) {
+                                btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
+                            } else {
+                                btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
+                            }
+                            document.getElementById('actionBar').innerHTML = btn;
                         }
-                        document.getElementById('actionBar').innerHTML = btn;
+                    }
+
+                    // Bot avatar emoji variety
+                    if (isBot && !profile.googlePhotoURL) {
+                        const emojis = ['👤', '👤', '🎭', '🎩', '🕶️', '⚔️', '🛡️', '🦊', '🐺', '🦊'];
+                        const index = profile.displayName.length % emojis.length;
+                        document.getElementById('heroAvatarEmoji').textContent = emojis[index];
                     }
 
                     document.getElementById('pgLoading').style.display = 'none';
