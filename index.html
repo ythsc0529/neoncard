@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/version.js"></script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>
@@ -494,7 +495,28 @@
         <div style="color:var(--text-muted);font-size:0.9rem;letter-spacing:2px;">LOADING...</div>
     </div>
 
-    <!-- ② Login Screen -->
+    <!-- ③ Update Required Modal -->
+    <div class="update-modal-overlay" id="updateModal">
+        <div class="update-modal">
+            <div class="update-icon">🚀</div>
+            <div class="update-title">發現新版本</div>
+            <div class="update-subtitle">為了確保遊戲穩定性與戰鬥數據同步，請更新至最新版本以繼續。</div>
+            
+            <div class="update-notes-container">
+                <div class="update-notes-title">更新內容</div>
+                <ul class="update-notes-list" id="updateNotesList">
+                    <!-- Dynamic Notes -->
+                    <li>優化遊戲性能</li>
+                    <li>修復已知問題</li>
+                </ul>
+            </div>
+
+            <button class="btn-update" onclick="location.reload(true)">立即更新</button>
+            <div class="update-footer" id="versionDisplay">Current Version: 0.1.0</div>
+        </div>
+    </div>
+
+    <!-- ④ Login Screen -->
     <div class="fullscreen-cover hidden" id="loginScreen">
         <div class="login-box glass">
             <div class="login-title">霓虹牌</div>
@@ -953,7 +975,25 @@
         let friendRequestUnsubscribe = null;
 
         // ── App Init ──────────────────────────────────────────────────
-        function startAppAfterLoading() {
+        async function startAppAfterLoading() {
+            // 1. Version Check
+            try {
+                const configRef = AuthManager.getRtdb().ref('game_config');
+                const snapshot = await configRef.once('value');
+                const config = snapshot.val() || {};
+                const latestVersion = config.latest_version || APP_VERSION;
+                const updateNotes = config.update_notes || [];
+
+                if (latestVersion !== APP_VERSION) {
+                    console.warn(`[VersionControl] Update Required! Local: ${APP_VERSION}, Remote: ${latestVersion}`);
+                    showUpdateModal(latestVersion, updateNotes);
+                    return; // HALT initialization
+                }
+            } catch (e) {
+                console.error('[VersionControl] Failed to check version:', e);
+                // Continue anyway if check fails to avoid bricking the game for offline or DB issues
+            }
+
             document.getElementById('resourcePreloader').classList.add('hidden');
             AuthManager.init();
             AuthManager.onAuthChanged(async (user) => {
@@ -995,6 +1035,32 @@
                 setTimeout(startAppAfterLoading, 500); // Slight delay for smooth transition
             }
         });
+
+        function showUpdateModal(latestVersion, notes) {
+            const modal = document.getElementById('updateModal');
+            const notesList = document.getElementById('updateNotesList');
+            const versionDisplay = document.getElementById('versionDisplay');
+
+            versionDisplay.textContent = `Current: ${APP_VERSION} | Latest: ${latestVersion}`;
+            
+            // Clear and fill notes
+            notesList.innerHTML = '';
+            if (Array.isArray(notes)) {
+                notes.forEach(note => {
+                    const li = document.createElement('li');
+                    li.textContent = note;
+                    notesList.appendChild(li);
+                });
+            } else if (typeof notes === 'string' && notes) {
+                const li = document.createElement('li');
+                li.textContent = notes;
+                notesList.appendChild(li);
+            } else {
+                notesList.innerHTML = '<li>優化多項遊戲體驗</li><li>穩定性提升</li>';
+            }
+
+            modal.classList.add('active');
+        }
 
         // --- Title Achievement Checks ---
         async function checkPendingTitles() {

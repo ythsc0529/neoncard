@@ -53,6 +53,7 @@ const MatchmakingManager = (() => {
             displayName,
             roomCode,
             rankScore: myRankScore,
+            version: typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'unknown',
             joinedAt: firebase.database.ServerValue.TIMESTAMP
         });
         _myRef.onDisconnect().remove();
@@ -100,9 +101,12 @@ const MatchmakingManager = (() => {
 
         // Sort by rankScore similarity first, then by joinedAt for tiebreaking
         const myRankScore = myData.rankScore || 0;
+        const myVersion = myData.version || 'unknown';
         const candidates = Object.entries(all)
             .filter(([id, data]) => {
                 if (id === myUid) return false;
+                // Version Check: Only match with same version
+                if (data.version !== myVersion) return false;
                 if (data.joinedAt < myData.joinedAt) return true;
                 if (data.joinedAt === myData.joinedAt && id < myUid) return true;
                 return false;
