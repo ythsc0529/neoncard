@@ -16,6 +16,8 @@
     <script src="js/core/userProfile.js"></script>
     <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/friends.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
     <style>
         body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
@@ -88,6 +90,12 @@
         .char-picker-item { padding: 10px; text-align: center; border-radius: 10px; border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.2s; font-size: 0.85rem; }
         .char-picker-item:hover { border-color: var(--neon-cyan); background: rgba(0,243,255,0.08); }
         .char-picker-item.selected { border-color: var(--neon-gold); background: rgba(255,215,0,0.1); }
+
+        /* QR & Scanner Modals */
+        #qrModal .modal, #scannerModal .modal { max-width: 400px; text-align: center; }
+        .qr-container { background: white; padding: 15px; border-radius: 12px; display: inline-block; margin: 20px 0; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin: 15px 0; }
+        .scan-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -144,6 +152,7 @@
                     <div style="display:flex;align-items:center;gap:8px;">
                         <div id="uidDisplay" style="color:var(--text-muted);font-size:0.85rem;font-family:monospace;">-</div>
                         <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="font-size:0.8rem;">📋</span>
+                        <button class="btn btn-sm" style="margin-left:auto;font-size:0.75rem;padding:5px 10px;border-color:var(--neon-cyan);color:var(--neon-cyan);" onclick="showMyQr()">我的 QR Code</button>
                     </div>
                 </div>
 
@@ -200,8 +209,9 @@
                     <!-- Search Tab -->
                     <div class="tab-content" id="tab-content-search">
                         <div class="search-bar">
-                            <input class="search-input-sm" id="searchInput" placeholder="輸入玩家名稱..." onkeyup="if(event.key==='Enter')doSearch()">
+                            <input class="search-input-sm" id="searchInput" placeholder="輸入玩家名稱或掃描..." onkeyup="if(event.key==='Enter')doSearch()">
                             <button class="btn btn-sm" onclick="doSearch()">搜尋</button>
+                            <button class="btn btn-sm btn-magenta scan-btn" onclick="startScanner()">📷 掃描</button>
                         </div>
                         <div class="search-results" id="searchResults">
                             <div class="empty-state"><div class="icon">🔍</div>輸入名稱以搜尋玩家</div>
@@ -238,6 +248,27 @@
             <h2 style="margin-bottom:16px;">🎖 選擇稱號</h2>
             <div id="titlePickerList" style="display:flex;flex-direction:column;gap:10px;"></div>
             <button class="btn" style="width:100%;margin-top:16px;opacity:0.6;" onclick="closeTitlePicker()">取消</button>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal glass">
+            <h2 style="color:var(--neon-cyan);margin-bottom:10px;">我的 QR Code</h2>
+            <p style="color:var(--text-secondary);font-size:0.9rem;">讓好友掃描此碼以快速加你為好友</p>
+            <div class="qr-container" id="qrcode"></div>
+            <div style="color:var(--neon-gold);font-family:monospace;margin-bottom:20px;" id="qrUidText"></div>
+            <button class="btn" style="width:100%;opacity:0.7;" onclick="closeQrModal()">關閉</button>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div class="modal-overlay" id="scannerModal">
+        <div class="modal glass">
+            <h2 style="color:var(--neon-magenta);margin-bottom:10px;">掃描 QR Code</h2>
+            <p style="color:var(--text-secondary);font-size:0.9rem;">請將好友的 QR Code 對準鏡頭</p>
+            <div id="reader"></div>
+            <button class="btn" style="width:100%;opacity:0.7;" onclick="stopScanner()">取消掃描</button>
         </div>
     </div>
 
@@ -780,6 +811,133 @@
                 console.error('複製失敗:', err);
                 alert('複製失敗，請手動選取複製');
             });
+        }
+
+        // ── QR Code & Scanner ─────────────────────────────────────────
+        let qrInstance = null;
+        let html5QrCode = null;
+
+        function showMyQr() {
+            const uid = myProfile?.uid;
+            if (!uid) return;
+            
+            document.getElementById('qrUidText').textContent = uid;
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            new QRCode(qrContainer, {
+                text: uid,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            document.getElementById('qrModal').classList.add('active');
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        async function startScanner() {
+            const scannerModal = document.getElementById('scannerModal');
+            scannerModal.classList.add('active');
+            
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config, 
+                    onScanSuccess
+                );
+            } catch (err) {
+                console.error("Scanner failed to start:", err);
+                alert("無法啟動相機，請確認已授權權限。");
+                stopScanner();
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+            document.getElementById('scannerModal').classList.remove('active');
+        }
+
+        async function onScanSuccess(decodedText) {
+            console.log("Scan Result:", decodedText);
+            await stopScanner();
+            
+            // Assume the decoded text is the UID
+            const targetUid = decodedText.trim();
+            if (targetUid.length < 10) { // Typical UID length
+                alert("無效的 QR Code");
+                return;
+            }
+            
+            // Search by UID
+            searchByScannedUid(targetUid);
+        }
+
+        async function searchByScannedUid(uid) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div>正在查詢玩家...</div>';
+            switchTab('search');
+            
+            try {
+                const u = await UserProfile.getProfile(uid);
+                if (!u) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">😶</div>找不到該玩家 (UID: ' + uid + ')</div>';
+                    return;
+                }
+                
+                const me = AuthManager.getCurrentUser();
+                if (u.uid === me?.uid) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">😊</div>這是你自己哦！</div>';
+                    return;
+                }
+                
+                const alreadyFriend = await FriendsManager.isFriend(u.uid);
+                const hasPending = await FriendsManager.hasOutgoingRequest(u.uid);
+                const btnHtml = alreadyFriend
+                    ? `<span style="color:var(--neon-green);font-size:0.8rem;">✓ 好友</span>`
+                    : hasPending
+                        ? `<span style="color:var(--text-muted);font-size:0.8rem;">已送出</span>`
+                        : `<button class="btn btn-sm" onclick="addFriend('${u.uid}',this)">加好友</button>`;
+                
+                const statsBar = buildStatsBar(u.stats);
+                const joinStr = u.createdAt ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:3px;">📅 ${formatJoinDate(u.createdAt)} 加入</div>` : '';
+                
+                container.innerHTML = `
+                    <div style="color:var(--neon-cyan);font-size:0.8rem;margin-bottom:10px;letter-spacing:1px;">✨ 掃描成功！已找到玩家：</div>
+                    <div class="friend-card">
+                        <div class="friend-card-row">
+                            <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                                <div class="friend-avatar">${u.googlePhotoURL ? `<img src="${u.googlePhotoURL}" alt="">` : '👤'}</div>
+                            </a>
+                            <div class="friend-info">
+                                <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                                    <div class="friend-name" style="cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''">${escHtml(u.displayName)}</div>
+                                </a>
+                                <div class="friend-bio">${escHtml(u.bio || '沒有自我介紹')}</div>
+                                ${joinStr}
+                            </div>
+                            <div class="friend-actions">${btnHtml}</div>
+                        </div>
+                        ${statsBar}
+                    </div>`;
+                    
+            } catch (err) {
+                console.error("Search by UID failed:", err);
+                container.innerHTML = '<div class="empty-state"><div class="icon">❌</div>查詢出錯，請稍後再試</div>';
+            }
         }
     </script>
 </body>
