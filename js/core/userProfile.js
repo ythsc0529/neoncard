@@ -157,7 +157,7 @@ const UserProfile = (() => {
             // Add new match at the beginning
             const newMatch = {
                 ...matchData,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: Date.now()
             };
 
             // Prepend and limit to 5

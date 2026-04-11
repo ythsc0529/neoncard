@@ -721,11 +721,6 @@ const Animations = {
                             this.hide(); // Bug 4 Fix: Hide victory overlay before showing ranked result
                             overlay.classList.add('active');
                         }, 1800);
-                        
-                        // Clean up ranked flags
-                        localStorage.removeItem('isRankedMatch');
-                        localStorage.removeItem('isBotRankedMatch');
-                        localStorage.removeItem('myRankedInfo');
                     }
                 } else {
                     console.error('[Ranked] Skipping processing: No user found even after retry.');
@@ -810,6 +805,13 @@ const Animations = {
                 }
             }
         } catch (e) { console.error('[History] Error:', e); }
+
+        // Clean up ranked/bot flags after all recording is done
+        localStorage.removeItem('isRankedMatch');
+        localStorage.removeItem('isBotRankedMatch');
+        localStorage.removeItem('myRankedInfo');
+        localStorage.removeItem('botMatchName');
+        localStorage.removeItem('isBotRankedMatch'); // Redundant? No harm.
 
         return new Promise(resolve => {
             this.show();
