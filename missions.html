@@ -11,6 +11,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/theme.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
     <style>
@@ -151,22 +153,30 @@
         let myProfile = null;
         let activeTab = 'novice';
 
+        function isToday(timestamp) {
+            if(!timestamp) return false;
+            const d = new Date(timestamp);
+            const t = new Date();
+            return d.getDate()===t.getDate() && d.getMonth()===t.getMonth() && d.getFullYear()===t.getFullYear();
+        }
+
         const MISSIONS_DATA = [
-            // 新手任務
-            { id: 'n1', type: 'novice', name: '學習戰鬥', desc: '完成任意一場連線模式', rewards: [{ type: 'drawNormal', amt: 1, txt: '普通抽獎卷x1' }] },
-            { id: 'n2', type: 'novice', name: '招募', desc: '抽一次任意獎池', rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }, { type: 'exp', amt: 20, txt: '經驗x20' }] },
-            { id: 'n3', type: 'novice', name: '555嗚嗚', desc: '達到等級5', rewards: [{ type: 'drawPremium', amt: 1, txt: '高級抽獎券x1' }] },
-            { id: 'n4', type: 'novice', name: '2場對戰', desc: '完成任意2場連線模式', rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
-            { id: 'n5', type: 'novice', name: '問就是買', desc: '到商店購買任意物品', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }] },
-            { id: 'n6', type: 'novice', name: '獲勝沒難度', desc: '連續獲勝10場排位賽', rewards: [{ type: 'landDeed', amt: 15, txt: '地契x15' }, { type: 'title', amt: '排位沒難度', txt: '稱號:排位沒難度' }] },
-            // 每日任務
-            { id: 'd1', type: 'daily', name: '對戰!', desc: '進行任意一場連線模式', rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
-            { id: 'd2', type: 'daily', name: '贏!', desc: '在任意一場連線模式中取得勝利', rewards: [{ type: 'money', amt: 150, txt: '錢錢x150' }] },
-            { id: 'd3', type: 'daily', name: '我愛霓虹牌', desc: '上線遊戲', rewards: [{ type: 'money', amt: 30, txt: '錢錢x30' }] },
-            { id: 'd4', type: 'daily', name: '超級好運!', desc: '任意模式將神話角色派到戰鬥區', rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }] },
-            // 常駐任務
-            { id: 'p1', type: 'perm', name: '稱號', desc: '獲得任意稱號', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }, { type: 'money', amt: 200, txt: '錢錢x200' }], repeatable: true },
-            { id: 'p2', type: 'perm', name: '歐洲人', desc: '在任意獎池抽到神話階級', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }, { type: 'money', amt: 120, txt: '錢錢x120' }], repeatable: true },
+            // 新手任務 — id, type, name, desc, condition, rewards
+            { id: 'n1', type: 'novice', name: '學習戰鬥',  desc: '完成任意一場連線模式', condKey: 'onlineMatches', condVal: 1,  rewards: [{ type: 'drawNormal', amt: 1, txt: '普通抽獎卷x1' }] },
+            { id: 'n2', type: 'novice', name: '招募',       desc: '抽一次任意獎池 (前往商店抽獎後自動解鎖)', condKey: 'gachaPulls',   condVal: 1,  rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }, { type: 'exp', amt: 20, txt: '經驗x20' }] },
+            { id: 'n3', type: 'novice', name: '555嗚嗚',   desc: '達到等級5', condKey: 'level', condVal: 5, rewards: [{ type: 'drawPremium', amt: 1, txt: '高級抽獎券x1' }] },
+            { id: 'n4', type: 'novice', name: '2場對戰',   desc: '完成任意2場連線模式', condKey: 'onlineMatches', condVal: 2,  rewards: [{ type: 'money', amt: 50,  txt: '錢錢x50' }] },
+            { id: 'n5', type: 'novice', name: '輕鬆贏',    desc: '在任意一場連線模式中取得勝利', condKey: 'onlineWins', condVal: 1, rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }] },
+            { id: 'n6', type: 'novice', name: '根本高手',  desc: '在任意連線模式獲勝3次', condKey: 'onlineWins', condVal: 3, rewards: [{ type: 'money', amt: 150, txt: '錢錢x150' }] },
+            { id: 'n7', type: 'novice', name: '問就是買',  desc: '到商店購買任意物品 (購買後刷新此頁)', condKey: 'shopPurchases', condVal: 1, rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }] },
+            { id: 'n8', type: 'novice', name: 'NPC?',      desc: '完成任意難度人機模式並取得勝利', condKey: 'pveWins', condVal: 1, rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
+            { id: 'n9', type: 'novice', name: '我很資深!', desc: '解鎖排位賽 (達到等級10)', condKey: 'level', condVal: 10, rewards: [{ type: 'forgiveToken', amt: 2, txt: '贖罪券x2' }] },
+            // 每日任務 — daily reset
+            { id: 'd1', type: 'daily', name: '對戰!',      desc: '進行任意一場連線模式',  condKey: 'onlineMatches', condVal: 1, rewards: [{ type: 'money', amt: 50,  txt: '錢錢x50' }] },
+            { id: 'd2', type: 'daily', name: '贏!',        desc: '在任意一場連線模式取得勝利', condKey: 'onlineWins',   condVal: 1, rewards: [{ type: 'money', amt: 150, txt: '錢錢x150' }] },
+            { id: 'd3', type: 'daily', name: '我愛霓虹牌', desc: '上線遊戲 (自動完成)',  condKey: 'login', condVal: 1, rewards: [{ type: 'money', amt: 30,  txt: '錢錢x30' }] },
+            // 常駐任務 — repeatable
+            { id: 'p1', type: 'perm', name: '稱號',         desc: '獲得任意稱號 (每擁有1個可領取1次)', condKey: 'titlesCount', condVal: 1, rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }, { type: 'money', amt: 200, txt: '錢錢x200' }], repeatable: true },
         ];
 
         AuthManager.init();
@@ -194,46 +204,68 @@
             renderMissions();
         }
 
+        function checkCondition(m) {
+            if (!m.condKey) return false;
+            const p = myProfile;
+            const missionsData = p.missions || {};
+            const claimedCounts = missionsData.claimedCounts || {};
+
+            switch (m.condKey) {
+                case 'login':         return true; // auto-completed by being on page
+                case 'level':         return (p.level || 0) >= m.condVal;
+                case 'onlineMatches': return ((p.stats?.online?.wins||0) + (p.stats?.online?.losses||0)) >= m.condVal;
+                case 'onlineWins':    return (p.stats?.online?.wins || 0) >= m.condVal;
+                case 'pveWins':       return (p.stats?.pve?.wins || 0) >= m.condVal;
+                case 'gachaPulls':    return (p.missions?.gachaPulls || 0) >= m.condVal;
+                case 'shopPurchases': return (p.missions?.shopPurchases || 0) >= m.condVal;
+                case 'titlesCount':   
+                    const count = (p.titles || []).length;
+                    const claimedCount = claimedCounts[m.id] || 0;
+                    return count > claimedCount;
+                default:              return false;
+            }
+        }
+
         function renderMissions() {
             const list = document.getElementById('missionList');
             list.innerHTML = '';
-            
             const filtered = MISSIONS_DATA.filter(m => m.type === activeTab);
-            const claimed = myProfile.missions?.claimed || [];
-            
-            if(filtered.length === 0) {
+            const claimed  = myProfile.missions?.claimed || [];
+
+            if (!filtered.length) {
                 list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px;">暫未有相關任務</div>';
                 return;
             }
-            
+
             filtered.forEach(m => {
-                const isClaimed = claimed.includes(m.id) && !m.repeatable;
-                if (activeTab === 'novice' && isClaimed) return; // Hide completed novice
-                
-                const tagClass = m.type === 'novice' ? 'tag-novice' : (m.type === 'daily' ? 'tag-daily' : 'tag-perm');
-                const tagTxt = m.type === 'novice' ? '新手' : (m.type === 'daily' ? '每日' : '常駐');
-                
+                const isClaimed  = !m.repeatable && claimed.includes(m.id);
+                if (activeTab === 'novice' && isClaimed) return;
+
+                const condMet   = checkCondition(m);
+                const canClaim  = condMet && !isClaimed;
+
+                const tagClass  = m.type === 'novice' ? 'tag-novice' : (m.type === 'daily' ? 'tag-daily' : 'tag-perm');
+                const tagTxt    = m.type === 'novice' ? '新手' : (m.type === 'daily' ? '每日' : '常駐');
+                const statusTxt   = isClaimed ? '已完成 ✓' : (condMet ? '可領取 ✓' : '進行中...');
+                const statusColor = isClaimed ? 'var(--text-muted)' : (condMet ? 'var(--neon-green)' : '#6b6b9a');
+
+                let btnHtml;
+                if (isClaimed)      btnHtml = `<button class="btn btn-sm" disabled style="opacity:0.4;">已領取</button>`;
+                else if (canClaim)  btnHtml = `<button class="btn btn-sm btn-cyan" onclick="claimMission('${m.id}')">領取獎勵</button>`;
+                else                btnHtml = `<button class="btn btn-sm" disabled style="opacity:0.4;">未達成</button>`;
+
                 const card = document.createElement('div');
                 card.className = 'mission-card';
                 card.innerHTML = `
                     <div class="m-info">
-                        <div class="m-title">
-                            ${m.name} <span class="${tagClass}">${tagTxt}</span>
-                        </div>
-                        <div class="m-desc">${m.desc} ${m.repeatable ? '(可重複領取)' : ''}</div>
-                        <div class="m-rewards">
-                            ${m.rewards.map(r => `<div class="r-chip">${r.txt}</div>`).join('')}
-                        </div>
+                        <div class="m-title">${m.name} <span class="${tagClass}">${tagTxt}</span></div>
+                        <div class="m-desc">${m.desc}${m.repeatable?' (可重複領取)':''}</div>
+                        <div class="m-rewards">${m.rewards.map(r=>`<div class="r-chip">${r.txt}</div>`).join('')}</div>
                     </div>
-                    <div class="m-action">
-                        <!-- For demonstration, allowing claiming immediately to showcase logic -->
-                        <button class="btn btn-sm ${isClaimed ? '' : 'btn-cyan'}" 
-                            ${isClaimed ? 'disabled' : ''} 
-                            onclick="claimMission('${m.id}')">
-                            ${isClaimed ? '已完成' : '領取獎勵'}
-                        </button>
-                    </div>
-                `;
+                    <div class="m-action" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;">
+                        <div style="font-size:0.75rem;color:${statusColor};">${statusTxt}</div>
+                        ${btnHtml}
+                    </div>`;
                 list.appendChild(card);
             });
         }
@@ -254,11 +286,29 @@
                     }
                 }
                 
-                if(!m.repeatable) {
+                if (!m.repeatable) {
+                    // Mark as claimed
                     const claimed = myProfile.missions?.claimed || [];
                     claimed.push(id);
                     await UserProfile.updateProfile(myProfile.uid, { "missions.claimed": claimed });
+                } else {
+                    // Repeatable mission – handle based on count
+                    const counts = myProfile.missions?.claimedCounts || {};
+                    counts[id] = (counts[id] || 0) + 1;
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.claimedCounts": counts });
                 }
+                
+                // For daily tasks: record claim timestamp
+                if (m.type === 'daily') {
+                    const dailyClaims = myProfile.missions?.dailyClaims || {};
+                    dailyClaims[id] = Date.now();
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.dailyClaims": dailyClaims });
+                }
+                
+                // Clear the mission progress flag (it was used, reset)
+                const missionProgress = myProfile.missionProgress || {};
+                delete missionProgress[id];
+                await UserProfile.updateProfile(myProfile.uid, { missionProgress });
                 
                 myProfile = await UserProfile.getProfile(myProfile.uid);
                 alert("領取成功！");

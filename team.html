@@ -11,6 +11,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/theme.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
     <script src="js/data/characters_part1.js"></script>
@@ -87,77 +89,121 @@
 
         .char-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
         }
 
-        .char-card {
-            background: #111;
-            border: 2px solid #333;
+        .character-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+            padding: 16px;
             position: relative;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 180px;
         }
 
-        .char-card.locked {
-            opacity: 0.4;
-            filter: grayscale(100%);
+        .character-card.locked {
+            opacity: 0.5;
+            filter: grayscale(80%);
             border-style: dashed;
         }
 
-        .char-card:hover {
+        .character-card.glass {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .character-card:hover {
             transform: translateY(-5px);
-            z-index: 2;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
         }
 
-        .char-card.owned:hover {
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        .character-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
         }
 
-        .char-img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            margin-bottom: 10px;
+        .character-id {
+            color: var(--text-secondary);
         }
 
-        .char-name {
-            font-size: 0.9rem;
-            font-weight: bold;
-            line-height: 1.2;
-            word-break: break-word;
-        }
-        
-        .char-type {
+        .character-rarity {
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid;
             font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 5px;
+            font-weight: bold;
         }
 
-        .rarity-common { border-color: #ffffff; }
-        .rarity-common.owned:hover { box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .character-name {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 4px 0;
+            font-family: var(--font-heading);
+        }
 
-        .rarity-rare { border-color: #4a86e8; }
-        .rarity-rare.owned:hover { box-shadow: 0 0 15px rgba(74,134,232,0.4); border-color: #4a86e8 !important; }
+        .character-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.9rem;
+        }
 
-        .rarity-epic { border-color: #9900ff; }
-        .rarity-epic.owned { text-shadow: 0 0 5px #9900ff; }
-        .rarity-epic.owned:hover { box-shadow: 0 0 15px rgba(153,0,255,0.4); border-color: #9900ff !important; }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
 
-        .rarity-legendary { border-color: #fbbc04; }
-        .rarity-legendary.owned { text-shadow: 0 0 5px #fbbc04; }
-        .rarity-legendary.owned:hover { box-shadow: 0 0 20px rgba(251,188,4,0.5); border-color: #fbbc04 !important; }
+        .stat-label {
+            font-weight: bold;
+        }
 
-        .rarity-mythic { border-color: #ff0000; }
-        .rarity-mythic.owned { text-shadow: 0 0 8px #ff0000; }
-        .rarity-mythic.owned:hover { box-shadow: 0 0 25px rgba(255,0,0,0.6); border-color: #ff0000 !important; }
+        .stat-hp { color: #ff6b6b; }
+        .stat-atk { color: #ffd93d; }
 
+        .character-skills {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 8px;
+        }
+
+        .skill-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .skill-name {
+            color: var(--neon-cyan);
+            font-weight: bold;
+        }
+
+        .rarity-common { border-color: #ffffff; color: #ffffff; }
+        .rarity-rare { border-color: #4a86e8; color: #4a86e8; }
+        .rarity-epic { border-color: #9900ff; color: #9900ff; }
+        .rarity-legendary { border-color: #fbbc04; color: #fbbc04; }
+        .rarity-mythic { border-color: #ff0000; color: #ff0000; }
+        .rarity-special { border-color: #00ff88; color: #00ff88; }
+
+        .character-card.rarity-common:hover { box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .character-card.rarity-rare:hover { box-shadow: 0 0 15px rgba(74,134,232,0.3); }
+        .character-card.rarity-epic:hover { box-shadow: 0 0 20px rgba(153,0,255,0.3); }
+        .character-card.rarity-legendary:hover { box-shadow: 0 0 25px rgba(251,188,4,0.4); }
+        .character-card.rarity-mythic:hover { box-shadow: 0 0 30px rgba(255,0,0,0.5); }
     </style>
 </head>
 
@@ -220,33 +266,58 @@
             if(currentFilter === 'owned') displayList = displayList.filter(c => ownedNames.includes(c.name));
             if(currentFilter === 'unowned') displayList = displayList.filter(c => !ownedNames.includes(c.name));
             
-            // Sort: Owned first, then descending rarity
-            const rarityOrder = { 'mythic': 5, 'legendary': 4, 'epic': 3, 'rare': 2, 'common': 1 };
-            displayList.sort((a,b) => {
+            // Sort: Owned first, then descending rarity (UPPERCASE matches ALL_CHARACTERS.rarity)
+            const rarityOrder = { MYTHIC: 5, LEGENDARY: 4, EPIC: 3, RARE: 2, COMMON: 1, SPECIAL: 0 };
+            displayList.sort((a, b) => {
                 const aOwned = ownedNames.includes(a.name) ? 1 : 0;
                 const bOwned = ownedNames.includes(b.name) ? 1 : 0;
-                if(aOwned !== bOwned) return bOwned - aOwned;
+                if (aOwned !== bOwned) return bOwned - aOwned;
                 return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
             });
             
-            displayList.forEach(c => {
-                const isOwned = ownedNames.includes(c.name);
-                const rClass = `rarity-${c.rarity || 'common'}`;
+            // Rarity label map
+            const RARITY_LABEL = { COMMON: '一般', RARE: '稀有', EPIC: '史詩', LEGENDARY: '傳說', MYTHIC: '神話', SPECIAL: '特殊' };
+
+            displayList.forEach(char => {
+                const isOwned  = ownedNames.includes(char.name);
+                const rClass   = (char.rarity || 'COMMON').toLowerCase();
+                const hpDisplay = typeof char.hp === 'object' ? `${char.hp.min}~${char.hp.max}` : char.hp;
+                const atkDisplay = typeof char.atk === 'object' ? `${char.atk.min}~${char.atk.max}` : char.atk;
+                const rarityName = RARITY_LABEL[char.rarity] || char.rarity;
                 
                 const card = document.createElement('div');
-                card.className = `char-card ${rClass} ${isOwned ? 'owned' : 'locked'}`;
-                
-                let iconHtml = c.image ? `<img src="${c.image}" class="char-img">` : `<div style="font-size:3rem;margin-bottom:10px;">👤</div>`;
+                card.className = `character-card glass rarity-${rClass} ${isOwned ? 'owned' : 'locked'}`;
                 
                 card.innerHTML = `
-                    ${iconHtml}
-                    <div class="char-name">${c.name}</div>
-                    <div class="char-type">${c.type === 'building' ? '建築/載具' : '單位'}</div>
+                    <div class="character-header">
+                        <span class="character-id">#${char.id}</span>
+                        <span class="character-rarity rarity-${rClass}">${rarityName}</span>
+                    </div>
+                    <div class="character-name">${char.name}</div>
+                    <div class="character-stats">
+                        <span class="stat"><span class="stat-label stat-hp">❤</span> ${isOwned ? hpDisplay : '???'}</span>
+                        <span class="stat"><span class="stat-label stat-atk">⚔</span> ${isOwned ? atkDisplay : '???'}</span>
+                    </div>
+                    <div class="character-skills">
+                        ${isOwned && char.skills && char.skills.length > 0
+                        ? char.skills.slice(0, 2).map(s => 
+                            `<div class="skill-item"><span class="skill-name">${s.name}</span></div>`
+                        ).join('')
+                        : '<div class="skill-item" style="color:rgba(255,255,255,0.2);">🔒 未解鎖</div>'}
+                        ${isOwned && char.passive 
+                        ? `<div class="skill-item" style="color:var(--neon-gold);">[被動] ${char.passive.name}</div>` 
+                        : ''}
+                    </div>
                 `;
                 
                 card.onclick = () => {
-                    if(isOwned) alert(`[${c.name}]\n血量: ${c.health}\n攻擊力: ${c.attack}\n技能: ${c.skillDesc || '無'}`);
-                    else alert("尚未解鎖該角色！");
+                    if (isOwned) {
+                        const skills = (char.skills || []).map(s => `・${s.name}: ${s.desc}`).join('\n');
+                        const passive = char.passive ? `\n[被動] ${char.passive.name}: ${char.passive.desc}` : '';
+                        alert(`【${char.name}】(${rarityName})\n血量: ${hpDisplay} | 攻擊: ${atkDisplay}\n\n技能:\n${skills || '無'}${passive}`);
+                    } else {
+                        alert(`尚未解鎖【${char.name}】！\n可透過試煉之路或抽獎獲得。`);
+                    }
                 };
                 
                 grid.appendChild(card);

@@ -57,11 +57,9 @@ const UserProfile = (() => {
                 updates.missions = { newbie: {}, daily: {}, permanent: {}, story: {} };
                 data.missions = updates.missions; needsUpdate = true;
             }
-            if (!data.battlePass) {
-                updates.battlePass = { 
-                    "踢飛．起步": { level: 1, exp: 0, claimed: [] }, 
-                    "踢飛．盛宴": { unlocked: false, level: 1, exp: 0, claimed: [] } 
-                };
+            if (!data.battlePass || data.battlePass['踢飛．起步'] !== undefined) {
+                // Migrate old structure or set default
+                updates.battlePass = { points: 0, premiumActive: false, claimed: { free: [], premium: [] } };
                 data.battlePass = updates.battlePass; needsUpdate = true;
             }
             if (!data.redeemedCodes) {
@@ -99,10 +97,7 @@ const UserProfile = (() => {
             inventory: { money: 300, landDeed: 10, drawNormal: 10, drawPremium: 1, drawSpecial: 0, passToken: 0, forgiveToken: 2 },
             unlockedCharacters: ['戰士', '抽卡員', '足球', '機率型選手', '灰塵', '隨便你', '巴萬', '蝦子', '史詩', '聖女', '水龍頭', '教宗', '英國紳士', '小吉', '很亮的魚'],
             missions: { newbie: {}, daily: {}, permanent: {}, story: {} },
-            battlePass: { 
-                "踢飛．起步": { level: 1, exp: 0, claimed: [] }, 
-                "踢飛．盛宴": { unlocked: false, level: 1, exp: 0, claimed: [] } 
-            },
+            battlePass: { points: 0, premiumActive: false, claimed: { free: [], premium: [] } },
             redeemedCodes: []
         };
         await db().collection('users').doc(uid).set(profile);
@@ -250,28 +245,46 @@ const UserProfile = (() => {
         return newExp;
     }
 
-    async function updateInventory(uid, items) {
-        // items is an object like { money: 50, drawNormal: -1 }
+    // updateInventory supports two styles:
+    //   updateInventory(uid, 'money', 50)         ← key + amount shorthand
+    //   updateInventory(uid, { money: 50, ... })  ← object style
+    async function updateInventory(uid, itemsOrKey, amount) {
         if (!uid || uid.startsWith('NPC_')) return;
-        const updates = {};
-        for(let key in items) {
-            updates[`inventory.${key}`] = firebase.firestore.FieldValue.increment(items[key]);
+        let updates = {};
+        if (typeof itemsOrKey === 'string') {
+            updates[`inventory.${itemsOrKey}`] = firebase.firestore.FieldValue.increment(amount);
+        } else {
+            for(let key in itemsOrKey) {
+                updates[`inventory.${key}`] = firebase.firestore.FieldValue.increment(itemsOrKey[key]);
+            }
         }
-        await db().collection('users').doc(uid).set(updates, { merge: true });
+        await db().collection('users').doc(uid).update(updates);
+        console.log(`[UserProfile] Inventory updated for ${uid}:`, updates);
     }
 
     async function unlockCharacter(uid, charName) {
         if (!uid || uid.startsWith('NPC_')) return false;
-        const p = await getProfile(uid);
-        if(!p) return false;
-        
-        if (p.unlockedCharacters && p.unlockedCharacters.includes(charName)) {
-            return false; // already unlocked
-        }
-        await db().collection('users').doc(uid).set({
+        await db().collection('users').doc(uid).update({
             unlockedCharacters: firebase.firestore.FieldValue.arrayUnion(charName)
-        }, { merge: true });
+        });
+        console.log(`[UserProfile] Character ${charName} unlocked for ${uid}`);
         return true;
+    }
+
+    async function batchUnlockCharacters(uid, charNames) {
+        if (!uid || uid.startsWith('NPC_') || !charNames.length) return;
+        await db().collection('users').doc(uid).update({
+            unlockedCharacters: firebase.firestore.FieldValue.arrayUnion(...charNames)
+        });
+        console.log(`[UserProfile] Batch characters unlocked for ${uid}:`, charNames);
+    }
+
+    async function batchUnlockTitles(uid, titleKeys) {
+        if (!uid || uid.startsWith('NPC_') || !titleKeys.length) return;
+        await db().collection('users').doc(uid).update({
+            titles: firebase.firestore.FieldValue.arrayUnion(...titleKeys)
+        });
+        console.log(`[UserProfile] Batch titles unlocked for ${uid}:`, titleKeys);
     }
 
     async function redeemCode(uid, code) {
@@ -280,10 +293,28 @@ const UserProfile = (() => {
         if(!p) return false;
         if(p.redeemedCodes && p.redeemedCodes.includes(code)) return false;
         
-        await db().collection('users').doc(uid).set({
+        await db().collection('users').doc(uid).update({
             redeemedCodes: firebase.firestore.FieldValue.arrayUnion(code)
-        }, { merge: true });
+        });
         return true;
+    }
+
+    async function unlockTitle(uid, titleKey) {
+        if (!uid || uid.startsWith('NPC_')) return;
+        await db().collection('users').doc(uid).set({
+            titles: firebase.firestore.FieldValue.arrayUnion(titleKey)
+        }, { merge: true });
+    }
+
+    // EXP thresholds per level (matches 試煉之路.html spec)
+    // Levels 0-25 have specific thresholds; 25+ each level needs 1000 EXP
+    function getExpRequirement(level) {
+        const thresholds = [10, 40, 80, 150, 250, 380, 570, 700, 870, 1070,
+                            1300, 1600, 1950, 2350, 2800, 3300, 3900, 4600, 5400, 6300,
+                            7000, 8000, 9000, 10000, 11000, 12000];
+        if (level < thresholds.length) return thresholds[level];
+        // Above level 25: each level is 1000 more
+        return 12000 + (level - 25) * 1000;
     }
 
     return {
@@ -291,7 +322,8 @@ const UserProfile = (() => {
         searchByDisplayName, isNameTaken,
         incrementStat, isProfileSetup,
         updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle,
-        gainExp, updateInventory, unlockCharacter, redeemCode
+        gainExp, updateInventory, unlockCharacter, batchUnlockCharacters, 
+        redeemCode, unlockTitle, batchUnlockTitles, getExpRequirement
     };
 })();
 
