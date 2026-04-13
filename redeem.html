@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 兌換碼</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <style>
+        body {
+            background: #0F0F23;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .redeem-container {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--neon-gold);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+            position: relative;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            font-size: 0.9rem;
+        }
+
+        .redeem-title {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            color: var(--neon-gold);
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .redeem-input {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-family: var(--font-main);
+            color: white;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+            outline: none;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .redeem-input:focus {
+            border-color: var(--neon-gold);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        .btn-redeem {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+        }
+
+        .history-btn {
+            margin-top: 20px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="redeem-container">
+        <a href="index.html" class="back-link">← 返回大廳</a>
+        <div style="font-size:4rem;margin-bottom:10px;animation:pulse 2s infinite;">🎁</div>
+        <div class="redeem-title">禮包兌換</div>
+        <p style="color:var(--text-secondary);margin-bottom:30px;">請輸入您獲得的兌換碼以領取獎勵</p>
+
+        <input type="text" id="codeInput" class="redeem-input" placeholder="請輸入兌換碼..." maxlength="20">
+        <button class="btn btn-gold btn-redeem" onclick="submitRedeem()">馬上兌換</button>
+        
+        <!-- Simplified for now -->
+    </div>
+
+    <script>
+        let myProfile = null;
+
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (!user) { location.href = 'index.html'; return; }
+            myProfile = await UserProfile.getProfile(user.uid);
+        });
+
+        async function submitRedeem() {
+            const input = document.getElementById('codeInput');
+            const code = input.value.trim().toUpperCase();
+            
+            if (!code) {
+                alert("請輸入兌換碼！");
+                return;
+            }
+            
+            if (!myProfile) return;
+            
+            if ((myProfile.redeemedCodes || []).includes(code)) {
+                alert("您已經兌換過這個代碼了！");
+                return;
+            }
+
+            try {
+                // Hardcoded redeem codes logic for demo/immediate use
+                let rewardText = '';
+                if (code === 'NEONCARD2026') {
+                    await UserProfile.updateInventory(myProfile.uid, 'drawPremium', 3);
+                    await UserProfile.updateInventory(myProfile.uid, 'money', 1000);
+                    rewardText = '高級抽獎券x3、錢錢x1000';
+                } else if (code === 'WELCOME') {
+                    await UserProfile.updateInventory(myProfile.uid, 'drawNormal', 5);
+                    await UserProfile.updateInventory(myProfile.uid, 'money', 500);
+                    rewardText = '普通抽獎券x5、錢錢x500';
+                } else {
+                    alert("無效的兌換碼或已過期！");
+                    return;
+                }
+
+                // Add to redeemed
+                const arr = myProfile.redeemedCodes || [];
+                arr.push(code);
+                await UserProfile.updateProfile(myProfile.uid, { redeemedCodes: arr });
+                
+                alert(`🎊 兌換成功！獲得：\n${rewardText}`);
+                input.value = '';
+                
+            } catch (err) {
+                alert("發生錯誤：" + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

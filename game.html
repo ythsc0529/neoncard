@@ -589,6 +589,13 @@
                         // Play synced coin flip
                         await Animations.coinFlip(firstPlayer);
 
+                        // Setup pools
+                        const myUnlockedChars = (() => {
+                            try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                        })();
+                        GameState.player1.unlockedCharacters = myUnlockedChars;
+                        GameState.player2.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+
                         // BOTH players draw deterministically from seed
                         GameState.drawCards('player1', GameState.getCardCount());
                         GameState.drawCards('player2', GameState.getCardCount());
@@ -622,6 +629,18 @@
 
                         // Play synced coin flip
                         await Animations.coinFlip(state.firstPlayer);
+
+                        // Setup pools
+                        const myUnlockedChars = (() => {
+                            try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                        })();
+                        if (role === 'host') {
+                            GameState.player1.unlockedCharacters = myUnlockedChars;
+                            GameState.player2.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+                        } else {
+                            GameState.player2.unlockedCharacters = myUnlockedChars;
+                            GameState.player1.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+                        }
 
                         // BOTH players draw deterministically from seed
                         GameState.drawCards('player1', GameState.getCardCount());
@@ -676,6 +695,9 @@
                             titleBadge.textContent = '〔' + info.activeTitle + '〕';
                             titleBadge.style.display = 'block';
                         }
+                    }
+                    if (info.unlockedCharacters) {
+                        window.opponentPlayerInfo.unlockedCharacters = info.unlockedCharacters;
                     }
                     // Also show own rank badge (from localStorage)
                     const myPrefix = role === 'host' ? 'p1' : 'p2';
@@ -804,6 +826,15 @@
                 }
 
                 if (type === 'pve') {
+                    // Populate my pool 
+                    const myUnlockedChars = (() => {
+                        try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                    })();
+                    GameState.player1.unlockedCharacters = myUnlockedChars;
+
+                    // NPCs don't have constraints by default (or can be given all). Setting to null means all cards available.
+                    GameState.player2.unlockedCharacters = null; 
+
                     // Draw cards silently for NPC
                     const npcCards = GameState.drawCards('player2', GameState.getCardCount());
 
@@ -870,6 +901,12 @@
                     selectionPhase = 'player1_draw';
                     await startDrawPhase('player1');
                 } else {
+                    // Classic Offline PvP Mode
+                    const myUnlockedChars = (() => {
+                        try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                    })();
+                    GameState.player1.unlockedCharacters = myUnlockedChars;
+                    GameState.player2.unlockedCharacters = myUnlockedChars; // same screen pvp shares pool or gets same for now
 
                     // Draw phase for the first player
                     const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';

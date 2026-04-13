@@ -42,6 +42,32 @@ const UserProfile = (() => {
                 needsUpdate = true;
             }
             
+            // --- NEW MECHANICS FALLBACKS ---
+            if (data.level === undefined) { updates.level = 0; data.level = 0; needsUpdate = true; }
+            if (data.exp === undefined) { updates.exp = 0; data.exp = 0; needsUpdate = true; }
+            if (!data.inventory) {
+                const defInv = { money: 300, landDeed: 10, drawNormal: 10, drawPremium: 1, drawSpecial: 0, passToken: 0, forgiveToken: 2 };
+                updates.inventory = defInv; data.inventory = defInv; needsUpdate = true;
+            }
+            if (!data.unlockedCharacters) {
+                const defChars = ['戰士', '抽卡員', '足球', '機率型選手', '灰塵', '隨便你', '巴萬', '蝦子', '史詩', '聖女', '水龍頭', '教宗', '英國紳士', '小吉', '很亮的魚'];
+                updates.unlockedCharacters = defChars; data.unlockedCharacters = defChars; needsUpdate = true;
+            }
+            if (!data.missions) {
+                updates.missions = { newbie: {}, daily: {}, permanent: {}, story: {} };
+                data.missions = updates.missions; needsUpdate = true;
+            }
+            if (!data.battlePass) {
+                updates.battlePass = { 
+                    "踢飛．起步": { level: 1, exp: 0, claimed: [] }, 
+                    "踢飛．盛宴": { unlocked: false, level: 1, exp: 0, claimed: [] } 
+                };
+                data.battlePass = updates.battlePass; needsUpdate = true;
+            }
+            if (!data.redeemedCodes) {
+                updates.redeemedCodes = []; data.redeemedCodes = []; needsUpdate = true;
+            }
+            
             if (needsUpdate) {
                 // Fire and forget update
                 db().collection('users').doc(uid).set(updates, { merge: true }).catch(e => console.error('[UserProfile] auto-update failed:', e));
@@ -67,7 +93,17 @@ const UserProfile = (() => {
             uid,
             ranked: def,
             titles: ['初到新星'],
-            activeTitle: '初到新星'
+            activeTitle: '初到新星',
+            level: 0,
+            exp: 0,
+            inventory: { money: 300, landDeed: 10, drawNormal: 10, drawPremium: 1, drawSpecial: 0, passToken: 0, forgiveToken: 2 },
+            unlockedCharacters: ['戰士', '抽卡員', '足球', '機率型選手', '灰塵', '隨便你', '巴萬', '蝦子', '史詩', '聖女', '水龍頭', '教宗', '英國紳士', '小吉', '很亮的魚'],
+            missions: { newbie: {}, daily: {}, permanent: {}, story: {} },
+            battlePass: { 
+                "踢飛．起步": { level: 1, exp: 0, claimed: [] }, 
+                "踢飛．盛宴": { unlocked: false, level: 1, exp: 0, claimed: [] } 
+            },
+            redeemedCodes: []
         };
         await db().collection('users').doc(uid).set(profile);
         return profile;
@@ -204,11 +240,58 @@ const UserProfile = (() => {
         await db().collection('users').doc(uid).update({ activeTitle: titleKey });
     }
 
+    // ── New Mechanics Managers ───────────────────────────────────────────────
+    async function gainExp(uid, amount) {
+        if (!uid || uid.startsWith('NPC_')) return;
+        const p = await getProfile(uid);
+        if(!p) return;
+        const newExp = (p.exp || 0) + amount;
+        await db().collection('users').doc(uid).update({ exp: newExp });
+        return newExp;
+    }
+
+    async function updateInventory(uid, items) {
+        // items is an object like { money: 50, drawNormal: -1 }
+        if (!uid || uid.startsWith('NPC_')) return;
+        const updates = {};
+        for(let key in items) {
+            updates[`inventory.${key}`] = firebase.firestore.FieldValue.increment(items[key]);
+        }
+        await db().collection('users').doc(uid).set(updates, { merge: true });
+    }
+
+    async function unlockCharacter(uid, charName) {
+        if (!uid || uid.startsWith('NPC_')) return false;
+        const p = await getProfile(uid);
+        if(!p) return false;
+        
+        if (p.unlockedCharacters && p.unlockedCharacters.includes(charName)) {
+            return false; // already unlocked
+        }
+        await db().collection('users').doc(uid).set({
+            unlockedCharacters: firebase.firestore.FieldValue.arrayUnion(charName)
+        }, { merge: true });
+        return true;
+    }
+
+    async function redeemCode(uid, code) {
+        if (!uid || uid.startsWith('NPC_')) return false;
+        const p = await getProfile(uid);
+        if(!p) return false;
+        if(p.redeemedCodes && p.redeemedCodes.includes(code)) return false;
+        
+        await db().collection('users').doc(uid).set({
+            redeemedCodes: firebase.firestore.FieldValue.arrayUnion(code)
+        }, { merge: true });
+        return true;
+    }
+
     return {
         getProfile, createProfile, updateProfile,
         searchByDisplayName, isNameTaken,
         incrementStat, isProfileSetup,
-        updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle
+        updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle,
+        gainExp, updateInventory, unlockCharacter, redeemCode
     };
 })();
 

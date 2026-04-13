@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 任務系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <style>
+        body {
+            background: #0F0F23;
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .missions-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            text-shadow: 0 0 10px var(--neon-cyan);
+            transform: translateX(-3px);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active { color: var(--neon-cyan); }
+        .tab-btn.active::after { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+
+        .mission-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .mission-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .mission-card:hover { border-color: rgba(0, 243, 255, 0.4); background: rgba(0, 243, 255, 0.05); }
+
+        .m-info { flex: 1; }
+        
+        .m-title {
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .m-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; }
+        
+        .tag-novice { background: rgba(255,215,0,0.1); color: var(--neon-gold); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        .tag-daily { background: rgba(0,255,104,0.1); color: var(--neon-green); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        .tag-perm { background: rgba(153,0,255,0.1); color: var(--neon-magenta); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+        .m-rewards { display: flex; gap: 10px; }
+        .r-chip { background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: var(--neon-cyan); border: 1px solid rgba(0,243,255,0.2); }
+
+    </style>
+</head>
+
+<body>
+    <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class="neon-text" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+    </div>
+
+    <div class="missions-page" id="missionsPage" style="display:none;">
+        <div class="header-row">
+            <a href="index.html" class="back-btn">← 返回大廳</a>
+            <h1 style="margin:0;font-family:var(--font-heading);color:var(--neon-cyan);text-shadow:0 0 15px rgba(0,243,255,0.4);">📜 任務系統</h1>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('novice')" id="tab-novice">新手任務</button>
+            <button class="tab-btn" onclick="switchTab('daily')" id="tab-daily">每日任務</button>
+            <button class="tab-btn" onclick="switchTab('perm')" id="tab-perm">常駐任務</button>
+        </div>
+
+        <div class="mission-list" id="missionList">
+            <!-- Rendered by JS -->
+        </div>
+
+    </div>
+
+    <script>
+        let myProfile = null;
+        let activeTab = 'novice';
+
+        const MISSIONS_DATA = [
+            // 新手任務
+            { id: 'n1', type: 'novice', name: '學習戰鬥', desc: '完成任意一場連線模式', rewards: [{ type: 'drawNormal', amt: 1, txt: '普通抽獎卷x1' }] },
+            { id: 'n2', type: 'novice', name: '招募', desc: '抽一次任意獎池', rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }, { type: 'exp', amt: 20, txt: '經驗x20' }] },
+            { id: 'n3', type: 'novice', name: '555嗚嗚', desc: '達到等級5', rewards: [{ type: 'drawPremium', amt: 1, txt: '高級抽獎券x1' }] },
+            { id: 'n4', type: 'novice', name: '2場對戰', desc: '完成任意2場連線模式', rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
+            { id: 'n5', type: 'novice', name: '問就是買', desc: '到商店購買任意物品', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }] },
+            { id: 'n6', type: 'novice', name: '獲勝沒難度', desc: '連續獲勝10場排位賽', rewards: [{ type: 'landDeed', amt: 15, txt: '地契x15' }, { type: 'title', amt: '排位沒難度', txt: '稱號:排位沒難度' }] },
+            // 每日任務
+            { id: 'd1', type: 'daily', name: '對戰!', desc: '進行任意一場連線模式', rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
+            { id: 'd2', type: 'daily', name: '贏!', desc: '在任意一場連線模式中取得勝利', rewards: [{ type: 'money', amt: 150, txt: '錢錢x150' }] },
+            { id: 'd3', type: 'daily', name: '我愛霓虹牌', desc: '上線遊戲', rewards: [{ type: 'money', amt: 30, txt: '錢錢x30' }] },
+            { id: 'd4', type: 'daily', name: '超級好運!', desc: '任意模式將神話角色派到戰鬥區', rewards: [{ type: 'money', amt: 100, txt: '錢錢x100' }] },
+            // 常駐任務
+            { id: 'p1', type: 'perm', name: '稱號', desc: '獲得任意稱號', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }, { type: 'money', amt: 200, txt: '錢錢x200' }], repeatable: true },
+            { id: 'p2', type: 'perm', name: '歐洲人', desc: '在任意獎池抽到神話階級', rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }, { type: 'money', amt: 120, txt: '錢錢x120' }], repeatable: true },
+        ];
+
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (!user) { location.href = 'index.html'; return; }
+            myProfile = await UserProfile.getProfile(user.uid);
+            
+            // basic check daily reset for daily missions tracking
+            const lastLogin = myProfile.dailyResetTime?.dailyMissions || 0;
+            const today = new Date().toDateString();
+            if (new Date(lastLogin).toDateString() !== today) {
+                // reset daily missions progress, let's assume we do it via profile update
+                await UserProfile.updateProfile(user.uid, { "dailyResetTime.dailyMissions": Date.now() });
+            }
+            
+            renderMissions();
+            document.getElementById('pageLoading').style.display = 'none';
+            document.getElementById('missionsPage').style.display = 'block';
+        });
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            renderMissions();
+        }
+
+        function renderMissions() {
+            const list = document.getElementById('missionList');
+            list.innerHTML = '';
+            
+            const filtered = MISSIONS_DATA.filter(m => m.type === activeTab);
+            const claimed = myProfile.missions?.claimed || [];
+            
+            if(filtered.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px;">暫未有相關任務</div>';
+                return;
+            }
+            
+            filtered.forEach(m => {
+                const isClaimed = claimed.includes(m.id) && !m.repeatable;
+                if (activeTab === 'novice' && isClaimed) return; // Hide completed novice
+                
+                const tagClass = m.type === 'novice' ? 'tag-novice' : (m.type === 'daily' ? 'tag-daily' : 'tag-perm');
+                const tagTxt = m.type === 'novice' ? '新手' : (m.type === 'daily' ? '每日' : '常駐');
+                
+                const card = document.createElement('div');
+                card.className = 'mission-card';
+                card.innerHTML = `
+                    <div class="m-info">
+                        <div class="m-title">
+                            ${m.name} <span class="${tagClass}">${tagTxt}</span>
+                        </div>
+                        <div class="m-desc">${m.desc} ${m.repeatable ? '(可重複領取)' : ''}</div>
+                        <div class="m-rewards">
+                            ${m.rewards.map(r => `<div class="r-chip">${r.txt}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="m-action">
+                        <!-- For demonstration, allowing claiming immediately to showcase logic -->
+                        <button class="btn btn-sm ${isClaimed ? '' : 'btn-cyan'}" 
+                            ${isClaimed ? 'disabled' : ''} 
+                            onclick="claimMission('${m.id}')">
+                            ${isClaimed ? '已完成' : '領取獎勵'}
+                        </button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        async function claimMission(id) {
+            const m = MISSIONS_DATA.find(x => x.id === id);
+            if(!m) return;
+            
+            try {
+                // Apply rewards
+                for(let r of m.rewards) {
+                    if(r.type === 'money' || r.type === 'landDeed' || r.type.startsWith('draw')) {
+                        await UserProfile.updateInventory(myProfile.uid, r.type, r.amt);
+                    } else if (r.type === 'exp') {
+                        await UserProfile.gainExp(myProfile.uid, r.amt);
+                    } else if (r.type === 'title') {
+                        await UserProfile.unlockTitle(myProfile.uid, r.amt);
+                    }
+                }
+                
+                if(!m.repeatable) {
+                    const claimed = myProfile.missions?.claimed || [];
+                    claimed.push(id);
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.claimed": claimed });
+                }
+                
+                myProfile = await UserProfile.getProfile(myProfile.uid);
+                alert("領取成功！");
+                renderMissions();
+                
+            } catch(err) {
+                alert("領取失敗：" + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

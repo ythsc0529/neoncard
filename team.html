@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 隊伍配置與圖鑑</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters_part5.js"></script>
+    <script src="js/data/characters_part6.js"></script>
+    <script src="js/data/characters.js"></script>
+    <style>
+        body {
+            background: #0F0F23;
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .team-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--neon-magenta);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            text-shadow: 0 0 10px var(--neon-magenta);
+            transform: translateX(-3px);
+        }
+
+        .stats-bar {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            color: var(--neon-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
+        .filter-btn.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .char-card {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .char-card.locked {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            border-style: dashed;
+        }
+
+        .char-card:hover {
+            transform: translateY(-5px);
+            z-index: 2;
+        }
+
+        .char-card.owned:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .char-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .char-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        
+        .char-type {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .rarity-common { border-color: #ffffff; }
+        .rarity-common.owned:hover { box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        .rarity-rare { border-color: #4a86e8; }
+        .rarity-rare.owned:hover { box-shadow: 0 0 15px rgba(74,134,232,0.4); border-color: #4a86e8 !important; }
+
+        .rarity-epic { border-color: #9900ff; }
+        .rarity-epic.owned { text-shadow: 0 0 5px #9900ff; }
+        .rarity-epic.owned:hover { box-shadow: 0 0 15px rgba(153,0,255,0.4); border-color: #9900ff !important; }
+
+        .rarity-legendary { border-color: #fbbc04; }
+        .rarity-legendary.owned { text-shadow: 0 0 5px #fbbc04; }
+        .rarity-legendary.owned:hover { box-shadow: 0 0 20px rgba(251,188,4,0.5); border-color: #fbbc04 !important; }
+
+        .rarity-mythic { border-color: #ff0000; }
+        .rarity-mythic.owned { text-shadow: 0 0 8px #ff0000; }
+        .rarity-mythic.owned:hover { box-shadow: 0 0 25px rgba(255,0,0,0.6); border-color: #ff0000 !important; }
+
+    </style>
+</head>
+
+<body>
+    <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class="neon-text" style="color:var(--neon-magenta);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+    </div>
+
+    <div class="team-page" id="teamPage" style="display:none;">
+        <div class="header-row">
+            <a href="index.html" class="back-btn">← 返回大廳</a>
+            <div class="stats-bar" id="collectionStats">收集度: 0 / 0 (0%)</div>
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" onclick="setFilter('all')">全部</button>
+            <button class="filter-btn" onclick="setFilter('owned')">已擁有</button>
+            <button class="filter-btn" onclick="setFilter('unowned')">未擁有</button>
+        </div>
+
+        <div class="char-grid" id="charGrid">
+            <!-- Rendered by JS -->
+        </div>
+
+    </div>
+
+    <script>
+        let myProfile = null;
+        let allChars = [];
+        let currentFilter = 'all';
+
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (!user) { location.href = 'index.html'; return; }
+            myProfile = await UserProfile.getProfile(user.uid);
+            
+            if (typeof ALL_CHARACTERS !== 'undefined') allChars = ALL_CHARACTERS;
+            else if (typeof window.characters !== 'undefined') allChars = window.characters;
+            
+            renderCollection();
+            document.getElementById('pageLoading').style.display = 'none';
+            document.getElementById('teamPage').style.display = 'block';
+        });
+
+        function setFilter(filt) {
+            currentFilter = filt;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderCollection();
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('charGrid');
+            grid.innerHTML = '';
+            
+            const ownedNames = myProfile.unlockedCharacters || [];
+            document.getElementById('collectionStats').textContent = `收集度: ${ownedNames.length} / ${allChars.length} (${Math.round(ownedNames.length / allChars.length * 100)}%)`;
+            
+            let displayList = allChars;
+            if(currentFilter === 'owned') displayList = displayList.filter(c => ownedNames.includes(c.name));
+            if(currentFilter === 'unowned') displayList = displayList.filter(c => !ownedNames.includes(c.name));
+            
+            // Sort: Owned first, then descending rarity
+            const rarityOrder = { 'mythic': 5, 'legendary': 4, 'epic': 3, 'rare': 2, 'common': 1 };
+            displayList.sort((a,b) => {
+                const aOwned = ownedNames.includes(a.name) ? 1 : 0;
+                const bOwned = ownedNames.includes(b.name) ? 1 : 0;
+                if(aOwned !== bOwned) return bOwned - aOwned;
+                return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+            });
+            
+            displayList.forEach(c => {
+                const isOwned = ownedNames.includes(c.name);
+                const rClass = `rarity-${c.rarity || 'common'}`;
+                
+                const card = document.createElement('div');
+                card.className = `char-card ${rClass} ${isOwned ? 'owned' : 'locked'}`;
+                
+                let iconHtml = c.image ? `<img src="${c.image}" class="char-img">` : `<div style="font-size:3rem;margin-bottom:10px;">👤</div>`;
+                
+                card.innerHTML = `
+                    ${iconHtml}
+                    <div class="char-name">${c.name}</div>
+                    <div class="char-type">${c.type === 'building' ? '建築/載具' : '單位'}</div>
+                `;
+                
+                card.onclick = () => {
+                    if(isOwned) alert(`[${c.name}]\n血量: ${c.health}\n攻擊力: ${c.attack}\n技能: ${c.skillDesc || '無'}`);
+                    else alert("尚未解鎖該角色！");
+                };
+                
+                grid.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

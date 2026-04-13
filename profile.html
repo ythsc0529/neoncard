@@ -760,13 +760,36 @@
                     </div>
                 </div>
 
+                <!-- Economy & Progression Section -->
+                <div class="meta-row" id="economySection">
+                    <div class="bio-label" style="margin-bottom:10px;">🎒 資源與等級</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;">
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);">等級 Level</div>
+                            <div id="profileLevel" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);">經驗 EXP</div>
+                            <div id="profileExp" style="color:var(--neon-green);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);">錢錢 Money</div>
+                            <div id="profileMoney" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);">地契</div>
+                            <div id="profileDeeds" style="color:#ff6b35;font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Path of Trials (Rewards) -->
-                <button class="btn-trials" id="trialsBtn" disabled>
+                <button class="btn-trials" id="trialsBtn" onclick="location.href='trial.html'">
                     <div style="display:flex;flex-direction:column;align-items:center;">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <span>試煉之路</span>
                         </div>
-                        <div class="btn-trials-subtitle">等級獎勵・敬請期待</div>
+                        <div class="btn-trials-subtitle">查看 / 領取獎勵</div>
                     </div>
                 </button>
 
@@ -1019,6 +1042,13 @@
             const joinEl = document.getElementById('joinDateDisplay');
             const dateStr = formatJoinDate(p.createdAt);
             joinEl.textContent = dateStr || '未知';
+            
+            // Economy & Progression
+            document.getElementById('profileLevel').textContent = p.level || '0';
+            document.getElementById('profileExp').textContent = p.exp || '0';
+            document.getElementById('profileMoney').textContent = (p.inventory && p.inventory.money) || '0';
+            document.getElementById('profileDeeds').textContent = (p.inventory && p.inventory.landDeed) || '0';
+
             renderFavChars();
             renderRanked();
             renderTitle();

@@ -225,6 +225,10 @@ class NetworkManager {
         const myRankedInfo = (() => {
             try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
         })();
+        const myUnlockedChars = (() => {
+            try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+        })();
+
         this.conn.send({
             type: 'player_info',
             name: myName,
@@ -233,7 +237,8 @@ class NetworkManager {
             rankImg:     myRankedInfo ? myRankedInfo.rankImg     : 'race_pic/骸1.png',
             starsHtml:   myRankedInfo ? myRankedInfo.starsHtml   : '',
             activeTitle: myRankedInfo ? myRankedInfo.activeTitle : '初到新星',
-            isRanked:    myRankedInfo ? myRankedInfo.isRanked    : false
+            isRanked:    myRankedInfo ? myRankedInfo.isRanked    : false,
+            unlockedCharacters: myUnlockedChars || ['戰士', '抽卡員', '足球', '機率型選手', '灰塵', '隨便你', '巴萬', '蝦子', '史詩', '聖女', '水龍頭', '教宗', '英國紳士', '小吉', '很亮的魚']
         });
 
         if (this.isHost) {

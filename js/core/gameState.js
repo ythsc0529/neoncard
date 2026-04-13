@@ -132,7 +132,8 @@ const GameState = {
         for (let i = 0; i < count; i++) {
             // If fair rarity distribution is set, use it
             const targetRarity = (this.rarityDistribution && this.rarityDistribution[i]) ? this.rarityDistribution[i] : null;
-            const char = drawRandomCharacter(targetRarity);
+            const allowedPool = this[playerKey].unlockedCharacters || null;
+            const char = drawRandomCharacter(targetRarity, allowedPool);
             const instance = createCharacterInstance(char);
             cards.push(instance);
         }

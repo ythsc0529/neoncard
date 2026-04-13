@@ -564,11 +564,15 @@
         </div>
     </div>
 
-    <!-- ⑤ Top-Left Actions (Mission Button) -->
+    <!-- ⑤ Top-Left Actions -->
     <div class="top-left-actions hidden" id="topLeftActions">
-        <button class="mission-btn" id="missionBtn" disabled>
+        <button class="mission-btn" id="missionBtn" onclick="location.href='missions.html'">
             <span class="icon">📜</span>
             <span>任務</span>
+        </button>
+        <button class="mission-btn" id="redeemBtn" style="margin-left:8px; border-color:var(--neon-gold); color:var(--neon-gold);" onclick="location.href='redeem.html'">
+            <span class="icon">🎁</span>
+            <span>兌換碼</span>
         </button>
     </div>
 
@@ -588,15 +592,12 @@
             <button class="btn menu-btn btn-tournament" id="tournamentBtn"
                 onclick="showTournamentMenu()">排位/一般匹配模式</button>
             <button class="btn menu-btn btn-entertainment" onclick="showEntertainmentMenu()">娛樂模式</button>
-            <button class="btn menu-btn btn-store"
-                style="border-color:var(--neon-gold);color:var(--neon-gold);opacity:0.6;cursor:not-allowed;">商店
-                (暫未開放)</button>
-            <button class="btn menu-btn btn-pass"
-                style="border-color:var(--neon-green);color:var(--neon-green);opacity:0.6;cursor:not-allowed;">通行證
-                (暫未開放)</button>
-            <button class="btn menu-btn btn-team"
-                style="border-color:var(--neon-cyan);color:var(--neon-cyan);opacity:0.6;cursor:not-allowed;">隊伍配置
-                (暫未開放)</button>
+            <button class="btn menu-btn btn-store" style="border-color:var(--neon-gold);color:var(--neon-gold);" 
+                onclick="location.href='shop.html'">商店 / 抽獎</button>
+            <button class="btn menu-btn btn-pass" style="border-color:var(--neon-green);color:var(--neon-green);" 
+                onclick="location.href='pass.html'">通行證</button>
+            <button class="btn menu-btn btn-team" style="border-color:var(--neon-cyan);color:var(--neon-cyan);" 
+                onclick="location.href='team.html'">隊伍配置</button>
             <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" style="border-color:#00f3ff;color:#00f3ff;"
                 onclick="location.href='strategy.html'">攻略專區</button>
@@ -1107,6 +1108,14 @@
 
         function showMain(user, profile) {
             showScreen('main');
+            
+            // Sync unlocked characters for GameState and P2P Networking
+            if (profile.unlockedCharacters) {
+                localStorage.setItem('myUnlockedChars', JSON.stringify(profile.unlockedCharacters));
+            } else {
+                localStorage.removeItem('myUnlockedChars');
+            }
+
             // User badge
             document.getElementById('userBadge').classList.remove('hidden');
             document.getElementById('badgeName').textContent = profile.displayName;
@@ -1132,7 +1141,23 @@
                 showUpdateModal();
                 localStorage.setItem('lastSeenVersion', APP_VERSION);
             }
+            
+            // Check Red Dots for progression
+            checkRedDots(profile);
+        }
 
+        function checkRedDots(profile) {
+            if (!profile) return;
+            // E.g. unread missions, trial levels, battle pass
+            // We evaluate specific conditions and toggle a '.red-dot' class or innerHTML
+            
+            // Basic example logic to be expanded when stages are built:
+            let missionUnread = false; // TODO: scan profile.missions
+            let passUnread = false;    // TODO: scan profile.battlePass for claimable levels
+            
+            if (missionUnread) {
+                document.getElementById('missionBtn').innerHTML += '<div class="red-dot"></div>';
+            }
         }
 
         function setupListeners(uid) {

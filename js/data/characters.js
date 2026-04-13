@@ -26,7 +26,7 @@ function getDrawableCharacters() {
 }
 
 // Draw a random character based on rarity probabilities
-function drawRandomCharacter(targetRarity = null) {
+function drawRandomCharacter(targetRarity = null, allowedPool = null) {
     let rarity = targetRarity;
 
     if (!rarity) {
@@ -38,13 +38,29 @@ function drawRandomCharacter(targetRarity = null) {
         else rarity = 'COMMON';                     // 40%
     }
 
-    const candidates = getDrawableCharacters().filter(c => c.rarity === rarity);
-    if (candidates.length === 0) {
-        // Fallback to common if no characters of that rarity
+    let candidates = getDrawableCharacters();
+    if (allowedPool) {
+        candidates = candidates.filter(c => allowedPool.includes(c.name));
+    }
+
+    let rarityCandidates = candidates.filter(c => c.rarity === rarity);
+    
+    if (rarityCandidates.length === 0) {
+        // Fallback to lower rarity if no characters of that rarity in the pool
+        const fallbackRarities = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
+        for (const r of fallbackRarities) {
+            rarityCandidates = candidates.filter(c => c.rarity === r);
+            if (rarityCandidates.length > 0) break;
+        }
+    }
+    
+    if (rarityCandidates.length === 0) {
+        // Absolute fallback if pool is completely broken/empty
         const commons = getDrawableCharacters().filter(c => c.rarity === 'COMMON');
         return commons[Math.floor(window.GameRandom() * commons.length)];
     }
-    return candidates[Math.floor(window.GameRandom() * candidates.length)];
+    
+    return rarityCandidates[Math.floor(window.GameRandom() * rarityCandidates.length)];
 }
 
 // Get a specific character by name

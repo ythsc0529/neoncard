@@ -801,6 +801,55 @@ const Animations = {
                             mode: matchMode,
                             result: iWon ? 'win' : 'loss'
                         });
+
+                        // ── Grant EXP & Pass EXP ──
+                        let levelExp = 0;
+                        let passExp = 0;
+                        
+                        if (matchMode === 'story') {
+                            if (iWon) levelExp = 60; // 劇情通關+60
+                        } else if (matchMode === 'pve' || oppUid.startsWith('NPC_')) {
+                            // "跟NPC對戰經驗值減半(NPC對戰=0exp)" - user previously indicated 0 for offline/NPC
+                            levelExp = 0; 
+                            passExp = 0;
+                        } else {
+                            // PvP / Ranked
+                            levelExp = iWon ? 50 : 25;
+                            passExp = iWon ? 30 : 15;
+                        }
+
+                        if (levelExp > 0 || passExp > 0) {
+                            // Load profile and apply
+                            UserProfile.getProfile(user.uid).then(p => {
+                                if (!p) return;
+                                
+                                const updates = {};
+                                
+                                if (levelExp > 0) {
+                                    updates.exp = (p.exp || 0) + levelExp;
+                                }
+
+                                if (passExp > 0 && p.battlePass) {
+                                    updates.battlePass = p.battlePass;
+                                    Object.keys(updates.battlePass).forEach(passName => {
+                                        const pass = updates.battlePass[passName];
+                                        if (pass.unlocked !== false) { // either no unlocked field (default true) or unlocked is true
+                                            pass.exp = (pass.exp || 0) + passExp;
+                                            // Handle level up logic (50 exp per level)
+                                            while (pass.exp >= 50) {
+                                                pass.exp -= 50;
+                                                pass.level = (pass.level || 1) + 1;
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                if (Object.keys(updates).length > 0) {
+                                    // Update Firestore
+                                    AuthManager.getDb().collection('users').doc(user.uid).set(updates, { merge: true }).catch(console.error);
+                                }
+                            });
+                        }
                     }
                 }
             }
