@@ -20,6 +20,11 @@
     <script src="js/core/rankedSystem.js"></script>
     <script src="js/core/friends.js"></script>
     <script src="js/data/botProfiles.js"></script>
+    <script src="js/data/missionData.js"></script>
+    <script src="js/data/passData.js"></script>
+    <script src="js/data/trialData.js"></script>
+    <script src="js/data/gachaData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
     <style>
@@ -542,8 +547,6 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
-            opacity: 0.6;
-            cursor: not-allowed;
         }
 
         .btn-trials .icon {
@@ -562,11 +565,11 @@
             transition: 0.8s;
         }
 
-        .btn-trials:hover:not(:disabled)::before {
+        .btn-trials:hover::before {
             left: 100%;
         }
 
-        .btn-trials:hover:not(:disabled) {
+        .btn-trials:hover {
             transform: translateY(-3px);
             box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(0, 255, 104, 0.1);
             border-color: var(--neon-green);
@@ -784,14 +787,18 @@
                 </div>
 
                 <!-- Path of Trials (Rewards) -->
-                <button class="btn-trials" id="trialsBtn" onclick="location.href='trial.html'">
-                    <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <span>試煉之路</span>
+                <div class="notify-wrapper" data-notification="trial" style="width:100%; margin-top:10px;">
+                    <button class="btn-trials" id="trialsBtn" onclick="location.href='trial.html'">
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span class="icon">🏔️</span>
+                                <span>試煉之路</span>
+                            </div>
+                            <div class="btn-trials-subtitle">查看 / 領取獎勵</div>
                         </div>
-                        <div class="btn-trials-subtitle">查看 / 領取獎勵</div>
-                    </div>
-                </button>
+                    </button>
+                    <div class="notify-dot"></div>
+                </div>
 
                 <button class="btn logout-btn btn-sm" onclick="handleLogout()">登出</button>
             </div>
@@ -1418,6 +1425,11 @@
                 document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
                 document.getElementById(`tab-content-${t}`).classList.toggle('active', t === tab);
             });
+            // Update UI
+            if (typeof renderProfileUI === 'function') renderProfileUI();
+
+            // Init notification dots
+            if (typeof NotificationManager !== 'undefined') NotificationManager.init(profile);
             if (tab === 'history') renderRecentMatches();
         }
 

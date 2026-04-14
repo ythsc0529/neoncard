@@ -36,14 +36,7 @@ const SCI_POOL_CHARS  = ['噬菌體','抗生素','灰塵','水星','金星','火
 const TITLES_POOL     = ['踢飛起步','我是你爸','你搞笑?','你講真','算你雖','哈味','香菇怎麼叫','穿山甲欸','不要你離開','逼逼喇不','母雞抖','棒棒棒棒','我的豆花'];
 const EXCLUDED_GENERAL = ['開發者', '作弊者'];
 
-// ── Gacha Pool definitions ───────────────────────────────────────────────────
-const GACHA_POOLS = [
-    { id: 'general', name: '🎲 一般獎池',       desc: '常駐獎池，十抽必中史詩以上\n排除開發者及通行證角色。',          costType: 'drawNormal',  costName: '普通抽獎券', costAmount: 1, hasFreeDaily: true,  bg: 'linear-gradient(135deg,rgba(255,255,255,.1),rgba(0,0,0,.5))',      ratesHtml: '一般(39%) | 稀有(34%) | 史詩(17%) | 傳說(8%) | 神話(2%)<br>重複角色轉化為 EXP。' },
-    { id: 'star',    name: '🌟 明星對決',       desc: '專屬名人與明星角色限定獎池！',                                    costType: 'drawPremium', costName: '高級抽獎券', costAmount: 1, hasFreeDaily: false, bg: 'linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,100,100,.2))', ratesHtml: '稀有(58%) | 史詩(22%) | 傳說(14%) | 神話(6%)<br>重複角色轉化為 EXP。' },
-    { id: 'science', name: '🔭 科學進步',       desc: '專屬科學、宇宙與發明相關角色。',                                  costType: 'drawPremium', costName: '高級抽獎券', costAmount: 1, hasFreeDaily: false, bg: 'linear-gradient(135deg,rgba(0,255,255,.2),rgba(0,50,200,.2))',    ratesHtml: '一般(39%) | 稀有(34%) | 史詩(17%) | 傳說(8%) | 神話(2%)<br>重複角色轉化為 EXP。' },
-    { id: 'evo',     name: '🔥 進化論',         desc: '極高機率！必中未擁有角色直到抽完所有傳說神話池。',                costType: 'drawSpecial', costName: '特殊抽獎券', costAmount: 1, hasFreeDaily: false, bg: 'linear-gradient(135deg,rgba(255,0,0,.2),rgba(255,0,255,.2))',    ratesHtml: '傳說(60%) | 神話(40%)<br>若已全圖鑑則轉化為 EXP。' },
-    { id: 'titles',  name: '🎖️ 皇民化運動(稱號)',desc: '隨機獲得限定趣味稱號！',                                         costType: 'drawPremium', costName: '高級抽獎券', costAmount: 1, hasFreeDaily: false, bg: 'linear-gradient(135deg,rgba(0,255,100,.2),rgba(0,100,50,.2))',  ratesHtml: '必中非重複稱號。<br>若已獲全部稱號則無法抽取。' }
-];
+// GACHA_POOLS is now imported from js/data/gachaData.js
 
 // ── Rates — UPPERCASE keys matching ALL_CHARACTERS.rarity ───────────────────
 const RATES = {
@@ -107,15 +100,11 @@ function switchTab(tab) {
 }
 
 // ── Shop System ──────────────────────────────────────────────────────────────
-function isToday(timestamp) {
-    if (!timestamp) return false;
-    const d = new Date(timestamp), t = new Date();
-    return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
-}
+// isToday moved to GachaLogic in js/data/gachaData.js
 
 function getDailyCount(itemId) {
     const usage = myProfile.inventory?.dailyUsage || {};
-    if (!usage[itemId] || !isToday(usage[itemId].lastDate)) return 0;
+    if (!usage[itemId] || !GachaLogic.isToday(usage[itemId].lastDate)) return 0;
     return usage[itemId].count || 0;
 }
 
@@ -193,13 +182,19 @@ async function buyItem(id) {
             const usage = myProfile.inventory?.dailyUsage || {};
             const cur = usage[item.id] || { count:0, lastDate:0 };
             usage[item.id] = { count: isToday(cur.lastDate) ? cur.count+1 : 1, lastDate: Date.now() };
+            usage[item.id] = { count: GachaLogic.isToday(cur.lastDate) ? cur.count+1 : 1, lastDate: Date.now() };
             extra['inventory.dailyUsage'] = usage;
         }
         if (Object.keys(extra).length) await UserProfile.updateProfile(myProfile.uid, extra);
 
         await refreshProfile(myProfile.uid);
         renderShop();
-    } catch(err) { alert('購買異動發生錯誤: ' + err.message); }
+        alert(`成功購買 ${item.name}！`);
+        // Refresh Notification Dots
+        if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
+    } catch (err) {
+        alert('購買異動發生錯誤: ' + err.message);
+    }
 }
 
 // ── Gacha Pool System ─────────────────────────────────────────────────────────
@@ -222,8 +217,9 @@ function selectPool(id) {
         `<strong>[卡池特色]</strong><br>${pool.desc.replace(/\n/g,'<br>')}<br><br><strong>[機率與規則]</strong><br>${pool.ratesHtml}`;
     document.getElementById('poolActions').style.display = 'flex';
 
-    let cost1 = `消耗: 1 ${pool.costName}`;
-    if (pool.hasFreeDaily && !isToday(myProfile?.dailyResetTime?.freeGacha || 0)) cost1 = '今日免費!';
+    const costType = pool.costType;
+    const isFree = pool.hasFreeDaily && !GachaLogic.isToday(myProfile.dailyResetTime?.freeGacha);
+    let cost1 = isFree ? '今日免費!' : `消耗: 1 ${pool.costName}`;
     document.getElementById('costPull1').textContent  = cost1;
     document.getElementById('costPull10').textContent = `消耗: 10 ${pool.costName}`;
 }
@@ -261,7 +257,7 @@ async function performPull(times) {
 
     const pool = GACHA_POOLS.find(p => p.id === activePoolId);
     let isFree = false;
-    if (times === 1 && pool.hasFreeDaily && !isToday(myProfile?.dailyResetTime?.freeGacha || 0)) isFree = true;
+    if (times === 1 && pool.hasFreeDaily && !GachaLogic.isToday(myProfile?.dailyResetTime?.freeGacha || 0)) isFree = true;
 
     // Check ticket balance before locking
     if (!isFree) {
@@ -353,6 +349,9 @@ async function performPull(times) {
         if (totalExpGained > 0) await UserProfile.gainExp(myProfile.uid, totalExpGained);
 
         await refreshProfile(myProfile.uid);
+        closeGachaModal();
+        // Update global notification dots
+        if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
         showGachaModal(results);
 
     } catch(e) {

@@ -21,6 +21,11 @@
     <script src="js/core/titleManager.js"></script>
     <script src="js/core/friends.js"></script>
     <script src="js/data/botProfiles.js"></script>
+    <script src="js/data/missionData.js"></script>
+    <script src="js/data/passData.js"></script>
+    <script src="js/data/trialData.js"></script>
+    <script src="js/data/gachaData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
     <script src="js/core/matchmaking.js"></script>
     <style>
         /* ── Loading & Login Screens ── */
@@ -566,11 +571,14 @@
 
     <!-- ⑤ Top-Left Actions -->
     <div class="top-left-actions hidden" id="topLeftActions">
-        <button class="mission-btn" id="missionBtn" onclick="location.href='missions.html'">
-            <span class="icon">📜</span>
-            <span>任務</span>
-        </button>
-        <button class="mission-btn" id="redeemBtn" style="margin-left:8px; border-color:var(--neon-gold); color:var(--neon-gold);" onclick="location.href='redeem.html'">
+        <div class="notify-wrapper" data-notification="missions">
+            <button class="mission-btn" id="missionBtn" onclick="location.href='missions.html'" style="opacity:1;cursor:pointer;">
+                <span class="icon">📜</span>
+                <span>任務</span>
+            </button>
+            <div class="notify-dot"></div>
+        </div>
+        <button class="mission-btn" id="redeemBtn" style="margin-left:8px; border-color:var(--neon-gold); color:var(--neon-gold); opacity:1; cursor:pointer;" onclick="location.href='redeem.html'">
             <span class="icon">🎁</span>
             <span>兌換碼</span>
         </button>
@@ -592,10 +600,16 @@
             <button class="btn menu-btn btn-tournament" id="tournamentBtn"
                 onclick="showTournamentMenu()">排位/一般匹配模式</button>
             <button class="btn menu-btn btn-entertainment" onclick="showEntertainmentMenu()">娛樂模式</button>
-            <button class="btn menu-btn btn-store" style="border-color:var(--neon-gold);color:var(--neon-gold);" 
-                onclick="location.href='shop.html'">商店 / 抽獎</button>
-            <button class="btn menu-btn btn-pass" style="border-color:var(--neon-green);color:var(--neon-green);" 
-                onclick="location.href='pass.html'">通行證</button>
+            <div class="notify-wrapper" data-notification="shop" style="width:100%;">
+                <button class="btn menu-btn btn-store" style="border-color:var(--neon-gold);color:var(--neon-gold);width:100%;" 
+                    onclick="location.href='shop.html'">商店 / 抽獎</button>
+                <div class="notify-dot"></div>
+            </div>
+            <div class="notify-wrapper" data-notification="pass" style="width:100%;">
+                <button class="btn menu-btn btn-pass" style="border-color:var(--neon-green);color:var(--neon-green);width:100%;" 
+                    onclick="location.href='pass.html'">通行證</button>
+                <div class="notify-dot"></div>
+            </div>
             <button class="btn menu-btn btn-team" style="border-color:var(--neon-cyan);color:var(--neon-cyan);" 
                 onclick="location.href='team.html'">隊伍配置</button>
             <button class="btn menu-btn btn-gold" onclick="location.href='characters.html'">角色列表</button>
@@ -1141,6 +1155,12 @@
                 showUpdateModal();
                 localStorage.setItem('lastSeenVersion', APP_VERSION);
             }
+            
+            // Refresh recent matches for profile card
+            if (typeof renderRecentMatchesInMenu === 'function') renderRecentMatchesInMenu(profile);
+
+            // init notification dots
+            if (typeof NotificationManager !== 'undefined') NotificationManager.init(profile);
             
             // Check Red Dots for progression
             checkRedDots(profile);

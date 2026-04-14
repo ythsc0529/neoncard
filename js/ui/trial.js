@@ -10,37 +10,7 @@
 let myProfile = null;
 let allCharacters = [];
 
-// Level milestone rewards table
-const TRIAL_REWARDS_TABLE = {
-    0:   { chars: ['戰士','抽卡員','足球','機率型選手','灰塵','隨便你','巴萬','蝦子','史詩','聖女','水龍頭','教宗','英國紳士','小吉','很亮的魚'], items: { drawNormal: 10, money: 300, landDeed: 10, drawPremium: 1, forgiveToken: 2 }, title: '初到新星' },
-    1:   { chars: ['沒錢','廚師','松鼠'], items: { money: 100 } },
-    2:   { items: { money: 150 } },
-    3:   { chars: ['莫那魯道'], items: { money: 150, landDeed: 30 } },
-    4:   { items: { drawNormal: 2, money: 200, landDeed: 5 } },
-    5:   { chars: ['海王星','盾哥','越野摩托車','致命','法特'], items: { drawNormal: 1, money: 50 } },
-    6:   { items: { money: 50 } },
-    7:   { chars: ['阿共','67！'], items: { drawNormal: 3 }, title: '失柳煎啾' },
-    8:   { items: { money: 100, landDeed: 10 } },
-    9:   { chars: ['內耗怪','厭世','李軍服'], items: { money: 50 } },
-    10:  { chars: ['火車','鳳梨','劍盾'], items: { drawSpecial: 1, drawPremium: 2, drawNormal: 3, money: 500, landDeed: 30, passToken: 1, forgiveToken: 2 }, title: '真理學徒' },
-    11:  { items: { money: 150 } },
-    12:  { chars: ['12了'], items: { money: 100, forgiveToken: 1 }, title: '12了!' },
-    13:  { items: { money: 150 } },
-    14:  { items: { money: 150 } },
-    15:  { items: { drawNormal: 2, money: 70, landDeed: 10, forgiveToken: 1 } },
-    16:  { items: { money: 120 } },
-    17:  { items: { money: 120 } },
-    18:  { items: { money: 120 } },
-    19:  { items: { money: 120 } },
-    20:  { chars: ['結膜炎'], items: { money: 100, landDeed: 10 } },
-    21:  { items: { money: 100 } },
-    22:  { items: { money: 100 } },
-    23:  { items: { money: 100 } },
-    24:  { items: { money: 100 }, title: '萬人斬' },
-    25:  { chars: ['亞克-I','抽卡時間','賴韋禎'], items: { money: 500, drawNormal: 1, drawSpecial: 1, forgiveToken: 1 }, title: '染血的權杖', note: '+ 麻將組合包' },
-    50:  { chars: ['開發者','數值怪'], items: { drawSpecial: 1 }, title: '偽神' },
-    100: { chars: ['作弊者'], items: { drawSpecial: 3, passToken: 1 }, title: '造物主' }
-};
+// Data and Logic are now imported from js/data/trialData.js
 
 // Dupe money conversion — keys UPPERCASE matching ALL_CHARACTERS.rarity
 const CHAR_DUPE_MONEY = { MYTHIC: 200, LEGENDARY: 125, EPIC: 70, RARE: 50, COMMON: 25 };
@@ -61,24 +31,6 @@ AuthManager.onAuthChanged(async (user) => {
     else if (typeof window.characters !== 'undefined') allCharacters = window.characters;
     renderTrial();
 });
-
-// ── Data Helpers ─────────────────────────────────────────────────────────────
-function getTrialData(lv) {
-    const tbl = TRIAL_REWARDS_TABLE[lv];
-    const data = { chars: [], items: {}, title: null, note: null };
-    if (tbl) {
-        if (tbl.chars)  data.chars  = [...tbl.chars];
-        if (tbl.items)  data.items  = { ...tbl.items };
-        if (tbl.title)  data.title  = tbl.title;
-        if (tbl.note)   data.note   = tbl.note;
-    }
-    // Post-25: default 100 money per level; multiples of 5 also give deed + forgiveToken
-    if (lv > 25 && !TRIAL_REWARDS_TABLE[lv]) {
-        data.items.money = 100;
-        if (lv % 5 === 0) { data.items.landDeed = 20; data.items.forgiveToken = 1; }
-    }
-    return data;
-}
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function renderTrial() {
@@ -110,7 +62,7 @@ function renderTrial() {
     list.innerHTML = '';
 
     sorted.forEach(lv => {
-        const data       = getTrialData(lv);
+        const data       = TrialLogic.getTrialData(lv);
         const isUnlocked = curLvl >= lv;
         const isClaimed  = claimed.includes(lv);
         const hasRewards = data.chars.length > 0 || Object.keys(data.items).length > 0 || data.title;
@@ -149,8 +101,7 @@ async function claimLevel(lv, btnElem) {
 
     btnElem.disabled = true;
     btnElem.textContent = '領取中...';
-
-    const data = getTrialData(lv);
+    const data = TrialLogic.getTrialData(lv);
     let moneyFromDupes = 0;
 
     try {
@@ -186,6 +137,8 @@ async function claimLevel(lv, btnElem) {
             : '領取成功！';
         alert(msg);
         renderTrial();
+        // Update global notification dots
+        if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
     } catch (err) {
         alert('領取失敗：' + err.message);
         btnElem.disabled = false;

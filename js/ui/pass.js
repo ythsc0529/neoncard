@@ -1,39 +1,6 @@
 let myProfile = null;
 
-const PASS_FREE = {
-    1: { type: 'money', amount: 50 },
-    2: { type: 'exp', amount: 20 },
-    5: { type: 'money', amount: 100 },
-    10: { type: 'drawNormal', amount: 1 },
-    11: { type: 'exp', amount: 20 },
-    15: { type: 'money', amount: 100 },
-    16: { type: 'money', amount: 50 },
-    19: { type: 'drawPremium', amount: 1 },
-    20: { type: 'title', name: '踢飛起步' }
-};
-
-const PASS_PREM = {
-    1: { type: 'drawNormal', amount: 1 },
-    2: { type: 'money', amount: 100 },
-    3: { type: 'drawNormal', amount: 1 },
-    4: { type: 'landDeed', amount: 30 },
-    5: { type: 'money', amount: 100 },
-    6: { type: 'exp', amount: 150 },
-    7: { type: 'money', amount: 100 },
-    8: { type: 'drawSpecial', amount: 1 },
-    9: { type: 'money', amount: 150 },
-    10: { type: 'drawPremium', amount: 1 },
-    11: { type: 'drawNormal', amount: 1 },
-    12: { type: 'drawNormal', amount: 1 },
-    13: { type: 'drawPremium', amount: 1 },
-    14: { type: 'money', amount: 150 },
-    15: { type: 'money', amount: 300 },
-    16: { type: 'exp', amount: 200 },
-    17: { type: 'money', amount: 150 },
-    18: { type: 'drawNormal', amount: 1 },
-    19: { type: 'title', name: '一腳定江山' },
-    20: { type: 'char', name: '踢飛你' }
-};
+// Data is now imported from js/data/passData.js
 
 AuthManager.init();
 AuthManager.onAuthChanged(async (user) => {
@@ -65,7 +32,7 @@ function renderPass() {
     
     // Level calc (1 level per 50 pts)
     const totalPoints = pass.points || 0;
-    const curLevel = Math.floor(totalPoints / 50);
+    const curLevel = PassLogic.getCurrentLevel(totalPoints);
     const progressCur = totalPoints % 50;
     
     document.getElementById('displayLevel').textContent = curLevel;
@@ -174,6 +141,9 @@ async function claimPassReward(lv, trackType) {
         
         alert("領取成功！");
         renderPass();
+        
+        // Update global notification dots
+        if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
         
     } catch(err) {
         alert("領取失敗: " + err.message);
