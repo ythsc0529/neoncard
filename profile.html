@@ -953,6 +953,12 @@
             if (!user) { location.href = 'index.html'; return; }
             myProfile = await UserProfile.getProfile(user.uid);
             if (!myProfile) { location.href = 'index.html'; return; }
+            
+            // Initialize notifications
+            if (typeof NotificationManager !== 'undefined') {
+                NotificationManager.init(myProfile);
+            }
+
             renderProfile();
             loadFriends();
             loadPending();
