@@ -943,11 +943,14 @@ const BattleSystem = {
                         GameState.addLog(`${attacker.name} 消耗血量抽牌`, 'skill');
                     }
                     const drawnItems = [];
+                    const drawOwnerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const drawPool = this.getDrawPool(drawOwnerKey);
+                    
                     for (let i = 0; i < (effect.count || 1); i++) {
-                        const drChar = drawRandomCharacter();
+                        const drChar = drawRandomCharacter(null, drawPool);
                         if (drChar) {
                             const inst = createCharacterInstance(drChar);
-                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addToStandby(drawOwnerKey, inst);
                             drawnItems.push(inst);
                         }
                     }
@@ -1778,11 +1781,14 @@ const BattleSystem = {
                     attacker.hp -= effect.damage;
                     GameState.addLog(`${attacker.name} 對自己造成 ${effect.damage} 傷害`, 'damage');
                     const drawnCards = [];
+                    const sdDrawOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const sdPool = this.getDrawPool(sdDrawOwner);
+
                     for (let i = 0; i < effect.count; i++) {
-                        const drChar = drawRandomCharacter();
+                        const drChar = drawRandomCharacter(null, sdPool);
                         if (drChar) {
                             const inst = createCharacterInstance(drChar);
-                            GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
+                            GameState.addToStandby(sdDrawOwner, inst);
                             drawnCards.push(inst);
                         }
                     }
@@ -1805,19 +1811,23 @@ const BattleSystem = {
                     }
                     break;
                 case 'draw_bonus_mythic': // 神話-抽一張
-                    const drChar = drawRandomCharacter();
-                    if (drChar) {
-                        const inst = createCharacterInstance(drChar);
-                        GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
-                        GameState.addLog(`抽到 ${inst.name}！`, 'skill');
-                        await Animations.drawCards([inst]);
-                        if (drChar.rarity === 'MYTHIC') {
-                            const bonusChar = drawRandomCharacter();
-                            if (bonusChar) {
-                                const bonusInst = createCharacterInstance(bonusChar);
-                                GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', bonusInst);
-                                GameState.addLog(`神話牌！額外抽到 ${bonusInst.name}！`, 'skill');
-                                await Animations.drawCards([bonusInst]);
+                    {
+                        const dbmOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        const dbmPool = this.getDrawPool(dbmOwner);
+                        const drChar = drawRandomCharacter(null, dbmPool);
+                        if (drChar) {
+                            const inst = createCharacterInstance(drChar);
+                            GameState.addToStandby(dbmOwner, inst);
+                            GameState.addLog(`抽到 ${inst.name}！`, 'skill');
+                            await Animations.drawCards([inst]);
+                            if (drChar.rarity === 'MYTHIC') {
+                                const bonusChar = drawRandomCharacter(null, dbmPool);
+                                if (bonusChar) {
+                                    const bonusInst = createCharacterInstance(bonusChar);
+                                    GameState.addToStandby(dbmOwner, bonusInst);
+                                    GameState.addLog(`神話牌！額外抽到 ${bonusInst.name}！`, 'skill');
+                                    await Animations.drawCards([bonusInst]);
+                                }
                             }
                         }
                     }
@@ -1968,10 +1978,11 @@ const BattleSystem = {
                     break;
                 case 'draw_resource':
                     // Just draw normally but name it differently
-                    const drawOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const drawResOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                    const drawResPool = this.getDrawPool(drawResOwner);
                     for (let i = 0; i < effect.count; i++) {
-                        const dC = drawRandomCharacter();
-                        if (dC) GameState.addToStandby(drawOwner, createCharacterInstance(dC));
+                        const dC = drawRandomCharacter(null, drawResPool);
+                        if (dC) GameState.addToStandby(drawResOwner, createCharacterInstance(dC));
                     }
                     GameState.addLog(`${attacker.name} 抽了 ${effect.count} 張牌`, 'skill');
                     break;
@@ -2392,29 +2403,35 @@ const BattleSystem = {
                     break;
                 case 'redraw_enemy_standby':
                     {
-                        const oppState = GameState.getOpponent();
+                        const redrawOppKey = GameState.currentPlayer === 1 ? 'player2' : 'player1';
+                        const oppState = GameState[redrawOppKey];
+                        const redrawPool = this.getDrawPool(redrawOppKey);
                         const count = oppState.standbyCards.length;
                         oppState.standbyCards = [];
                         for (let i = 0; i < count; i++) {
-                            const dC = drawRandomCharacter();
+                            const dC = drawRandomCharacter(null, redrawPool);
                             if (dC) oppState.standbyCards.push(createCharacterInstance(dC));
                         }
                         GameState.addLog(`對手的備戰區被重新洗牌了`, 'skill');
                     }
                     break;
                 case 'draw_extra_if_common':
-                    const pState = GameState.getCurrentPlayer();
-                    const d1 = drawRandomCharacter();
-                    if (d1) {
-                        const inst1 = createCharacterInstance(d1);
-                        pState.standbyCards.push(inst1);
-                        GameState.addLog(`抽到了 ${inst1.name}`, 'skill');
-                        if (inst1.rarity === 'COMMON') {
-                            const d2 = drawRandomCharacter();
-                            if (d2) {
-                                const inst2 = createCharacterInstance(d2);
-                                pState.standbyCards.push(inst2);
-                                GameState.addLog(`額外抽到了 ${inst2.name}`, 'skill');
+                    {
+                        const pDrawKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        const pState = GameState[pDrawKey];
+                        const pPool = this.getDrawPool(pDrawKey);
+                        const d1 = drawRandomCharacter(null, pPool);
+                        if (d1) {
+                            const inst1 = createCharacterInstance(d1);
+                            pState.standbyCards.push(inst1);
+                            GameState.addLog(`抽到了 ${inst1.name}`, 'skill');
+                            if (inst1.rarity === 'COMMON') {
+                                const d2 = drawRandomCharacter(null, pPool);
+                                if (d2) {
+                                    const inst2 = createCharacterInstance(d2);
+                                    pState.standbyCards.push(inst2);
+                                    GameState.addLog(`額外抽到了 ${inst2.name}`, 'skill');
+                                }
                             }
                         }
                     }
@@ -2513,8 +2530,9 @@ const BattleSystem = {
                 case 'draw_and_resource': // 包牌俠-相公
                     {
                         const drOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        const drPool = this.getDrawPool(drOwner);
                         for (let i = 0; i < (effect.count || 1); i++) {
-                            const dC = drawRandomCharacter();
+                            const dC = drawRandomCharacter(null, drPool);
                             if (dC) {
                                 const inst = createCharacterInstance(dC);
                                 GameState.addToStandby(drOwner, inst);
@@ -2664,13 +2682,15 @@ const BattleSystem = {
 
                 case 'draw_extra_if_common_loop': // UR卡-根本抽不到
                     {
+                        const loopOwnerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                        const loopPool = this.getDrawPool(loopOwnerKey);
                         let keepDrawing = true;
                         let safetyLimit = 10;
                         while (keepDrawing && safetyLimit-- > 0) {
-                            const dC = drawRandomCharacter();
+                            const dC = drawRandomCharacter(null, loopPool);
                             if (dC) {
                                 const inst = createCharacterInstance(dC);
-                                GameState.getCurrentPlayer().standbyCards.push(inst);
+                                GameState[loopOwnerKey].standbyCards.push(inst);
                                 GameState.addLog(`抽到了 ${inst.name}`, 'skill');
                                 await Animations.drawCards([inst]);
                                 keepDrawing = (inst.rarity === 'COMMON');

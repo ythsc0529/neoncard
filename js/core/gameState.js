@@ -106,6 +106,7 @@ const GameState = {
         // Wait, standard game expects player to *select* the battle card initially from `allCards`.
         // So we populate `allCards`.
         this[playerKey].allCards = cards;
+        this[playerKey].unlockedCharacters = deckNames; // Store the deck list for drawing
     },
 
     // Get card count based on mode
