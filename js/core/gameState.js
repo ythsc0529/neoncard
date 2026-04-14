@@ -248,8 +248,9 @@ const GameState = {
 
         if (effect.action === 'revive_chance' || effect.action === 'no_attack_dot_revive' || effect.action === 'draw_revive_limited') {
             const base = effect.revive_chance || effect.chance || effect.base || 0;
-            const decay = 0; // revive_chance uses limit not decay
-            const chance = base;
+            const decay = effect.decay || 0;
+            const revCount = (card.reviveCount || 0);
+            const chance = Math.max(effect.min_chance || 0, base - revCount * decay);
 
             // Check limit
             if (effect.limit !== undefined && (card.reviveCount || 0) >= effect.limit) {
@@ -268,7 +269,8 @@ const GameState = {
             if (chance > 0 && rollSuccess) {
                 card.hp = effect.revive_hp !== undefined ? effect.revive_hp : (effect.hp !== undefined ? effect.hp : card.maxHp);
                 card.reviveCount = (card.reviveCount || 0) + 1;
-                this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！`, 'status');
+                const chanceMsg = decay > 0 ? ` (成功機率: ${chance}%)` : '';
+                this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！${chanceMsg}`, 'status');
                 await Animations.reviveEffect(card.name);
 
                 if (effect.action === 'draw_revive_limited') {
