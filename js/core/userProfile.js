@@ -240,9 +240,23 @@ const UserProfile = (() => {
         if (!uid || uid.startsWith('NPC_')) return;
         const p = await getProfile(uid);
         if(!p) return;
-        const newExp = (p.exp || 0) + amount;
-        await db().collection('users').doc(uid).update({ exp: newExp });
-        return newExp;
+        
+        let newExp = (p.exp || 0) + amount;
+        let newLevel = p.level || 0;
+        
+        // Loop to check for level-ups
+        while (newExp >= getExpRequirement(newLevel)) {
+            newLevel++;
+        }
+        
+        const updates = { exp: newExp };
+        if (newLevel !== p.level) {
+            updates.level = newLevel;
+            console.log(`[UserProfile] Level Up! ${p.level} -> ${newLevel}`);
+        }
+        
+        await db().collection('users').doc(uid).update(updates);
+        return { exp: newExp, level: newLevel };
     }
 
     // updateInventory supports two styles:

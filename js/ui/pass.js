@@ -140,6 +140,9 @@ async function claimPassReward(lv, trackType) {
         await UserProfile.updateProfile(myProfile.uid, { "battlePass.claimed": pass.claimed });
         
         alert("領取成功！");
+        
+        // Reload profile to reflect new exp/level
+        myProfile = await UserProfile.getProfile(myProfile.uid);
         renderPass();
         
         // Update global notification dots
