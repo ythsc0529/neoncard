@@ -252,39 +252,37 @@ const UserProfile = (() => {
         if (!uid || uid.startsWith('NPC_')) return;
         let updates = {};
         if (typeof itemsOrKey === 'string') {
+            // shorthand: (uid, 'money', 50)
             updates[`inventory.${itemsOrKey}`] = firebase.firestore.FieldValue.increment(amount);
         } else {
-            for(let key in itemsOrKey) {
+            // object style: (uid, { money: 50, drawNormal: -1 })
+            for (let key in itemsOrKey) {
                 updates[`inventory.${key}`] = firebase.firestore.FieldValue.increment(itemsOrKey[key]);
             }
         }
-        await db().collection('users').doc(uid).update(updates);
-        console.log(`[UserProfile] Inventory updated for ${uid}:`, updates);
+        // Use .update() (not .set+merge) so FieldValue.increment works atomically
+        // and doesn't risk overwriting sibling fields in inventory
+        try {
+            await db().collection('users').doc(uid).update(updates);
+        } catch (e) {
+            // Document might not exist yet, fall back to set+merge
+            console.warn('[updateInventory] update failed, trying set+merge:', e.message);
+            await db().collection('users').doc(uid).set(updates, { merge: true });
+        }
     }
 
     async function unlockCharacter(uid, charName) {
         if (!uid || uid.startsWith('NPC_')) return false;
-        await db().collection('users').doc(uid).update({
+        const p = await getProfile(uid);
+        if(!p) return false;
+        
+        if (p.unlockedCharacters && p.unlockedCharacters.includes(charName)) {
+            return false; // already unlocked
+        }
+        await db().collection('users').doc(uid).set({
             unlockedCharacters: firebase.firestore.FieldValue.arrayUnion(charName)
-        });
-        console.log(`[UserProfile] Character ${charName} unlocked for ${uid}`);
+        }, { merge: true });
         return true;
-    }
-
-    async function batchUnlockCharacters(uid, charNames) {
-        if (!uid || uid.startsWith('NPC_') || !charNames.length) return;
-        await db().collection('users').doc(uid).update({
-            unlockedCharacters: firebase.firestore.FieldValue.arrayUnion(...charNames)
-        });
-        console.log(`[UserProfile] Batch characters unlocked for ${uid}:`, charNames);
-    }
-
-    async function batchUnlockTitles(uid, titleKeys) {
-        if (!uid || uid.startsWith('NPC_') || !titleKeys.length) return;
-        await db().collection('users').doc(uid).update({
-            titles: firebase.firestore.FieldValue.arrayUnion(...titleKeys)
-        });
-        console.log(`[UserProfile] Batch titles unlocked for ${uid}:`, titleKeys);
     }
 
     async function redeemCode(uid, code) {
@@ -293,9 +291,9 @@ const UserProfile = (() => {
         if(!p) return false;
         if(p.redeemedCodes && p.redeemedCodes.includes(code)) return false;
         
-        await db().collection('users').doc(uid).update({
+        await db().collection('users').doc(uid).set({
             redeemedCodes: firebase.firestore.FieldValue.arrayUnion(code)
-        });
+        }, { merge: true });
         return true;
     }
 
@@ -322,8 +320,8 @@ const UserProfile = (() => {
         searchByDisplayName, isNameTaken,
         incrementStat, isProfileSetup,
         updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle,
-        gainExp, updateInventory, unlockCharacter, batchUnlockCharacters, 
-        redeemCode, unlockTitle, batchUnlockTitles, getExpRequirement
+        gainExp, updateInventory, unlockCharacter, redeemCode,
+        unlockTitle, getExpRequirement
     };
 })();
 

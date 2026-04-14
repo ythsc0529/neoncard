@@ -188,7 +188,6 @@
             const lastLogin = myProfile.dailyResetTime?.dailyMissions || 0;
             const today = new Date().toDateString();
             if (new Date(lastLogin).toDateString() !== today) {
-                // reset daily missions progress, let's assume we do it via profile update
                 await UserProfile.updateProfile(user.uid, { "dailyResetTime.dailyMissions": Date.now() });
             }
             
@@ -207,23 +206,36 @@
         function checkCondition(m) {
             if (!m.condKey) return false;
             const p = myProfile;
-            const missionsData = p.missions || {};
-            const claimedCounts = missionsData.claimedCounts || {};
-
+            // titlesCount repeatable: can claim once per title owned
+            if (m.repeatable && m.condKey === 'titlesCount') {
+                const repeats = (p.missions?.repeatCounts || {})[m.id] || 0;
+                const owned = (p.titles || []).length;
+                return owned > repeats;
+            }
+            const repeats = (p.missions?.repeatCounts || {})[m.id] || 0;
+            const reqVal = m.repeatable ? (m.condVal * (repeats + 1)) : m.condVal;
             switch (m.condKey) {
-                case 'login':         return true; // auto-completed by being on page
-                case 'level':         return (p.level || 0) >= m.condVal;
-                case 'onlineMatches': return ((p.stats?.online?.wins||0) + (p.stats?.online?.losses||0)) >= m.condVal;
-                case 'onlineWins':    return (p.stats?.online?.wins || 0) >= m.condVal;
-                case 'pveWins':       return (p.stats?.pve?.wins || 0) >= m.condVal;
-                case 'gachaPulls':    return (p.missions?.gachaPulls || 0) >= m.condVal;
-                case 'shopPurchases': return (p.missions?.shopPurchases || 0) >= m.condVal;
-                case 'titlesCount':   
-                    const count = (p.titles || []).length;
-                    const claimedCount = claimedCounts[m.id] || 0;
-                    return count > claimedCount;
+                case 'login':         return true;
+                case 'level':         return (p.level || 0) >= reqVal;
+                case 'onlineMatches': return ((p.stats?.online?.wins||0) + (p.stats?.online?.losses||0)) >= reqVal;
+                case 'onlineWins':    return (p.stats?.online?.wins || 0) >= reqVal;
+                case 'pveWins':       return (p.stats?.pve?.wins || 0) >= reqVal;
+                case 'gachaPulls':    return (p.missions?.gachaPulls || 0) >= reqVal;
+                case 'shopPurchases': return (p.missions?.shopPurchases || 0) >= reqVal;
+                case 'titlesCount':   return (p.titles || []).length >= reqVal;
                 default:              return false;
             }
+        }
+
+        function getRepeatProgressTxt(m) {
+            if (!m.repeatable) return '';
+            const p = myProfile;
+            const repeats = (p.missions?.repeatCounts || {})[m.id] || 0;
+            if (m.condKey === 'titlesCount') {
+                const owned = (p.titles || []).length;
+                return `已領 ${repeats} / 可領 ${owned} 次`;
+            }
+            return `已領取 ${repeats} 次`;
         }
 
         function renderMissions() {
@@ -248,6 +260,7 @@
                 const tagTxt    = m.type === 'novice' ? '新手' : (m.type === 'daily' ? '每日' : '常駐');
                 const statusTxt   = isClaimed ? '已完成 ✓' : (condMet ? '可領取 ✓' : '進行中...');
                 const statusColor = isClaimed ? 'var(--text-muted)' : (condMet ? 'var(--neon-green)' : '#6b6b9a');
+                const progressTxt = m.repeatable ? `<div style="font-size:0.72rem;color:#8888aa;margin-top:3px;">${getRepeatProgressTxt(m)}</div>` : '';
 
                 let btnHtml;
                 if (isClaimed)      btnHtml = `<button class="btn btn-sm" disabled style="opacity:0.4;">已領取</button>`;
@@ -259,7 +272,8 @@
                 card.innerHTML = `
                     <div class="m-info">
                         <div class="m-title">${m.name} <span class="${tagClass}">${tagTxt}</span></div>
-                        <div class="m-desc">${m.desc}${m.repeatable?' (可重複領取)':''}</div>
+                        <div class="m-desc">${m.desc}</div>
+                        ${progressTxt}
                         <div class="m-rewards">${m.rewards.map(r=>`<div class="r-chip">${r.txt}</div>`).join('')}</div>
                     </div>
                     <div class="m-action" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;">
@@ -292,10 +306,12 @@
                     claimed.push(id);
                     await UserProfile.updateProfile(myProfile.uid, { "missions.claimed": claimed });
                 } else {
-                    // Repeatable mission – handle based on count
-                    const counts = myProfile.missions?.claimedCounts || {};
-                    counts[id] = (counts[id] || 0) + 1;
-                    await UserProfile.updateProfile(myProfile.uid, { "missions.claimedCounts": counts });
+                    // Increment repeat count
+                    const repeatCounts = myProfile.missions?.repeatCounts || {};
+                    repeatCounts[id] = (repeatCounts[id] || 0) + 1;
+                    if(!myProfile.missions) myProfile.missions = {};
+                    myProfile.missions.repeatCounts = repeatCounts; // update local cache
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.repeatCounts": repeatCounts });
                 }
                 
                 // For daily tasks: record claim timestamp
