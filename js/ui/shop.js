@@ -187,9 +187,16 @@ async function buyItem(id) {
         }
         if (Object.keys(extra).length) await UserProfile.updateProfile(myProfile.uid, extra);
 
-        await refreshProfile(myProfile.uid);
+        myProfile = await refreshProfile(myProfile.uid);
         renderShop();
         alert(`成功購買 ${item.name}！`);
+        
+        // Tracking: Shop Purchases
+        await UserProfile.updateProfile(myProfile.uid, {
+            "missions.shopPurchases": firebase.firestore.FieldValue.increment(1),
+            "dailyStats.shopPurchases": firebase.firestore.FieldValue.increment(1)
+        }).catch(console.error);
+
         // Refresh Notification Dots
         if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
     } catch (err) {
@@ -310,6 +317,12 @@ async function performPull(times) {
         } else {
             await UserProfile.updateProfile(myProfile.uid, { "dailyResetTime.freeGacha": Date.now() });
         }
+
+        // Tracking: Gacha Pulls
+        await UserProfile.updateProfile(myProfile.uid, {
+            "missions.gachaPulls": firebase.firestore.FieldValue.increment(times),
+            "dailyStats.gachaPulls": firebase.firestore.FieldValue.increment(times)
+        }).catch(console.error);
 
         // ── 2. Generate pull results ────────────────────────────────────────
         const results = [];

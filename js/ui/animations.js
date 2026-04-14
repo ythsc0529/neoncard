@@ -677,6 +677,11 @@ const Animations = {
 
                     // Increment stats
                     UserProfile.incrementStat(user.uid, 'ranked', iWon).catch(() => {});
+                    
+                    // Daily stats for missions
+                    const dailyUpdates = { "dailyStats.onlineMatches": firebase.firestore.FieldValue.increment(1) };
+                    if (iWon) dailyUpdates["dailyStats.onlineWins"] = firebase.firestore.FieldValue.increment(1);
+                    UserProfile.updateProfile(user.uid, dailyUpdates).catch(console.error);
 
                     // Handle win streak for missions
                     if (iWon) {
@@ -758,6 +763,13 @@ const Animations = {
                         }
                         if (statMode) {
                             UserProfile.incrementStat(user.uid, statMode, iWon).catch(() => {});
+                            
+                            // Daily stats for missions (if online/competitive)
+                            if (statMode === 'online' || statMode === 'competitive') {
+                                const dUpdates = { "dailyStats.onlineMatches": firebase.firestore.FieldValue.increment(1) };
+                                if (iWon) dUpdates["dailyStats.onlineWins"] = firebase.firestore.FieldValue.increment(1);
+                                UserProfile.updateProfile(user.uid, dUpdates).catch(console.error);
+                            }
                         }
                     }
                 }

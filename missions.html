@@ -170,7 +170,11 @@
             const lastLogin = myProfile.dailyResetTime?.dailyMissions || 0;
             const today = new Date().toDateString();
             if (new Date(lastLogin).toDateString() !== today) {
-                await UserProfile.updateProfile(user.uid, { "dailyResetTime.dailyMissions": Date.now() });
+                await UserProfile.updateProfile(user.uid, { 
+                    "dailyResetTime.dailyMissions": Date.now(),
+                    "dailyStats": { onlineMatches: 0, onlineWins: 0, gachaPulls: 0, shopPurchases: 0 }
+                });
+                myProfile = await UserProfile.getProfile(user.uid); // Refresh local cache after reset
             }
             
             renderMissions();

@@ -37,14 +37,24 @@ const MissionLogic = {
         const repeats = (profile.missions?.repeatCounts || {})[m.id] || 0;
         const reqVal = m.repeatable ? (m.condVal * (repeats + 1)) : m.condVal;
 
+        const dStats = profile.dailyStats || {};
+        const isDaily = m.type === 'daily';
+
         switch (m.condKey) {
             case 'login':         return true;
             case 'level':         return (profile.level || 0) >= reqVal;
-            case 'onlineMatches': return ((profile.stats?.online?.wins || 0) + (profile.stats?.online?.losses || 0)) >= reqVal;
-            case 'onlineWins':    return (profile.stats?.online?.wins || 0) >= reqVal;
+            case 'onlineMatches': 
+                if (isDaily) return (dStats.onlineMatches || 0) >= reqVal;
+                // Sum all online-related stats (casual, ranked, competitive)
+                return ((profile.stats?.online?.wins || 0) + (profile.stats?.online?.losses || 0) +
+                        (profile.stats?.ranked?.wins || 0) + (profile.stats?.ranked?.losses || 0) +
+                        (profile.stats?.competitive?.wins || 0) + (profile.stats?.competitive?.losses || 0)) >= reqVal;
+            case 'onlineWins':
+                if (isDaily) return (dStats.onlineWins || 0) >= reqVal;
+                return ((profile.stats?.online?.wins || 0) + (profile.stats?.ranked?.wins || 0) + (profile.stats?.competitive?.wins || 0)) >= reqVal;
             case 'pveWins':       return (profile.stats?.pve?.wins || 0) >= reqVal;
-            case 'gachaPulls':    return (profile.missions?.gachaPulls || 0) >= reqVal;
-            case 'shopPurchases': return (profile.missions?.shopPurchases || 0) >= reqVal;
+            case 'gachaPulls':    return (isDaily ? (dStats.gachaPulls || 0) : (profile.missions?.gachaPulls || 0)) >= reqVal;
+            case 'shopPurchases': return (isDaily ? (dStats.shopPurchases || 0) : (profile.missions?.shopPurchases || 0)) >= reqVal;
             case 'titlesCount':   return (profile.titles || []).length >= reqVal;
             case 'rankedWinStreak': return (profile.rankedWinStreak || 0) >= reqVal;
             default:              return false;
@@ -52,7 +62,16 @@ const MissionLogic = {
     },
 
     isClaimed(m, profile) {
-        if (m.repeatable) return false; // Repeatable missions are never "fully claimed" in this context
+        if (m.repeatable) return false;
+        if (m.type === 'daily') {
+            const dailyClaims = profile.missions?.dailyClaims || {};
+            const lastClaim = dailyClaims[m.id];
+            if (!lastClaim) return false;
+            // Native daily reset check
+            const d = new Date(lastClaim);
+            const t = new Date();
+            return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+        }
         const claimed = profile.missions?.claimed || [];
         return claimed.includes(m.id);
     },
