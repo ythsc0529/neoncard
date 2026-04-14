@@ -21,13 +21,13 @@ const SHOP_ITEMS = [
     { id: 'forgive_ticket',name: '贖罪券',            desc: '排位戰敗時避免扣星',              price: 200, currency: 'money',    img: ITEM_ICONS.forgiveToken, dailyLimit: 1 },
     { id: 'land_deed',     name: '地契',              desc: '用作部分商品兌換',                price: 800, currency: 'money',    img: ITEM_ICONS.landDeed, dailyLimit: 5 },
     { id: 'pack_67',       name: '組合包-阿共67!!',    desc: '包含: 阿共、67！\n稱號: 阿公67\n重複轉15錢錢',
-      price: 67, currency: 'money', isBundle: true, chars: ['阿共', '67！'], title: '阿公67', dupeReward: { type: 'money', amount: 15 }, icon: '🎁' },
+      price: 67, currency: 'money', isBundle: true, limit: true, chars: ['阿共', '67！'], title: '阿公67', dupeReward: { type: 'money', amount: 15 }, icon: '🎁' },
     { id: 'pack_mahjong',  name: '組合包-麻將組合包', desc: '包含東南西北等多種麻將角色\n稱號: 門清一摸三\n重複轉50錢錢',
-      price: 850, currency: 'money', isBundle: true, chars: ['東風','南風','西風','北風','紅中','發財','白板','麻將俠','包牌俠'], title: '門清一摸三', dupeReward: { type: 'money', amount: 50 }, icon: '🀄' },
+      price: 850, currency: 'money', isBundle: true, limit: true, chars: ['東風','南風','西風','北風','紅中','發財','白板','麻將俠','包牌俠'], title: '門清一摸三', dupeReward: { type: 'money', amount: 50 }, icon: '🀄' },
     { id: 'pack_traffic',  name: '組合包-馬路三寶',   desc: '包含各式載具與坦克\n重複轉5地契',
-      price: 3000, currency: 'money', isBundle: true, chars: ['捷運','火箭','輪胎','單車','火車','越野摩托車','重型摩托車','水上摩托車','狗狗肉摩托車','高鐵','托你使坦克','虎式坦克','K型戰機','超級坦克'], dupeReward: { type: 'landDeed', amount: 5 }, icon: '🚜' },
+      price: 3000, currency: 'money', isBundle: true, limit: true, chars: ['捷運','火箭','輪胎','單車','火車','越野摩托車','重型摩托車','水上摩托車','狗狗肉摩托車','高鐵','托你使坦克','虎式坦克','K型戰機','超級坦克'], dupeReward: { type: 'landDeed', amount: 5 }, icon: '🚜' },
     { id: 'pack_space',    name: '組合包-太陽與地球', desc: '包含: 太陽、地球\n稱號: 太陽與地球',
-      price: 600, currency: 'money', isBundle: true, chars: ['太陽', '地球'], title: '太陽與地球', dupeReward: { type: 'money', amount: 30 }, icon: '🌍' }
+      price: 600, currency: 'money', isBundle: true, limit: true, chars: ['太陽', '地球'], title: '太陽與地球', dupeReward: { type: 'money', amount: 30 }, icon: '🌍' }
 ];
 
 // ── Specific pool character lists ────────────────────────────────────────────
@@ -130,18 +130,38 @@ function renderShop() {
             ? `<div class="shop-item-icon-container"><img src="${item.img}" class="shop-item-img"></div>`
             : `<div style="font-size:3rem;margin-bottom:10px;">${item.icon || '📦'}</div>`;
 
+        let bundleHtml = '';
+        if (item.isBundle) {
+            const charChips = (item.chars || []).map(c => `<span class="bundle-item-chip">👤 ${c}</span>`).join('');
+            const titleChip = item.title ? `<span class="bundle-item-chip" style="color:var(--neon-gold);">🎖️ ${item.title}</span>` : '';
+            bundleHtml = `
+                <div class="bundle-details">
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">包含內容：</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">
+                        ${charChips}
+                        ${titleChip}
+                    </div>
+                </div>`;
+        }
+
         const card = document.createElement('div');
-        card.className = 'shop-item';
+        card.className = `shop-item glass ${disabled ? 'purchased' : ''}`;
         card.innerHTML = `
-            ${itemDisplay}
+            ${item.isBundle ? '<div class="shop-item-tag bundle">組合包</div>' : ''}
+            <div class="shop-item-limit">${limitTxt}</div>
+            <div style="height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+                ${itemDisplay}
+            </div>
             <div class="shop-item-title">${item.name}</div>
             <div class="shop-item-desc">${item.desc.replace(/\n/g, '<br>')}</div>
-            <div class="shop-item-limit">${limitTxt}</div>
-            <button class="btn btn-sm btn-buy"
-                style="border-color:${currColor};color:${currColor};opacity:${disabled?0.5:1};"
-                onclick="buyItem('${item.id}')" ${disabled?'disabled':''}>
-                <img src="${currImg}" class="item-icon-inline"> ${item.price} 購買
-            </button>`;
+            ${bundleHtml}
+            <div style="margin-top:auto;width:100%;">
+                <button class="btn btn-sm btn-buy"
+                    style="border-color:${currColor};color:${currColor};opacity:${disabled?0.5:1};"
+                    onclick="buyItem('${item.id}')" ${disabled?'disabled':''}>
+                    <img src="${currImg}" class="item-icon-inline"> ${item.price} 購買
+                </button>
+            </div>`;
         grid.appendChild(card);
     });
 }
@@ -151,7 +171,14 @@ async function buyItem(id) {
     if (!item) return;
     const curAmount = myProfile.inventory?.[item.currency] || 0;
     if (curAmount < item.price) { alert(`餘額不足！需要 ${item.price} ${item.currency==='money'?'錢錢':'地契'}`); return; }
-    if (!confirm(`確定要花費 ${item.price} ${item.currency==='money'?'錢錢':'地契'} 購買 ${item.name} 嗎？`)) return;
+    let confirmMsg = `確定要花費 ${item.price} ${item.currency==='money'?'錢錢':'地契'} 購買 ${item.name} 嗎？`;
+    if (item.isBundle) {
+        const contents = [];
+        if (item.chars) contents.push(`及角色: ${item.chars.join(', ')}`);
+        if (item.title) contents.push(`及稱號: ${item.title}`);
+        confirmMsg = `確定要花費 ${item.price} ${item.currency==='money'?'錢錢':'地契'} 購買 ${item.name} 組合包嗎？\n\n包含內容：\n${contents.join('\n')}\n\n※此為限購一次商品。`;
+    }
+    if (!confirm(confirmMsg)) return;
 
     try {
         await UserProfile.updateInventory(myProfile.uid, item.currency, -item.price);
