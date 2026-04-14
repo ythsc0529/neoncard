@@ -116,6 +116,15 @@
         }
         
         .m-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; }
+
+        .item-icon-inline {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(0,243,255,0.2));
+            margin-right: 2px;
+        }
         
         .tag-novice { background: rgba(255,215,0,0.1); color: var(--neon-gold); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
         .tag-daily { background: rgba(0,255,104,0.1); color: var(--neon-green); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
@@ -236,7 +245,7 @@
                         <div class="m-title">${m.name} <span class="${tagClass}">${tagTxt}</span></div>
                         <div class="m-desc">${m.desc}</div>
                         ${progressTxt}
-                        <div class="m-rewards">${m.rewards.map(r=>`<div class="r-chip">${r.txt}</div>`).join('')}</div>
+                        <div class="m-rewards">${m.rewards.map(r=>`<div class="r-chip">${getItemIconHtml(r.type)} ${r.txt}</div>`).join('')}</div>
                     </div>
                     <div class="m-action" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;">
                         <div style="font-size:0.75rem;color:${statusColor};">${statusTxt}</div>

@@ -14,20 +14,20 @@ let isAnimating = false;
 
 // ── Shop Items ──────────────────────────────────────────────────────────────
 const SHOP_ITEMS = [
-    { id: 't_normal',      name: '普通抽獎券',        desc: '可用於一般獎池抽獎',              price: 300, currency: 'money',    icon: '🎟️' },
-    { id: 't_premium',     name: '高級抽獎券',        desc: '可用於限定獎池抽獎',              price: 600, currency: 'money',    icon: '🌟' },
-    { id: 't_special',     name: '特殊抽獎券',        desc: '可用於限定獎池抽獎',              price: 65,  currency: 'landDeed', icon: '✨' },
-    { id: 'pass_ticket',   name: '通行證兌換券',      desc: '可兌換通行證',                    price: 50,  currency: 'landDeed', icon: '🎫', limit: 'season_1' },
-    { id: 'forgive_ticket',name: '贖罪券',            desc: '排位戰敗時避免扣星',              price: 200, currency: 'money',    icon: '🛡️', dailyLimit: 1 },
-    { id: 'land_deed',     name: '地契',              desc: '用作部分商品兌換',                price: 800, currency: 'money',    icon: '📜', dailyLimit: 5 },
+    { id: 't_normal',      name: '普通抽獎券',        desc: '可用於一般獎池抽獎',              price: 300, currency: 'money',    img: ITEM_ICONS.drawNormal },
+    { id: 't_premium',     name: '高級抽獎券',        desc: '可用於限定獎池抽獎',              price: 600, currency: 'money',    img: ITEM_ICONS.drawPremium },
+    { id: 't_special',     name: '特殊抽獎券',        desc: '可用於限定獎池抽獎',              price: 65,  currency: 'landDeed', img: ITEM_ICONS.drawSpecial },
+    { id: 'pass_ticket',   name: '通行證兌換券',      desc: '可兌換通行證',                    price: 50,  currency: 'landDeed', img: ITEM_ICONS.passToken, limit: 'season_1' },
+    { id: 'forgive_ticket',name: '贖罪券',            desc: '排位戰敗時避免扣星',              price: 200, currency: 'money',    img: ITEM_ICONS.forgiveToken, dailyLimit: 1 },
+    { id: 'land_deed',     name: '地契',              desc: '用作部分商品兌換',                price: 800, currency: 'money',    img: ITEM_ICONS.landDeed, dailyLimit: 5 },
     { id: 'pack_67',       name: '組合包-阿共67!!',    desc: '包含: 阿共、67！\n稱號: 阿公67\n重複轉15錢錢',
-      price: 67, currency: 'money', isBundle: true, chars: ['阿共', '67！'], title: '阿公67', dupeReward: { type: 'money', amount: 15 } },
+      price: 67, currency: 'money', isBundle: true, chars: ['阿共', '67！'], title: '阿公67', dupeReward: { type: 'money', amount: 15 }, icon: '🎁' },
     { id: 'pack_mahjong',  name: '組合包-麻將組合包', desc: '包含東南西北等多種麻將角色\n稱號: 門清一摸三\n重複轉50錢錢',
-      price: 850, currency: 'money', isBundle: true, chars: ['東風','南風','西風','北風','紅中','發財','白板','麻將俠','包牌俠'], title: '門清一摸三', dupeReward: { type: 'money', amount: 50 } },
+      price: 850, currency: 'money', isBundle: true, chars: ['東風','南風','西風','北風','紅中','發財','白板','麻將俠','包牌俠'], title: '門清一摸三', dupeReward: { type: 'money', amount: 50 }, icon: '🀄' },
     { id: 'pack_traffic',  name: '組合包-馬路三寶',   desc: '包含各式載具與坦克\n重複轉5地契',
-      price: 3000, currency: 'money', isBundle: true, chars: ['捷運','火箭','輪胎','單車','火車','越野摩托車','重型摩托車','水上摩托車','狗狗肉摩托車','高鐵','托你使坦克','虎式坦克','K型戰機','超級坦克'], dupeReward: { type: 'landDeed', amount: 5 } },
+      price: 3000, currency: 'money', isBundle: true, chars: ['捷運','火箭','輪胎','單車','火車','越野摩托車','重型摩托車','水上摩托車','狗狗肉摩托車','高鐵','托你使坦克','虎式坦克','K型戰機','超級坦克'], dupeReward: { type: 'landDeed', amount: 5 }, icon: '🚜' },
     { id: 'pack_space',    name: '組合包-太陽與地球', desc: '包含: 太陽、地球\n稱號: 太陽與地球',
-      price: 600, currency: 'money', isBundle: true, chars: ['太陽', '地球'], title: '太陽與地球', dupeReward: { type: 'money', amount: 30 } }
+      price: 600, currency: 'money', isBundle: true, chars: ['太陽', '地球'], title: '太陽與地球', dupeReward: { type: 'money', amount: 30 }, icon: '🌍' }
 ];
 
 // ── Specific pool character lists ────────────────────────────────────────────
@@ -123,19 +123,24 @@ function renderShop() {
             limitTxt = purchased ? '已購買' : '限購一次';
             if (purchased) disabled = true;
         }
-        const currIcon  = item.currency === 'money' ? '💰' : '📜';
+        const currImg   = ITEM_ICONS[item.currency] || (item.currency === 'money' ? ITEM_ICONS.money : ITEM_ICONS.landDeed);
         const currColor = item.currency === 'money' ? 'var(--neon-gold)' : '#ff6b35';
+        
+        const itemDisplay = item.img 
+            ? `<div class="shop-item-icon-container"><img src="${item.img}" class="shop-item-img"></div>`
+            : `<div style="font-size:3rem;margin-bottom:10px;">${item.icon || '📦'}</div>`;
+
         const card = document.createElement('div');
         card.className = 'shop-item';
         card.innerHTML = `
-            <div style="font-size:3rem;margin-bottom:10px;">${item.icon || '📦'}</div>
+            ${itemDisplay}
             <div class="shop-item-title">${item.name}</div>
             <div class="shop-item-desc">${item.desc.replace(/\n/g, '<br>')}</div>
             <div class="shop-item-limit">${limitTxt}</div>
             <button class="btn btn-sm btn-buy"
                 style="border-color:${currColor};color:${currColor};opacity:${disabled?0.5:1};"
                 onclick="buyItem('${item.id}')" ${disabled?'disabled':''}>
-                ${currIcon} ${item.price} 購買
+                <img src="${currImg}" class="item-icon-inline"> ${item.price} 購買
             </button>`;
         grid.appendChild(card);
     });
@@ -226,9 +231,11 @@ function selectPool(id) {
 
     const costType = pool.costType;
     const isFree = pool.hasFreeDaily && !GachaLogic.isToday(myProfile.dailyResetTime?.freeGacha);
-    let cost1 = isFree ? '今日免費!' : `消耗: 1 ${pool.costName}`;
-    document.getElementById('costPull1').textContent  = cost1;
-    document.getElementById('costPull10').textContent = `消耗: 10 ${pool.costName}`;
+    const costIconHtml = getItemIconHtml(costType);
+
+    let cost1 = isFree ? '今日免費!' : `消耗: 1 ${costIconHtml}`;
+    document.getElementById('costPull1').innerHTML  = cost1;
+    document.getElementById('costPull10').innerHTML = `消耗: 10 ${costIconHtml}`;
 
     // ── Update Pool Content Preview ──────────────────────────────────────────
     const contentList = document.getElementById('poolContent');
@@ -447,7 +454,7 @@ function showGachaModal(results) {
                     <div class="gc-icon">${r.type === 'title' ? '🎖️' : '🃏'}</div>
                     <div class="gc-name">${r.name}</div>
                     <div class="gc-status ${r.isDupe ? 'is-dupe' : 'is-new'}">
-                        ${r.isDupe ? (r.dupeTxt || '重複') : '✦ NEW ✦'}
+                        ${r.isDupe ? (r.type === 'char' ? `+${EXP_CONVERSION[r.rarity] || 30} <img src="${ITEM_ICONS.money}" style="width:14px;vertical-align:middle;">` : '重複') : '✦ NEW ✦'}
                     </div>
                 </div>
             </div>`;

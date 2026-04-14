@@ -17,9 +17,9 @@ const CHAR_DUPE_MONEY = { MYTHIC: 200, LEGENDARY: 125, EPIC: 70, RARE: 50, COMMO
 
 // Item display names for reward chips
 const ITEM_NAMES = {
-    money: '💰 錢錢', landDeed: '📜 地契', drawNormal: '🎟️ 普通抽獎券',
-    drawPremium: '🌟 高級抽獎券', drawSpecial: '✨ 特殊抽獎券',
-    passToken: '🎫 通行證兌換券', forgiveToken: '🛡️ 贖罪券'
+    money: '錢錢', landDeed: '地契', drawNormal: '普通抽獎券',
+    drawPremium: '高級抽獎券', drawSpecial: '特殊抽獎券',
+    passToken: '通行證兌換券', forgiveToken: '贖罪券'
 };
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -71,7 +71,9 @@ function renderTrial() {
         let rewardsHtml = '';
         data.chars.forEach(c  => rewardsHtml += `<div class="reward-chip c-char">👤 ${c}</div>`);
         Object.keys(data.items).forEach(k => {
-            rewardsHtml += `<div class="reward-chip"><span class="c-item">${ITEM_NAMES[k]||k} x${data.items[k]}</span></div>`;
+            const icon = getItemIconHtml(k);
+            const name = ITEM_NAMES[k] || k;
+            rewardsHtml += `<div class="reward-chip"><span class="c-item">${icon} ${name} x${data.items[k]}</span></div>`;
         });
         if (data.title) rewardsHtml += `<div class="reward-chip c-title">🎖️ ${data.title}</div>`;
         if (data.note)  rewardsHtml += `<div class="reward-chip" style="color:var(--neon-gold);">📦 ${data.note}</div>`;

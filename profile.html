@@ -109,6 +109,15 @@
             text-align: center;
         }
 
+        .item-icon-inline {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(0,243,255,0.2));
+            margin-right: 4px;
+        }
+
         .avatar-ring {
             width: 110px;
             height: 110px;
@@ -765,22 +774,22 @@
 
                 <!-- Economy & Progression Section -->
                 <div class="meta-row" id="economySection">
-                    <div class="bio-label" style="margin-bottom:10px;">🎒 資源與等級</div>
+                    <div class="bio-label" style="margin-bottom:10px;"><img src="item_pic/錢錢.png" class="item-icon-inline" style="width:22px;height:22px;"> 資源與等級</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;">
                         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
                             <div style="font-size:0.75rem;color:var(--text-muted);">等級 Level</div>
                             <div id="profileLevel" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.1rem;">-</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
-                            <div style="font-size:0.75rem;color:var(--text-muted);">經驗 EXP</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;">✨ 經驗 EXP</div>
                             <div id="profileExp" style="color:var(--neon-green);font-family:var(--font-heading);font-size:1.1rem;">-</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
-                            <div style="font-size:0.75rem;color:var(--text-muted);">錢錢 Money</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;"><img src="item_pic/錢錢.png" class="item-icon-inline" style="width:14px;height:14px;"> 錢錢 Money</div>
                             <div id="profileMoney" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.1rem;">-</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
-                            <div style="font-size:0.75rem;color:var(--text-muted);">地契</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;"><img src="item_pic/地契.png" class="item-icon-inline" style="width:14px;height:14px;"> 地契</div>
                             <div id="profileDeeds" style="color:#ff6b35;font-family:var(--font-heading);font-size:1.1rem;">-</div>
                         </div>
                     </div>

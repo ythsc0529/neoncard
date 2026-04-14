@@ -13,16 +13,17 @@ AuthManager.onAuthChanged(async (user) => {
 
 function getRewardHtml(reward) {
     if (!reward) return { icon: '✖', txt: '無' };
+    const iconHtml = getItemIconHtml(reward.type, 'reward-icon-img');
     switch (reward.type) {
-        case 'money': return { icon: '💰', txt: `錢錢 x${reward.amount}` };
-        case 'landDeed': return { icon: '📜', txt: `地契 x${reward.amount}` };
-        case 'exp': return { icon: '✨', txt: `經驗 x${reward.amount}` };
-        case 'drawNormal': return { icon: '🎟️', txt: `普通抽獎券 x${reward.amount}` };
-        case 'drawPremium': return { icon: '🌟', txt: `高級抽獎券 x${reward.amount}` };
-        case 'drawSpecial': return { icon: '✨', txt: `特殊抽獎券 x${reward.amount}` };
+        case 'money': return { icon: iconHtml, txt: `錢錢 x${reward.amount}` };
+        case 'landDeed': return { icon: iconHtml, txt: `地契 x${reward.amount}` };
+        case 'exp': return { icon: iconHtml, txt: `經驗 x${reward.amount}` };
+        case 'drawNormal': return { icon: iconHtml, txt: `普通抽獎券 x${reward.amount}` };
+        case 'drawPremium': return { icon: iconHtml, txt: `高級抽獎券 x${reward.amount}` };
+        case 'drawSpecial': return { icon: iconHtml, txt: `特殊抽獎券 x${reward.amount}` };
         case 'title': return { icon: '🎖️', txt: `${reward.name}` };
         case 'char': return { icon: '👤', txt: `${reward.name}` };
-        default: return { icon: '?', txt: '' };
+        default: return { icon: iconHtml, txt: '' };
     }
 }
 

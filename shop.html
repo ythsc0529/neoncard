@@ -80,6 +80,32 @@
             font-size: 0.9rem;
             font-family: var(--font-heading);
         }
+
+        .item-icon-inline {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+
+        .shop-item-icon-container {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .shop-item-img {
+            max-height: 100px;
+            max-width: 100%;
+            filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.3));
+            transition: transform 0.3s;
+        }
+
+        .shop-item:hover .shop-item-img {
+            transform: scale(1.1);
+        }
         
         .c-money { color: var(--neon-gold); }
         .c-deed { color: #ff6b35; }
@@ -610,12 +636,12 @@
         <div class="header-row">
             <a href="index.html" class="back-btn">← 返回主選單</a>
             <div class="currency-bar">
-                <div class="currency-item c-money" title="錢錢">💰 <span id="v-money">0</span></div>
-                <div class="currency-item c-deed" title="地契">📜 <span id="v-deed">0</span></div>
+                <div class="currency-item c-money" title="錢錢"><img src="item_pic/錢錢.png" class="item-icon-inline"> <span id="v-money">0</span></div>
+                <div class="currency-item c-deed" title="地契"><img src="item_pic/地契.png" class="item-icon-inline"> <span id="v-deed">0</span></div>
                 <div class="currency-item" style="width:1px;background:var(--glass-border);height:16px;margin:0 5px;"></div>
-                <div class="currency-item c-t1" title="普通抽獎券">🎟️ <span id="v-ticket-normal">0</span></div>
-                <div class="currency-item c-t2" title="高級抽獎券">🌟 <span id="v-ticket-premium">0</span></div>
-                <div class="currency-item c-t3" title="特殊抽獎券">✨ <span id="v-ticket-special">0</span></div>
+                <div class="currency-item c-t1" title="普通抽獎券"><img src="item_pic/普通抽獎券.png" class="item-icon-inline"> <span id="v-ticket-normal">0</span></div>
+                <div class="currency-item c-t2" title="高級抽獎券"><img src="item_pic/高級抽獎券.png" class="item-icon-inline"> <span id="v-ticket-premium">0</span></div>
+                <div class="currency-item c-t3" title="特殊抽獎券"><img src="item_pic/特殊抽獎券.png" class="item-icon-inline"> <span id="v-ticket-special">0</span></div>
             </div>
         </div>
 

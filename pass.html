@@ -258,8 +258,22 @@
             opacity: 0.5;
         }
 
-        .r-icon { font-size: 2rem; margin-bottom: 5px; }
+        .r-icon { font-size: 2rem; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; }
         .r-name { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.2; }
+
+        .reward-icon-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.4));
+        }
+
+        .item-icon-inline {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
 
     </style>
 </head>
@@ -289,7 +303,9 @@
             </div>
             <div class="pass-overview-right">
                 <div id="premiumStatus" style="font-size:0.9rem;color:var(--neon-gold);margin-bottom:5px;"></div>
-                <button class="btn btn-gold" id="btnUnlock" style="display:none;" onclick="unlockPremium()">解鎖進階通行證 (需1通行證兌換券)</button>
+                <button class="btn btn-gold" id="btnUnlock" style="display:none;" onclick="unlockPremium()">
+                    解鎖進階通行證 (需1 <img src="item_pic/通行證兌換券.png" class="item-icon-inline">)
+                </button>
             </div>
         </div>
 

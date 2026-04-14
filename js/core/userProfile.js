@@ -1,6 +1,26 @@
 /**
  * Neon Card Game - User Profile Manager (Firestore)
  */
+const ITEM_ICONS = {
+    money:        'item_pic/錢錢.png',
+    landDeed:     'item_pic/地契.png',
+    drawNormal:   'item_pic/普通抽獎券.png',
+    drawPremium:  'item_pic/高級抽獎券.png',
+    drawSpecial:  'item_pic/特殊抽獎券.png',
+    passToken:    'item_pic/通行證兌換券.png',
+    forgiveToken: 'item_pic/贖罪券.png'
+};
+
+/**
+ * Standardized item icon HTML helper
+ */
+function getItemIconHtml(key, className = 'item-icon-inline') {
+    const src = ITEM_ICONS[key];
+    if (src) return `<img src="${src}" class="${className}" alt="${key}">`;
+    const fallbacks = { money: '💰', landDeed: '📜', exp: '✨', level: '⭐' };
+    return fallbacks[key] || '📦';
+}
+
 const UserProfile = (() => {
     const db = () => AuthManager.getDb();
 
