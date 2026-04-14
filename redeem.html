@@ -12,9 +12,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="js/theme.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
+    <script src="js/data/redeemData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
     <style>
         body {
             background: #0F0F23;
@@ -131,20 +132,25 @@
                 return;
             }
 
+            const codeInfo = RedeemLogic.validateCode(code);
+            if (!codeInfo) {
+                alert("無效的兌換碼或已過期！");
+                return;
+            }
+
             try {
-                // Hardcoded redeem codes logic for demo/immediate use
-                let rewardText = '';
-                if (code === 'NEONCARD2026') {
-                    await UserProfile.updateInventory(myProfile.uid, 'drawPremium', 3);
-                    await UserProfile.updateInventory(myProfile.uid, 'money', 1000);
-                    rewardText = '高級抽獎券x3、錢錢x1000';
-                } else if (code === 'WELCOME') {
-                    await UserProfile.updateInventory(myProfile.uid, 'drawNormal', 5);
-                    await UserProfile.updateInventory(myProfile.uid, 'money', 500);
-                    rewardText = '普通抽獎券x5、錢錢x500';
-                } else {
-                    alert("無效的兌換碼或已過期！");
-                    return;
+                // Apply Rewards
+                for (const r of codeInfo.rewards) {
+                    if (r.type === 'title') {
+                        await UserProfile.unlockTitle(myProfile.uid, r.name);
+                        myProfile.titles = myProfile.titles || [];
+                        if (!myProfile.titles.includes(r.name)) myProfile.titles.push(r.name);
+                    } else if (r.type === 'exp') {
+                        await UserProfile.gainExp(myProfile.uid, r.amt);
+                    } else {
+                        // money, drawNormal, drawPremium, drawSpecial, landDeed, etc.
+                        await UserProfile.updateInventory(myProfile.uid, r.type, r.amt);
+                    }
                 }
 
                 // Add to redeemed
@@ -152,8 +158,11 @@
                 arr.push(code);
                 await UserProfile.updateProfile(myProfile.uid, { redeemedCodes: arr });
                 
-                alert(`🎊 兌換成功！獲得：\n${rewardText}`);
+                alert(`🎊 兌換成功：${codeInfo.name}！\n獲得：${codeInfo.desc}`);
                 input.value = '';
+
+                // Refresh global notification dots
+                if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
                 
             } catch (err) {
                 alert("發生錯誤：" + err.message);

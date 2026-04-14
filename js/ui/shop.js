@@ -349,7 +349,6 @@ async function performPull(times) {
         if (totalExpGained > 0) await UserProfile.gainExp(myProfile.uid, totalExpGained);
 
         await refreshProfile(myProfile.uid);
-        closeGachaModal();
         // Update global notification dots
         if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
         showGachaModal(results);
@@ -469,6 +468,12 @@ function revealAll() {
     }, count * 60 + 200);
 }
 
+function closeGachaModal() {
+    const modal = document.getElementById('gachaAnimModal');
+    if (modal) modal.style.display = 'none';
+    isAnimating = false;
+}
+
 function skipAnim() {
     const unrevealed = document.querySelectorAll('.gc-card:not(.revealed)');
     if (unrevealed.length > 0) {
@@ -476,7 +481,6 @@ function skipAnim() {
         return;
     }
     // All revealed — close modal
-    document.getElementById('gachaAnimModal').style.display = 'none';
-    isAnimating = false;
+    closeGachaModal();
     selectPool(activePoolId);
 }
