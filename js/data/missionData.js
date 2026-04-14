@@ -12,6 +12,7 @@ const MISSIONS_DATA = [
     { id: 'n7', type: 'novice', name: '問就是買',  desc: '到商店購買任意物品 (購買後刷新此頁)', condKey: 'shopPurchases', condVal: 1, rewards: [{ type: 'exp', amt: 50, txt: '經驗x50' }] },
     { id: 'n8', type: 'novice', name: 'NPC?',      desc: '完成任意難度人機模式並取得勝利', condKey: 'pveWins', condVal: 1, rewards: [{ type: 'money', amt: 50, txt: '錢錢x50' }] },
     { id: 'n9', type: 'novice', name: '我很資深!', desc: '解鎖排位賽 (達到等級10)', condKey: 'level', condVal: 10, rewards: [{ type: 'forgiveToken', amt: 2, txt: '贖罪券x2' }] },
+    { id: 'n10', type: 'novice', name: '獲勝沒難度', desc: '連續獲勝10場排位賽', condKey: 'rankedWinStreak', condVal: 10, rewards: [{ type: 'landDeed', amt: 15, txt: '地契x15' }, { type: 'title', amt: '排位沒難度', txt: '稱號:排位沒難度' }] },
     
     // 每日任務 — daily reset
     { id: 'd1', type: 'daily', name: '對戰!',      desc: '進行任意一場連線模式',  condKey: 'onlineMatches', condVal: 1, rewards: [{ type: 'money', amt: 50,  txt: '錢錢x50' }] },
@@ -45,6 +46,7 @@ const MissionLogic = {
             case 'gachaPulls':    return (profile.missions?.gachaPulls || 0) >= reqVal;
             case 'shopPurchases': return (profile.missions?.shopPurchases || 0) >= reqVal;
             case 'titlesCount':   return (profile.titles || []).length >= reqVal;
+            case 'rankedWinStreak': return (profile.rankedWinStreak || 0) >= reqVal;
             default:              return false;
         }
     },

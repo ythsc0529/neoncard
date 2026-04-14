@@ -134,6 +134,10 @@ async function claimPassReward(lv, trackType) {
             await UserProfile.unlockTitle(myProfile.uid, r.name);
         } else if (r.type === 'char') {
             await UserProfile.unlockCharacter(myProfile.uid, r.name);
+            // Title "踢飛你" award logic
+            if (r.name === '踢飛你') {
+                await UserProfile.unlockTitle(myProfile.uid, '踢飛你');
+            }
         }
         
         pass.claimed[trackType].push(lv);

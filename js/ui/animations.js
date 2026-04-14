@@ -678,6 +678,13 @@ const Animations = {
                     // Increment stats
                     UserProfile.incrementStat(user.uid, 'ranked', iWon).catch(() => {});
 
+                    // Handle win streak for missions
+                    if (iWon) {
+                        UserProfile.updateProfile(user.uid, { rankedWinStreak: firebase.firestore.FieldValue.increment(1) }).catch(console.error);
+                    } else {
+                        UserProfile.updateProfile(user.uid, { rankedWinStreak: 0 }).catch(console.error);
+                    }
+
                     // Get current ranked, process result
                     const profile = await UserProfile.getProfile(user.uid);
                     const currentRanked = profile?.ranked || RankedSystem.defaultRanked();
