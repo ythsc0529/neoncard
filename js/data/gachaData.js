@@ -27,8 +27,8 @@ const GACHA_POOLS = [
     {
         id: 'star',
         name: '新星特選',
-        costType: 'drawSpecial',
-        costName: '特殊抽獎券',
+        costType: 'drawPremium',
+        costName: '高級抽獎券',
         costAmount: 1,
         hasFreeDaily: false,
         bg: 'linear-gradient(135deg, #4e0066, #1a1a2e)',
@@ -49,9 +49,9 @@ const GACHA_POOLS = [
     {
         id: 'evo',
         name: '進化之光 (神話/傳說)',
-        costType: 'drawPremium',
-        costName: '高級抽獎券',
-        costAmount: 3,
+        costType: 'drawSpecial',
+        costName: '特殊抽獎券',
+        costAmount: 1,
         hasFreeDaily: false,
         bg: 'linear-gradient(135deg, #ffcc00, #ff6600)',
         desc: '極高消耗，但僅會產出神話與傳說卡牌。\n推薦給頂尖收藏家。',

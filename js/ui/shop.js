@@ -222,6 +222,37 @@ function selectPool(id) {
     let cost1 = isFree ? '今日免費!' : `消耗: 1 ${pool.costName}`;
     document.getElementById('costPull1').textContent  = cost1;
     document.getElementById('costPull10').textContent = `消耗: 10 ${pool.costName}`;
+
+    // ── Update Pool Content Preview ──────────────────────────────────────────
+    const contentList = document.getElementById('poolContent');
+    contentList.innerHTML = '';
+    
+    let contents = [];
+    if (id === 'titles') {
+        contents = TITLES_POOL.map(t => ({ name: t, rarity: 'EPIC', type: 'title' }));
+    } else if (id === 'evo') {
+        contents = allCharacters.filter(c => c.rarity === 'MYTHIC' || c.rarity === 'LEGENDARY');
+    } else if (id === 'science') {
+        contents = allCharacters.filter(c => SCI_POOL_CHARS.includes(c.name));
+    } else if (id === 'star') {
+        contents = allCharacters.filter(c => STAR_POOL_CHARS.includes(c.name));
+    } else {
+        // general
+        contents = allCharacters.filter(c => c.rarity !== 'SPECIAL' && !EXCLUDED_GENERAL.includes(c.name));
+    }
+
+    // Sort contents by rarity for better display
+    const rarityRank = { MYTHIC: 5, LEGENDARY: 4, EPIC: 3, RARE: 2, COMMON: 1, SPECIAL: 0 };
+    contents.sort((a,b) => (rarityRank[b.rarity]||0) - (rarityRank[a.rarity]||0) || a.name.localeCompare(b.name));
+
+    contents.forEach(c => {
+        const chip = document.createElement('div');
+        chip.className = 'content-chip';
+        chip.dataset.rarity = c.rarity;
+        const icon = c.type === 'title' ? '🎖️' : '🃏';
+        chip.innerHTML = `<span>${icon}</span> ${c.name}`;
+        contentList.appendChild(chip);
+    });
 }
 
 // ── Gacha Logic ───────────────────────────────────────────────────────────────
