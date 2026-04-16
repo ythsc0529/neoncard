@@ -60,11 +60,20 @@ const GACHA_POOLS = [
 ];
 
 const GachaLogic = {
+    /**
+     * Get the current game day index offset by 8 hours.
+     * Reset point is 08:00 AM local time.
+     */
+    getGameDay(timestamp = Date.now()) {
+        const offset = 8 * 60 * 60 * 1000; // 8 hours in ms
+        // Adjust for local timezone to ensure reset happens at 8 AM local time
+        const localTs = timestamp - (new Date().getTimezoneOffset() * 60000);
+        return Math.floor((localTs - offset) / (24 * 60 * 60 * 1000));
+    },
+
     isToday(timestamp) {
         if (!timestamp) return false;
-        const d = new Date(timestamp);
-        const t = new Date();
-        return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+        return this.getGameDay(timestamp) === this.getGameDay(Date.now());
     },
 
     hasFreePull(profile) {

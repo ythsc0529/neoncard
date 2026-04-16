@@ -201,7 +201,7 @@ const GameState = {
             const revived = await this.checkRevive(deadCard);
 
             if (!revived) {
-                this.processPassive(deadCard, 'on_death');
+                await this.processPassive(deadCard, 'on_death');
                 player.battleCard = null;
                 this.didSwapOrDie[playerKey] = true;
             }
@@ -508,10 +508,10 @@ const GameState = {
         }
 
         // Process passive on_turn_start effects
-        this.processPassive(card, 'on_turn_start');
+        await this.processPassive(card, 'on_turn_start');
 
         // Process general passives (e.g. conditional stats)
-        this.processPassive(card, 'passive');
+        await this.processPassive(card, 'passive');
 
         // Process turn interval passives (every X turns)
         this.processTurnIntervalPassives(card);
@@ -534,7 +534,7 @@ const GameState = {
     },
 
     // Process passive abilities
-    processPassive(card, trigger, args = {}) {
+    async processPassive(card, trigger, args = {}) {
         if (!card.passive) return;
         const effect = card.passive.effect;
         // Allow through if trigger matches, or is a 'passive' type, or certain special triggers
@@ -1149,7 +1149,7 @@ const GameState = {
                         const inst = createCharacterInstance(itemChar);
                         this[ownerKey].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：獲得了 ${item}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                 }
                 break;
@@ -1224,7 +1224,7 @@ const GameState = {
                         const inst = createCharacterInstance(summonChar);
                         this[ownerKey].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動：召喚了 ${effect.summon_target}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                     const count = this[ownerKey].standbyCards.filter(c => c.name === (effect.buff_type_name || '信眾')).length;
                     const atkBonus = count * (effect.atk_per || 5);
@@ -1277,7 +1277,7 @@ const GameState = {
                             const inst = createCharacterInstance(catChar);
                             this[ownerKey].standbyCards.push(inst);
                             this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                            Animations.drawCards([inst]);
+                            await Animations.drawCards([inst]);
                         }
                     }
                 }
@@ -1291,7 +1291,7 @@ const GameState = {
                         const inst = createCharacterInstance(smChar);
                         this[ownerKey].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                 }
                 break;
@@ -1372,7 +1372,7 @@ const GameState = {
                     const inst = createCharacterInstance(catChar);
                     this[catOwner].standbyCards.push(inst);
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                    Animations.drawCards([inst]);
+                    await Animations.drawCards([inst]);
                 }
                 break;
 
@@ -1390,7 +1390,7 @@ const GameState = {
                 }
                 if (summoned.length > 0) {
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${summoned.length} 隻 ${effect.target}`, 'skill');
-                    Animations.drawCards(summoned);
+                    await Animations.drawCards(summoned);
                 }
                 break;
 

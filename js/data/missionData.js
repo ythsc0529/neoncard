@@ -67,10 +67,7 @@ const MissionLogic = {
             const dailyClaims = profile.missions?.dailyClaims || {};
             const lastClaim = dailyClaims[m.id];
             if (!lastClaim) return false;
-            // Native daily reset check
-            const d = new Date(lastClaim);
-            const t = new Date();
-            return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+            return GachaLogic.isToday(lastClaim);
         }
         const claimed = profile.missions?.claimed || [];
         return claimed.includes(m.id);

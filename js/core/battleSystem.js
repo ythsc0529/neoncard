@@ -40,7 +40,7 @@ const BattleSystem = {
         attacker.hasAttacked = true;
 
         // 摳P 被動: on_attack 觸發
-        GameState.processPassive(attacker, 'on_attack', {});
+        await GameState.processPassive(attacker, 'on_attack', {});
 
         // 水上摩托車 溺水被動：每普攻一次，機率+5%
         if (attacker.passive?.effect?.action === 'self_kill_scaling') {
@@ -564,13 +564,13 @@ const BattleSystem = {
                         break;
                 }
             } else {
-                GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
+                await GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
             }
         } else {
-            GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
+            await GameState.processPassive(attacker, 'on_skill', { skillName: skill.name });
         }
         // Dispatch on_skill_count for count-based passives
-        GameState.processPassive(attacker, 'on_skill_count', { skillName: skill.name });
+        await GameState.processPassive(attacker, 'on_skill_count', { skillName: skill.name });
         return result;
     },
 
@@ -652,7 +652,7 @@ const BattleSystem = {
                     }
                     if (await Animations.probabilityRoll(chance, '技能命中判定')) {
                         await this.applyDamage(attacker, defender, effect.damage);
-                        GameState.processPassive(attacker, 'on_skill_success', { skillName: skill.name });
+                        await GameState.processPassive(attacker, 'on_skill_success', { skillName: skill.name });
                     } else {
                         GameState.addLog('技能未命中！', 'status');
                     }
@@ -808,7 +808,7 @@ const BattleSystem = {
                         if (attacker.resources && 'oranges' in attacker.resources) {
                             attacker.resources.oranges = (attacker.resources.oranges || 0) + 1;
                             // Check on_resource passive trigger
-                            GameState.processPassive(attacker, 'on_resource', { resource: 'oranges', count: attacker.resources.oranges });
+                            await GameState.processPassive(attacker, 'on_resource', { resource: 'oranges', count: attacker.resources.oranges });
                         }
                         GameState.addLog('效果觸發成功！', 'skill');
                     } else if (effect.fail) {
@@ -1980,11 +1980,19 @@ const BattleSystem = {
                     // Just draw normally but name it differently
                     const drawResOwner = GameState.currentPlayer === 1 ? 'player1' : 'player2';
                     const drawResPool = this.getDrawPool(drawResOwner);
+                    const drawResDrawn = [];
                     for (let i = 0; i < effect.count; i++) {
                         const dC = drawRandomCharacter(null, drawResPool);
-                        if (dC) GameState.addToStandby(drawResOwner, createCharacterInstance(dC));
+                        if (dC) {
+                            const inst = createCharacterInstance(dC);
+                            GameState.addToStandby(drawResOwner, inst);
+                            drawResDrawn.push(inst);
+                        }
                     }
-                    GameState.addLog(`${attacker.name} 抽了 ${effect.count} 張牌`, 'skill');
+                    if (drawResDrawn.length > 0) {
+                        GameState.addLog(`${attacker.name} 抽了 ${drawResDrawn.length} 張牌`, 'skill');
+                        await Animations.drawCards(drawResDrawn);
+                    }
                     break;
                 case 'transform_to_enemy_standby':
                     const oppObj = GameState.getOpponent();
@@ -2420,19 +2428,25 @@ const BattleSystem = {
                         const pDrawKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
                         const pState = GameState[pDrawKey];
                         const pPool = this.getDrawPool(pDrawKey);
+                        const deDrawn = [];
                         const d1 = drawRandomCharacter(null, pPool);
                         if (d1) {
                             const inst1 = createCharacterInstance(d1);
                             pState.standbyCards.push(inst1);
+                            deDrawn.push(inst1);
                             GameState.addLog(`抽到了 ${inst1.name}`, 'skill');
                             if (inst1.rarity === 'COMMON') {
                                 const d2 = drawRandomCharacter(null, pPool);
                                 if (d2) {
                                     const inst2 = createCharacterInstance(d2);
                                     pState.standbyCards.push(inst2);
+                                    deDrawn.push(inst2);
                                     GameState.addLog(`額外抽到了 ${inst2.name}`, 'skill');
                                 }
                             }
+                        }
+                        if (deDrawn.length > 0) {
+                            await Animations.drawCards(deDrawn);
                         }
                     }
                     break;

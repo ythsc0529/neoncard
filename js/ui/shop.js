@@ -79,6 +79,7 @@ async function refreshProfile(uid) {
     if (!uid && myProfile) uid = myProfile.uid;
     myProfile = await UserProfile.getProfile(uid);
     updateCurrencyDisplay();
+    return myProfile;
 }
 
 function updateCurrencyDisplay() {
@@ -213,7 +214,6 @@ async function buyItem(id) {
         if (item.dailyLimit) {
             const usage = myProfile.inventory?.dailyUsage || {};
             const cur = usage[item.id] || { count:0, lastDate:0 };
-            usage[item.id] = { count: isToday(cur.lastDate) ? cur.count+1 : 1, lastDate: Date.now() };
             usage[item.id] = { count: GachaLogic.isToday(cur.lastDate) ? cur.count+1 : 1, lastDate: Date.now() };
             extra['inventory.dailyUsage'] = usage;
         }
