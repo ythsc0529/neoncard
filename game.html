@@ -989,7 +989,7 @@
             overlay.classList.add('active');
         }
 
-        function handleRemoteAction(action) {
+        async function handleRemoteAction(action) {
             const opponentKey = NetManager.isHost ? 'player2' : 'player1';
             const localKey = NetManager.isHost ? 'player1' : 'player2';
 
@@ -1008,7 +1008,7 @@
             } else if (action.type === 'retreat') {
                 BattleSystem.retreat(opponentKey, action.skillIdx);
                 updateUI();
-                GameState.endTurn();
+                await GameState.endTurn();
                 updateUI();
             } else if (action.type === 'replace_death') {
                 const player = GameState[opponentKey];
@@ -1703,7 +1703,7 @@
                 }
 
                 // End turn
-                GameState.endTurn();
+                await GameState.endTurn();
                 updateUI();
                 updateBattleLog();
 
@@ -1920,7 +1920,7 @@
                     if (actionType === 'retreat') {
                         BattleSystem.retreat('player2', skillIdx);
                         updateUI();
-                        GameState.endTurn();
+                        await GameState.endTurn();
                         updateUI();
                     } else {
                         await doAction(actionType, skillIdx);
@@ -2037,18 +2037,18 @@
                 div.className = `select-card glass ${getRarityClass(card.rarity)}`;
                 div.innerHTML = renderCardInfo(card);
 
-                div.onclick = () => {
+                div.onclick = async () => {
                     if (GameState.mode === 'online') {
                         NetManager.sendAction({ type: 'retreat', skillIdx: idx });
                     }
-
+ 
                     BattleSystem.retreat(playerKey, idx);
                     closeRetreatModal();
                     updateUI();
                     updateBattleLog();
-                    GameState.endTurn();
+                    await GameState.endTurn();
                     updateUI();
-
+ 
                     // Trigger AI if it's Player 2's turn in story mode or PvE
                     if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                         setTimeout(playAITurn, 1200); // Wait a bit before AI acts

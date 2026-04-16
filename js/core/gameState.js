@@ -340,35 +340,35 @@ const GameState = {
     },
 
     // End turn
-    endTurn() {
+    async endTurn() {
         // Process end-of-turn effects
         const currentCard = this.getCurrentPlayer().battleCard;
         if (currentCard) {
-            this.processPassive(currentCard, 'on_turn_end');
+            await this.processPassive(currentCard, 'on_turn_end');
         }
         this.processStatusEffects(currentCard);
-
+ 
         // Process on_enemy_turn_end for the OTHER player's battle card (e.g. L型戰機)
         const opposingCard = this.getOpponent().battleCard;
         if (opposingCard && opposingCard.passive?.effect?.trigger === 'on_enemy_turn_end') {
-            this.processPassive(opposingCard, 'on_enemy_turn_end');
+            await this.processPassive(opposingCard, 'on_enemy_turn_end');
         }
-
+ 
         // Switch player
         this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
-
+ 
         // If back to first player, increment turn count
         if (this.currentPlayer === this.firstPlayer) {
             this.turnCount++;
-
+ 
             // --- Title Check: Immortal ---
             if (this.turnCount === 300 && typeof TitleManager !== 'undefined') {
                 TitleManager.unlockTitle('不朽者');
             }
         }
-
+ 
         // Process start-of-turn effects for new player
-        this.processStartOfTurn();
+        await this.processStartOfTurn();
     },
 
     // Process status effects
@@ -473,7 +473,7 @@ const GameState = {
     },
 
     // Process start of turn
-    processStartOfTurn() {
+    async processStartOfTurn() {
         const player = this.getCurrentPlayer();
         const card = player.battleCard;
         if (!card) return;
@@ -482,7 +482,7 @@ const GameState = {
         if (player.skipTurns > 0) {
             player.skipTurns--;
             this.addLog(`${player.name} 跳過回合！`, 'status');
-            this.endTurn();
+            await this.endTurn();
             return;
         }
 
@@ -490,7 +490,7 @@ const GameState = {
         const stun = card.statusEffects.find(e => e.type === 'stun');
         if (stun) {
             this.addLog(`${card.name} 被暈眩，無法行動！`, 'status');
-            this.endTurn();
+            await this.endTurn();
             return;
         }
 
@@ -502,7 +502,7 @@ const GameState = {
                 this.addLog(`${card.name} 甦醒了！`, 'status');
             } else {
                 this.addLog(`${card.name} 還在睡眠中...`, 'status');
-                this.endTurn();
+                await this.endTurn();
                 return;
             }
         }
@@ -514,7 +514,7 @@ const GameState = {
         await this.processPassive(card, 'passive');
 
         // Process turn interval passives (every X turns)
-        this.processTurnIntervalPassives(card);
+        await this.processTurnIntervalPassives(card);
 
         // Reduce cooldowns for active card
         if (card.cooldowns) {
@@ -1499,7 +1499,7 @@ const GameState = {
                         const inst = createCharacterInstance(teaChar);
                         this[teaOwner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                 }
                 break;
@@ -1557,7 +1557,7 @@ const GameState = {
                                 const inst = createCharacterInstance(targetChar);
                                 this[owner].standbyCards.push(inst);
                                 this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
-                                if (window.Animations.drawCards) window.Animations.drawCards([inst]);
+                                if (window.Animations && window.Animations.drawCards) await window.Animations.drawCards([inst]);
                             }
                         }
                         const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
@@ -1662,7 +1662,7 @@ const GameState = {
                                 const inst = createCharacterInstance(catChar);
                                 this[catOwnerKey].standbyCards.push(inst);
                                 this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                                Animations.drawCards([inst]);
+                                await Animations.drawCards([inst]);
                             }
                         }
                     }
@@ -1721,7 +1721,7 @@ const GameState = {
     },
 
     // Process turn interval passives (called from processStartOfTurn)
-    processTurnIntervalPassives(card) {
+    async processTurnIntervalPassives(card) {
         if (!card || !card.passive) return;
         const effect = card.passive.effect;
         if (effect.trigger !== 'on_turn_interval') return;
@@ -1735,7 +1735,7 @@ const GameState = {
                         const inst = createCharacterInstance(targetChar);
                         this[owner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                     break;
                 case 'summon_category': // 伽利略-天文天才 (summon_category action)
@@ -1746,7 +1746,7 @@ const GameState = {
                         const inst = createCharacterInstance(catChar);
                         this[catOwner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                        await Animations.drawCards([inst]);
                     }
                     // Buff ATK per standby planets (use atk_per or atk_per_standby)
                     {
