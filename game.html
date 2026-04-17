@@ -2041,14 +2041,14 @@
                     if (GameState.mode === 'online') {
                         NetManager.sendAction({ type: 'retreat', skillIdx: idx });
                     }
- 
+
                     BattleSystem.retreat(playerKey, idx);
                     closeRetreatModal();
                     updateUI();
                     updateBattleLog();
                     await GameState.endTurn();
                     updateUI();
- 
+
                     // Trigger AI if it's Player 2's turn in story mode or PvE
                     if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                         setTimeout(playAITurn, 1200); // Wait a bit before AI acts
