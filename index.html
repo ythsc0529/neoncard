@@ -487,6 +487,7 @@
             </div>
         </div>
         <div class="preloader-loading-text">RESOURCES PRELOADING</div>
+        <button class="preloader-skip-btn" onclick="skipLoading()">跳過載入 跳到遊戲 →</button>
     </div>
 
     <!-- ② Loading Screen (Transition) -->
@@ -980,9 +981,13 @@
         let selectedOnlineSubMode = 'classic';
         let gameInviteUnsubscribe = null;
         let friendRequestUnsubscribe = null;
+        let isAppStarted = false;
 
         // ── App Init ──────────────────────────────────────────────────
         async function startAppAfterLoading() {
+            if (isAppStarted) return;
+            isAppStarted = true;
+
             // 1. Version Check
             try {
                 const configRef = AuthManager.getRtdb().ref('game_config');
@@ -1042,6 +1047,11 @@
                 setTimeout(startAppAfterLoading, 500); // Slight delay for smooth transition
             }
         });
+
+        function skipLoading() {
+            console.log("[App] Skipping resource preloading...");
+            startAppAfterLoading();
+        }
 
         function showUpdateModal(latestVersion, notes) {
             const modal = document.getElementById('updateModal');
