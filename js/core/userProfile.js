@@ -82,6 +82,10 @@ const UserProfile = (() => {
                 updates.battlePass = { points: 0, premiumActive: false, claimed: { free: [], premium: [] } };
                 data.battlePass = updates.battlePass; needsUpdate = true;
             }
+            if (!data.dailyResetTime) {
+                updates.dailyResetTime = { dailyMissions: 0, freeGacha: 0 };
+                data.dailyResetTime = updates.dailyResetTime; needsUpdate = true;
+            }
             if (!data.redeemedCodes) {
                 updates.redeemedCodes = []; data.redeemedCodes = []; needsUpdate = true;
             }
@@ -118,6 +122,7 @@ const UserProfile = (() => {
             unlockedCharacters: ['戰士', '抽卡員', '足球', '機率型選手', '灰塵', '隨便你', '巴萬', '蝦子', '史詩', '聖女', '水龍頭', '教宗', '英國紳士', '小吉', '很亮的魚'],
             missions: { newbie: {}, daily: {}, permanent: {}, story: {} },
             battlePass: { points: 0, premiumActive: false, claimed: { free: [], premium: [] } },
+            dailyResetTime: { dailyMissions: 0, freeGacha: 0 },
             redeemedCodes: []
         };
         await db().collection('users').doc(uid).set(profile);

@@ -61,12 +61,12 @@ const GACHA_POOLS = [
 
 const GachaLogic = {
     /**
-     * Get the current game day index offset by 8 hours.
-     * Reset point is 08:00 AM local time.
+     * Get the current game day index offset by 5 hours.
+     * Reset point is 05:00 AM local time.
      */
     getGameDay(timestamp = Date.now()) {
-        const offset = 8 * 60 * 60 * 1000; // 8 hours in ms
-        // Adjust for local timezone to ensure reset happens at 8 AM local time
+        const offset = 5 * 60 * 60 * 1000; // 5 hours in ms
+        // Adjust for local timezone to ensure reset happens at 5 AM local time
         const localTs = timestamp - (new Date().getTimezoneOffset() * 60000);
         return Math.floor((localTs - offset) / (24 * 60 * 60 * 1000));
     },

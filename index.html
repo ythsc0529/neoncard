@@ -1139,6 +1139,21 @@
             document.getElementById('profileMenuBtn').classList.remove('hidden');
             document.getElementById('topLeftActions').classList.remove('hidden');
             document.getElementById('tournamentBtn').disabled = false;
+            
+            // Standardized daily reset (5:00 AM)
+            // Ensures daily missions and stats are reset even if user only stays in lobby
+            (async () => {
+                const lastReset = profile.dailyResetTime?.dailyMissions || 0;
+                if (typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastReset)) {
+                    await UserProfile.updateProfile(user.uid, { 
+                        "dailyResetTime.dailyMissions": Date.now(),
+                        "dailyStats": { onlineMatches: 0, onlineWins: 0, gachaPulls: 0, shopPurchases: 0 }
+                    });
+                    // Refresh profile local reference
+                    currentUserProfile = await UserProfile.getProfile(user.uid);
+                    if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(currentUserProfile);
+                }
+            })();
 
             // Initialize notifications
             if (typeof NotificationManager !== 'undefined') {

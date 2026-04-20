@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/core/userProfile.js"></script>
+    <script src="js/data/gachaData.js"></script>
     <script src="js/data/missionData.js"></script>
     <script src="js/core/notificationManager.js"></script>
     <style>
@@ -163,22 +164,15 @@
         let myProfile = null;
         let activeTab = 'novice';
 
-        function isToday(timestamp) {
-            if(!timestamp) return false;
-            const d = new Date(timestamp);
-            const t = new Date();
-            return d.getDate()===t.getDate() && d.getMonth()===t.getMonth() && d.getFullYear()===t.getFullYear();
-        }
 
         AuthManager.init();
         AuthManager.onAuthChanged(async (user) => {
             if (!user) { location.href = 'index.html'; return; }
             myProfile = await UserProfile.getProfile(user.uid);
             
-            // basic check daily reset for daily missions tracking
-            const lastLogin = myProfile.dailyResetTime?.dailyMissions || 0;
-            const today = new Date().toDateString();
-            if (new Date(lastLogin).toDateString() !== today) {
+            // standardized daily reset for daily missions tracking (5:00 AM)
+            const lastReset = myProfile.dailyResetTime?.dailyMissions || 0;
+            if (typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastReset)) {
                 await UserProfile.updateProfile(user.uid, { 
                     "dailyResetTime.dailyMissions": Date.now(),
                     "dailyStats": { onlineMatches: 0, onlineWins: 0, gachaPulls: 0, shopPurchases: 0 }
