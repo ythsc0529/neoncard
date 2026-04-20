@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 隊伍配置與圖鑑</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -53,7 +53,7 @@
         }
 
         .back-btn:hover {
-            text-shadow: 0 0 10px var(--neon-magenta);
+            
             transform: translateX(-3px);
         }
 
@@ -85,7 +85,7 @@
         }
 
         .filter-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
-        .filter-btn.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+        .filter-btn.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon-cyan); color: var(--neon-cyan);  }
 
         .char-grid {
             display: grid;
@@ -103,7 +103,7 @@
 
 <body>
     <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div class="neon-text" style="color:var(--neon-magenta);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+        <div class="" style="color:var(--neon-magenta);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
     </div>
 
     <div class="team-page" id="teamPage" style="display:none;">

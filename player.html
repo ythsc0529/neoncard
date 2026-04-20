@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 玩家檔案</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -18,20 +18,20 @@
     <script src="js/core/friends.js"></script>
     <script src="js/data/botProfiles.js"></script>
     <style>
-        body { background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%); min-height: 100vh; }
+        body { background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%); min-height: 100vh; }
         @keyframes fadeIn   { from{opacity:0;} to{opacity:1;} }
         @keyframes slideUp  { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:none;} }
         @keyframes pulse    { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
 
         .player-page { max-width: 700px; margin: 0 auto; padding: 30px 20px; animation: fadeIn 0.4s ease; }
         .back-btn    { display:inline-flex;align-items:center;gap:8px;color:var(--neon-cyan);text-decoration:none;font-family:var(--font-heading);letter-spacing:1px;font-size:0.9rem;transition:all 0.2s;margin-bottom:28px; }
-        .back-btn:hover { text-shadow:0 0 10px var(--neon-cyan);transform:translateX(-3px); }
+        .back-btn:hover { transform:translateX(-3px); }
 
         /* Profile hero card */
         .hero-card { padding:36px 32px; text-align:center; animation:slideUp 0.5s ease; }
-        .hero-avatar { width:100px;height:100px;border-radius:50%;margin:0 auto 20px;border:3px solid var(--neon-cyan);box-shadow:0 0 24px rgba(0,243,255,0.35);overflow:hidden;background:var(--glass-bg);display:flex;align-items:center;justify-content:center; }
+        .hero-avatar { width:100px;height:100px;border-radius:50%;margin:0 auto 20px;border:3px solid var(--neon-cyan);overflow:hidden;background:var(--glass-bg);display:flex;align-items:center;justify-content:center; }
         .hero-avatar img { width:100%;height:100%;object-fit:cover; }
-        .hero-name  { font-family:var(--font-heading);font-size:2rem;color:var(--text-primary);margin-bottom:6px;text-shadow:0 0 20px rgba(255,255,255,0.15); }
+        .hero-name  { font-family:var(--font-heading);font-size:2rem;color:var(--text-primary);margin-bottom:6px; }
         .hero-bio   { color:var(--text-secondary);font-size:0.95rem;line-height:1.6;max-width:420px;margin:0 auto; }
         .hero-meta  { margin-top:14px;color:var(--text-muted);font-size:0.8rem; }
 
@@ -97,6 +97,7 @@
                 <span id="uidText" style="color:var(--text-muted); font-family:monospace;"></span>
                 <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="cursor:pointer; font-size:0.8rem;">📋</span>
             </div>
+            <div id="heroLevel" style="color:var(--neon-cyan); font-family:var(--font-heading); font-size:1.1rem; margin-top:10px;"></div>
 
             <!-- Fav Characters -->
             <div class="fav-section" id="favSection" style="display:none;">
@@ -109,7 +110,7 @@
                 <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
                     <div style="text-align:center;">
                         <div class="section-label" style="margin-bottom:8px;">🏅 排位</div>
-                        <img id="playerRankImg" src="" style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,215,0,0.4));" alt="rank">
+                        <img id="playerRankImg" src="" style="width:56px;height:56px;object-fit:contain;);" alt="rank">
                         <div id="playerRankName" style="font-family:var(--font-heading);color:var(--neon-gold);font-size:0.95rem;margin-top:4px;"></div>
                         <div id="playerRankStars" style="font-size:0.9rem;letter-spacing:2px;"></div>
                     </div>
@@ -298,8 +299,10 @@
                         document.getElementById('heroMeta').textContent = `📅 加入於 ${formatJoinDate(profile.createdAt)}`;
                     }
 
-                    // UID
+                    // UID and Level
                     document.getElementById('uidText').textContent = `UID: ${profile.uid}`;
+                    const lvl = profile.level !== undefined ? profile.level : 0;
+                    document.getElementById('heroLevel').textContent = `⭐ 等級 Lv.${lvl}`;
 
                     // Fav characters
                     if (profile.favoriteChars?.length) {
@@ -349,8 +352,13 @@
                             } else {
                                 btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
                             }
-                            document.getElementById('actionBar').innerHTML = btn;
+                            const viewBtn = `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);" onclick="location.href='characters.html?uid=${targetUid}'">檢視擁有角色</button>`;
+                            document.getElementById('actionBar').innerHTML = btn + viewBtn;
                         }
+                    } else {
+                        // User looking at their own public player.html profile via link
+                        const viewBtn = `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);flex:1;" onclick="location.href='characters.html?uid=${targetUid}'">檢視擁有角色</button>`;
+                        document.getElementById('actionBar').innerHTML = viewBtn;
                     }
 
                     // Bot avatar emoji variety

@@ -7,7 +7,7 @@
     <title>霓虹牌 - 個人檔案</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Russo+One&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <!-- Firebase -->
@@ -29,7 +29,7 @@
     <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
     <style>
         body {
-            background: radial-gradient(circle at center, #1a1a2e 0%, #0F0F23 100%);
+            background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
         }
 
@@ -87,7 +87,7 @@
         }
 
         .back-btn:hover {
-            text-shadow: 0 0 10px var(--neon-cyan);
+            
             transform: translateX(-3px);
         }
 
@@ -114,7 +114,7 @@
             height: 18px;
             vertical-align: middle;
             object-fit: contain;
-            filter: drop-shadow(0 0 5px rgba(0,243,255,0.2));
+            );
             margin-right: 4px;
         }
 
@@ -124,7 +124,7 @@
             border-radius: 50%;
             margin: 0 auto 18px;
             border: 3px solid var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            
             overflow: hidden;
             background: var(--glass-bg);
         }
@@ -210,7 +210,7 @@
 
         .fav-char-chip:hover {
             background: rgba(0, 243, 255, 0.2);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            
         }
 
         .fav-char-chip.empty {
@@ -560,7 +560,7 @@
 
         .btn-trials .icon {
             font-size: 1.4rem;
-            filter: drop-shadow(0 0 5px var(--neon-gold));
+            );
         }
 
         .btn-trials::before {
@@ -580,7 +580,7 @@
 
         .btn-trials:hover {
             transform: translateY(-3px);
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(0, 255, 104, 0.1);
+            , 0 0 50px rgba(0, 255, 104, 0.1);
             border-color: var(--neon-green);
             color: var(--neon-green);
         }
@@ -624,7 +624,7 @@
             background: rgba(0, 255, 104, 0.15);
             color: var(--neon-green);
             border: 1px solid var(--neon-green);
-            box-shadow: 0 0 10px rgba(0, 255, 104, 0.2);
+            
         }
         .match-result-badge.loss {
             background: rgba(255, 68, 102, 0.15);
@@ -650,7 +650,7 @@
         }
         .match-opponent a:hover {
             color: var(--neon-cyan);
-            text-shadow: 0 0 8px var(--neon-cyan);
+            
         }
         .match-meta {
             display: flex;
@@ -671,7 +671,7 @@
     <!-- Loading -->
     <div id="pageLoading"
         style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div class="neon-text"
+        <div class=""
             style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;letter-spacing:3px;animation:pulse 1.5s infinite;">
             載入中...</div>
     </div>
@@ -748,7 +748,7 @@
                     <div class="bio-label" style="margin-bottom:10px;">🏅 排位資訊</div>
                     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
                         <img id="profileRankImg" src="" alt="rank"
-                            style="width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,215,0,0.4));">
+                            style="width:64px;height:64px;object-fit:contain;);">
                         <div id="profileRankName"
                             style="font-family:var(--font-heading);font-size:1.1rem;color:var(--neon-gold);"></div>
                         <div id="profileRankStars" style="font-size:1.1rem;letter-spacing:3px;"></div>
@@ -809,7 +809,9 @@
                     <div class="notify-dot"></div>
                 </div>
 
-                <button class="btn logout-btn btn-sm" onclick="handleLogout()">登出</button>
+                <button class="btn" style="width:100%; margin-top:10px; border-color:var(--neon-gold); color:var(--neon-gold);" onclick="if(AuthManager.auth.currentUser) location.href='characters.html?uid=' + AuthManager.auth.currentUser.uid">檢視我的角色庫</button>
+
+                <button class="btn logout-btn btn-sm" style="margin-top:20px;" onclick="handleLogout()">登出</button>
             </div>
 
             <!-- Right: Tabs -->
@@ -994,11 +996,11 @@
                     border:2px solid var(--neon-gold);border-radius:20px;
                     padding:32px 36px;max-width:400px;width:90%;text-align:center;
                     animation:inviteSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
-                    box-shadow:0 0 40px rgba(255,215,0,0.3);
+                    
                 ">
                     <div style="font-size:3.5rem;margin-bottom:12px;animation:pulse 1s infinite;">⚔️</div>
                     <div style="color:var(--text-muted);font-size:0.82rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">收到對戰邀請</div>
-                    <div style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.8rem;margin-bottom:6px;text-shadow:0 0 20px rgba(255,215,0,0.5);">${escHtml(invite.fromName)}</div>
+                    <div style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.8rem;margin-bottom:6px;">${escHtml(invite.fromName)}</div>
                     <div style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:24px;">${modeLabel}</div>
                     <div style="display:flex;gap:12px;">
                         <button class="btn btn-gold" style="flex:1;padding:14px;font-size:1rem;" onclick="acceptProfileInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">✅ 接受對戰</button>

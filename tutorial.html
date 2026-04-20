@@ -55,7 +55,7 @@
             border-radius: 50%;
             background: linear-gradient(135deg, #bc13fe, #ff0055);
             border: 2px solid #bc13fe;
-            box-shadow: 0 0 16px rgba(188, 19, 254, 0.6);
+            
             display: flex;
             align-items: center;
             justify-content: center;
@@ -65,7 +65,7 @@
         .npc-avatar.player-side {
             background: linear-gradient(135deg, #00f3ff, #0066ff);
             border-color: #00f3ff;
-            box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
+            
         }
 
         .npc-bubble {
@@ -75,12 +75,12 @@
             border-radius: 16px;
             padding: 16px 20px;
             position: relative;
-            box-shadow: 0 0 20px rgba(188, 19, 254, 0.15);
+            
         }
 
         .npc-bubble.player-bubble {
             border-color: rgba(0, 243, 255, 0.4);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+            
         }
 
         .npc-name {
@@ -513,7 +513,7 @@
 
     <!-- Result screen -->
     <div class="tut-result" id="tutResult">
-        <h1 id="resultTitle" class="neon-text"></h1>
+        <h1 id="resultTitle" class=""></h1>
         <p id="resultDesc"></p>
         <button class="btn btn-magenta" onclick="location.href='index.html'" style="margin-bottom:12px;">回到主選單</button>
         <button class="btn" onclick="restartTutorial()">重新教學</button>
@@ -1070,7 +1070,7 @@
         position:absolute; z-index:800;
         font-size:1.8rem; font-weight:800;
         color:${type === 'heal' ? '#0aff68' : '#ff4444'};
-        text-shadow:0 0 8px currentColor;
+        
         pointer-events:none;
         animation: damageNumber 1s ease forwards;
         top:30%; left:50%; transform:translateX(-50%);

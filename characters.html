@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 角色列表</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
     <script src="js/theme.js"></script>
     <style>
         .character-detail-modal {
@@ -23,7 +28,6 @@
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 10px;
-            border-left: 3px solid var(--neon-cyan);
         }
 
         .skill-detail .skill-header {
@@ -43,7 +47,6 @@
         }
 
         .passive-detail {
-            border-left-color: var(--neon-gold);
             margin-top: 15px;
         }
 
@@ -172,6 +175,7 @@
     <script src="js/data/characters.js"></script>
     <script>
         let currentFilter = 'all';
+        let ALLOWED_CHARACTERS = ALL_CHARACTERS;
 
         function renderCharacters(characters) {
             const grid = document.getElementById('characterGrid');
@@ -223,7 +227,7 @@
         function filterCharacters() {
             const query = document.getElementById('searchInput').value.toLowerCase();
 
-            let filtered = ALL_CHARACTERS;
+            let filtered = ALLOWED_CHARACTERS;
 
             // Filter by rarity
             if (currentFilter !== 'all') {
@@ -344,7 +348,47 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            renderCharacters(ALL_CHARACTERS);
+            const params = new URLSearchParams(location.search);
+            const uid = params.get('uid');
+            
+            if (uid) {
+                // Prepare loading indicator
+                const loader = document.createElement('div');
+                loader.id = 'pgLoading';
+                loader.className = 'glass';
+                loader.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;';
+                loader.textContent = '載入中...';
+                document.body.insertAdjacentElement('afterbegin', loader);
+
+                AuthManager.init();
+                AuthManager.onAuthChanged(async (user) => {
+                    if (!user) {
+                        document.getElementById('pgLoading')?.remove();
+                        renderCharacters(ALLOWED_CHARACTERS);
+                        return;
+                    }
+                    try {
+                        const targetProfile = await UserProfile.getProfile(uid);
+                        if (targetProfile && targetProfile.unlockedCharacters) {
+                            const unlockedNames = targetProfile.unlockedCharacters;
+                            ALLOWED_CHARACTERS = ALL_CHARACTERS.filter(c => unlockedNames.includes(c.name));
+                            // Update title
+                            const name = targetProfile.displayName || '玩家';
+                            document.querySelector('.page-title').textContent = `${name} 的角色庫`;
+                            // If looking at own profile, change title
+                            if (user.uid === uid) {
+                                document.querySelector('.page-title').textContent = `我的角色庫`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Fetch profile failed:', e);
+                    }
+                    document.getElementById('pgLoading')?.remove();
+                    renderCharacters(ALLOWED_CHARACTERS);
+                });
+            } else {
+                renderCharacters(ALLOWED_CHARACTERS);
+            }
         });
 
         // Keyboard shortcuts
