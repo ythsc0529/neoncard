@@ -26,9 +26,9 @@ const AuthManager = (() => {
         if (!firebase.apps.length) {
             firebase.initializeApp(FIREBASE_CONFIG);
         }
-        _auth = firebase.auth();
-        _db = firebase.firestore();
-        _rtdb = firebase.database();
+        if (typeof firebase.auth === 'function') _auth = firebase.auth();
+        if (typeof firebase.firestore === 'function') _db = firebase.firestore();
+        if (typeof firebase.database === 'function') _rtdb = firebase.database();
     }
 
     async function signInWithGoogle() {
