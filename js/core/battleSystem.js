@@ -2926,6 +2926,12 @@ const BattleSystem = {
         return true;
     },
 
+    // Get the allowed draw pool for a player (their unlocked characters)
+    // Returns null if no restriction (e.g. bots in story mode)
+    getDrawPool(playerKey) {
+        return GameState[playerKey]?.unlockedCharacters || null;
+    },
+
     // Retreat action
     retreat(playerKey, standbyIndex) {
         GameState.swapWithStandby(playerKey, standbyIndex);

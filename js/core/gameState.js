@@ -276,8 +276,9 @@ const GameState = {
                 if (effect.action === 'draw_revive_limited') {
                     // Draw cards to standby (not overwrite allCards)
                     const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const reviveDrawPool = this[ownerKey].unlockedCharacters || null;
                     for (let i = 0; i < (effect.draw || 1); i++) {
-                        const drCh = drawRandomCharacter();
+                        const drCh = drawRandomCharacter(null, reviveDrawPool);
                         if (drCh) {
                             const drInst = createCharacterInstance(drCh);
                             this[ownerKey].standbyCards.push(drInst);
@@ -635,8 +636,9 @@ const GameState = {
             case 'draw': // 魔眼-燃盡, 夏天與你-意志傳承, 達文西-天才
                 const owner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
                 const drawn = [];
+                const drawPassivePool = this[owner].unlockedCharacters || null;
                 for (let i = 0; i < effect.count; i++) {
-                    const ch = drawRandomCharacter();
+                    const ch = drawRandomCharacter(null, drawPassivePool);
                     const inst = createCharacterInstance(ch);
                     this[owner].standbyCards.push(inst);
                     drawn.push(inst);
