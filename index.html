@@ -495,6 +495,7 @@
                 <span class="preloader-label" id="preloadLabel">資源載入中...</span>
                 <span class="preloader-percent" id="preloadPercent">0%</span>
             </div>
+            <div id="preloadTime" style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:10px;text-align:center;letter-spacing:1px;">預估剩餘時間: 計算中...</div>
         </div>
         <div class="preloader-loading-text">RESOURCES PRELOADING</div>
         <button class="preloader-skip-btn" onclick="skipLoading()">跳過載入 跳到遊戲 →</button>
@@ -1059,13 +1060,35 @@
         }
 
         // Start Resource Loading
+        const preloadStartTime = Date.now();
+        let smoothedRemaining = null;
         ResourceLoader.load(RESOURCE_MANIFEST, {
             onProgress: (percent, label) => {
                 document.getElementById('preloadBar').style.width = percent + '%';
                 document.getElementById('preloadPercent').textContent = percent + '%';
                 document.getElementById('preloadLabel').textContent = `正在載入 ${label}...`;
+
+                // 預估剩餘時間與速度計算
+                if (percent > 1) {
+                    const elapsed = (Date.now() - preloadStartTime) / 1000;
+                    const currentRemaining = (elapsed / (percent / 100)) - elapsed;
+                    
+                    // 指數移動平均 (EMA) 讓數字跳動更平滑
+                    if (smoothedRemaining === null) smoothedRemaining = currentRemaining;
+                    else smoothedRemaining = smoothedRemaining * 0.9 + currentRemaining * 0.1;
+                    
+                    const displayRemaining = Math.max(0, Math.ceil(smoothedRemaining));
+                    const totalItems = RESOURCE_MANIFEST.images.length;
+                    const itemsPerSec = (totalItems * (percent / 100)) / elapsed;
+                    
+                    document.getElementById('preloadTime').innerHTML = `
+                        <div style="margin-bottom:4px;">預估剩餘時間: 約 ${displayRemaining} 秒</div>
+                        <div style="opacity:0.6;font-size:0.7rem;">載入速度: ${itemsPerSec.toFixed(1)} 檔案/秒</div>
+                    `;
+                }
             },
             onComplete: () => {
+                document.getElementById('preloadTime').textContent = "載入完成！";
                 setTimeout(startAppAfterLoading, 500); // Slight delay for smooth transition
             }
         });
