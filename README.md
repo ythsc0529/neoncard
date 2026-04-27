@@ -69,9 +69,3 @@
 -   `css/styles.css`：全站通用的霓虹設計系統變數
 
 ---
-
-## 🔧 本地開發指南
-
-1.  複製專案：`git clone https://github.com/ythsc0529/neoncard.git`
-2.  專案無需預編譯，可直接使用 VS Code Live Server 或任何靜態 HTTP 伺服器啟動。
-3.  Firebase 配置位於 `js/core/auth.js`（請替換為開發用 API Key）。
