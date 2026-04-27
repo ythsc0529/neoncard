@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.netlify.uptocard.twa",
+      "sha256_cert_fingerprints": [
+        "02:7D:41:61:FA:D6:42:96:DA:FB:D9:AD:B8:65:6C:B5:8E:FC:2A:EB:6A:E6:27:AA:FA:F8:73:46:29:64:91:2B"
+      ]
+    }
+  }
+]
