@@ -33,11 +33,13 @@ const AuthManager = (() => {
 
     async function signInWithGoogle() {
         if (!_auth) init();
+        // 確保使用本地持久化
+        await _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await _auth.signInWithPopup(provider);
-        _currentUser = result.user;
-        return result.user;
+        
+        // 在行動裝置/TWA 建議使用 Redirect 模式，避免 Popup 被阻擋或失效
+        return _auth.signInWithRedirect(provider);
     }
 
     async function signOut() {

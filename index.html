@@ -15,6 +15,13 @@
                     .catch(err => console.log('Service Worker registration failed', err));
             });
         }
+        // 請求持久化儲存，防止手機系統自動清理資料
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().then(persistent => {
+                if (persistent) console.log("Storage will not be cleared by the system.");
+                else console.log("Storage may be cleared by the system under disk pressure.");
+            });
+        }
     </script>
     <script src="js/theme.js"></script>
     <!-- Firebase -->
