@@ -559,17 +559,7 @@
         </div>
     </div>
 
-    <!-- ③ First-time: Mandatory Tutorial Overlay -->
-    <div class="tutorial-overlay hidden" id="tutorialOverlay" style="z-index:1500;">
-        <div class="tutorial-box glass">
-            <h2 class="tutorial-title" id="tutorialTitle">歡迎來到霓虹牌！</h2>
-            <p class="tutorial-text" id="tutorialText">這是一款對戰卡牌遊戲。讓我們開始學習基本規則吧！</p>
-            <div class="tutorial-buttons">
-                <button class="btn" id="tutorialPrev" onclick="prevTutorial()">上一步</button>
-                <button class="btn btn-magenta" id="tutorialNext" onclick="nextTutorialStep()">下一步</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- ④ First-time: Name Setup Modal -->
     <div class="modal-overlay" id="nameSetupModal">
@@ -614,7 +604,7 @@
         <h1 class="game-title">Neon<span>Card</span><div style="font-size: 1rem; font-weight: 300; letter-spacing: 12px; color: var(--text-secondary); margin-top: 5px; transform: translateX(6px);">霓 虹 牌</div></h1>
         <div class="menu-buttons">
             <button class="btn menu-btn btn-primary" onclick="showModeSelection()">開始遊戲</button>
-            <button class="btn menu-btn" onclick="location.href='tutorial.html'">新手教學</button>
+            <button class="btn menu-btn" onclick="startGame('tutorial')">新手教學</button>
             <button class="btn menu-btn" onclick="location.href='story_menu.html'">劇情模式</button>
             <button class="btn menu-btn btn-gold" id="tournamentBtn" onclick="showTournamentMenu()">排位 / 一般匹配</button>
             <button class="btn menu-btn btn-magenta" onclick="showEntertainmentMenu()">娛樂模式</button>
@@ -1302,49 +1292,9 @@
             isFirstTimeSetup = true;
             firstTimeUser = user;
             showScreen('main');
-            currentStep = 0;
-            document.getElementById('tutorialOverlay').classList.remove('hidden');
-            updateTutorial();
-        }
-
-        // ── Tutorial System ───────────────────────────────────────────
-        const tutorialSteps = [
-            { title: '歡迎來到霓虹牌！', text: '這是一款雙人對戰卡牌遊戲，兩位玩家進行對戰。首次遊玩，讓我們學習基本規則！' },
-            { title: '遊戲模式', text: '快速模式：每位玩家擁有3張牌\n經典模式：每位玩家擁有7張牌\n規則相同，只有牌數不同。' },
-            { title: '開局流程', text: '1. 擲硬幣決定先手\n2. 雙方抽取角色牌\n3. 選擇一張放入戰鬥區\n4. 其餘放入備戰區' },
-            { title: '戰鬥區與備戰區', text: '戰鬥區：進行戰鬥的角色（各1隻）\n備戰區：待命的角色，可透過「撤退」替換' },
-            { title: '回合行動', text: '每回合必須選擇以下其中一個行動：\n• 普攻：造成ATK值的傷害\n• 技能：使用角色技能（有冷卻）\n• 撤退：與備戰區角色交換' },
-            { title: '技能冷卻', text: '技能括號中的數字代表冷卻回合數。\n使用後需等待該回合數才能再次使用。\n注意：備戰區角色的冷卻也會持續計算！' },
-            { title: '狀態效果', text: '• 睡眠：無法行動，每回合50%機率甦醒\n• 暈眩：無法行動\n• 中毒/灼燒：每回合受到持續傷害\n• 沉默：無法使用技能' },
-            { title: '社群功能', text: '🏆 競賽模式：自動與線上玩家配對\n👥 好友系統：加好友、邀請對戰\n👤 個人檔案：設定名稱、愛用角色\n登入後即可使用上述功能！' },
-            { title: '準備好了嗎？', text: '現在你已經了解基本規則，讓我們設定你的遊戲名稱吧！' }
-        ];
-        let currentStep = 0;
-
-        function updateTutorial() {
-            const step = tutorialSteps[currentStep];
-            document.getElementById('tutorialTitle').textContent = step.title;
-            document.getElementById('tutorialText').textContent = step.text;
-            document.getElementById('tutorialPrev').style.display = currentStep === 0 ? 'none' : 'inline-block';
-            const isLast = currentStep === tutorialSteps.length - 1;
-            document.getElementById('tutorialNext').textContent = isLast ? (isFirstTimeSetup ? '設定名稱 →' : '完成') : '下一步';
-        }
-
-        function nextTutorialStep() {
-            if (currentStep < tutorialSteps.length - 1) {
-                currentStep++;
-                updateTutorial();
-            } else {
-                document.getElementById('tutorialOverlay').classList.add('hidden');
-                if (isFirstTimeSetup) {
-                    document.getElementById('nameSetupModal').classList.add('active');
-                    document.getElementById('playerNameInput').focus();
-                }
-            }
-        }
-
-        function prevTutorial() {
-            if (currentStep > 0) { currentStep--; updateTutorial(); }
+            // 直接顯示設定名稱的畫面，而不是原本冗長的文字教學
+            document.getElementById('nameSetupModal').classList.add('active');
+            document.getElementById('playerNameInput').focus();
         }
 
         // ── Name Setup ────────────────────────────────────────────────
@@ -1378,7 +1328,13 @@
                 currentUserProfile = profile;
                 document.getElementById('nameSetupModal').classList.remove('active');
                 isFirstTimeSetup = false;
-                showMain(firstTimeUser, profile);
+                
+                // 詢問是否進行互動式新手教學
+                if (confirm('歡迎來到霓虹牌！\n\n是否要進行互動式新手教學，學習遊戲的基本玩法？')) {
+                    startGame('tutorial');
+                } else {
+                    showMain(firstTimeUser, profile);
+                }
             } catch (e) {
                 alert('儲存失敗：' + e.message);
                 btn.disabled = false;

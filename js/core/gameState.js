@@ -370,6 +370,10 @@ const GameState = {
 
         // Process start-of-turn effects for new player
         await this.processStartOfTurn();
+
+        if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+            TutorialSystem.checkTrigger(this.currentPlayer === 1 ? 'onPlayerTurn' : 'onEnemyTurn');
+        }
     },
 
     // Process status effects

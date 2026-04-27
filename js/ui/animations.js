@@ -579,10 +579,18 @@ const Animations = {
                 }, i * 400 + 500);
             });
 
+            // Tutorial hook
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                setTimeout(() => TutorialSystem.checkTrigger('onDrawCards'), 500);
+            }
+
             // Click to close
             this.container.onclick = () => {
                 this.container.onclick = null;
                 this.hide();
+                if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                    TutorialSystem.onActionCompleted('click_close_draw');
+                }
                 resolve();
             };
         });

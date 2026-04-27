@@ -426,9 +426,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="js/core/auth.js"></script>
-    <script src="js/core/userProfile.js"></script>
-    <script src="js/core/friends.js"></script>
+    <script src="js/core/auth.js?v=2"></script>
+    <script src="js/core/userProfile.js?v=2"></script>
+    <script src="js/core/friends.js?v=2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
     <script src="js/core/rankedSystem.js"></script>
@@ -442,9 +442,11 @@
     <script src="js/data/characters_part5.js"></script>
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
-    <script src="js/core/gameState.js"></script>
-    <script src="js/core/battleSystem.js"></script>
-    <script src="js/ui/animations.js"></script>
+    <script src="js/core/tutorialSystem.js?v=3"></script>
+    <script src="js/core/gameState.js?v=3"></script>
+    <script src="js/core/battleSystem.js?v=3"></script>
+    <script src="js/ui/animations.js?v=3"></script>
+    <script src="js/ui/audioManager.js"></script>
     <script>
         // Game initialization
         let selectionPhase = 'p1_draw';
@@ -546,6 +548,25 @@
                 selectionPhase = 'p1_draw';
                 document.getElementById('selectionTitle').textContent = `${GameState.player1.name} 選擇首發角色`;
                 renderSelectionCards('player1', GameState.player1.allCards);
+            } else if (mode === 'tutorial') {
+                GameState.init('tutorial');
+                
+                // Initialize NPC specifically for tutorial
+                GameState.player2.name = '教學機器人';
+                GameState.setDeckForPlayer('player1', TutorialSystem.tutorialDeck);
+                GameState.setDeckForPlayer('player2', TutorialSystem.enemyDeck);
+                
+                // Always player 1 starts first in tutorial
+                GameState.firstPlayer = 1;
+                GameState.currentPlayer = 1;
+                GameState.turnCount = 1;
+
+                // Start Tutorial System
+                TutorialSystem.init();
+
+                // Trigger draw phase
+                selectionPhase = 'player1_draw';
+                await startDrawPhase('player1', false); // false = use predefined deck
             } else if (mode === 'online') {
                 window.localOnlineRole = localStorage.getItem('onlineRole');
                 const role = window.localOnlineRole;
@@ -932,6 +953,11 @@
             document.getElementById('selectionTitle').textContent =
                 playerKey === 'player1' ? (GameState.player1.name + ' 抽牌階段') : (GameState.player2.name + ' 抽牌階段');
 
+            // Tutorial hook
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.checkTrigger('onSelectionPhase');
+            }
+
             // Show card draw animation
             await Animations.drawCards(cards);
 
@@ -964,6 +990,10 @@
 
             selectedBattleCard = idx;
             updateSelectionInfo();
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_card');
+            }
         }
 
         function updateSelectionInfo() {
@@ -1079,6 +1109,10 @@
         document.getElementById('confirmSelection').onclick = async function () {
             if (selectedBattleCard === null) return;
 
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_confirm');
+            }
+
             const currentPlayerKey = selectionPhase.startsWith('p1') || selectionPhase.startsWith('player1') ? 'player1' : 'player2';
             const otherPlayerKey = currentPlayerKey === 'player1' ? 'player2' : 'player1';
 
@@ -1100,12 +1134,14 @@
                 return;
             }
 
-            if ((GameState.mode === 'story' || GameState.type === 'pve') && currentPlayerKey === 'player1') {
-                if (GameState.mode === 'story') {
-                    // In story mode, opponent (NPC) automatically selects the first card
+            if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && currentPlayerKey === 'player1') {
+                if (GameState.mode === 'tutorial' || GameState.mode === 'story') {
+                    // In story/tutorial mode, opponent (NPC) automatically selects the first card
                     const npcPick = 0;
                     GameState.setBattleCard('player2', npcPick);
-                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    if (GameState.mode !== 'tutorial') {
+                        GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    }
                 } else {
                     GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
                 }
@@ -1144,11 +1180,15 @@
             GameState.addLog('戰鬥開始！', 'skill');
             updateBattleLog();
 
-            // Trigger AI if it's Player 2's turn in story or pve
-            if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+            // Trigger AI if it's Player 2's turn in story, pve, or tutorial
+            if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                 const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
                 const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
                 setTimeout(playAITurn, delay); // Wait a bit before AI acts
+            }
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.checkTrigger(GameState.currentPlayer === 1 ? 'onPlayerTurn' : 'onEnemyTurn');
             }
         }
 
@@ -1253,7 +1293,7 @@
 
             // Show/hide action buttons based on current player
             const isP1Turn = GameState.currentPlayer === 1;
-            const isPvE = GameState.mode === 'story' || GameState.type === 'pve';
+            const isPvE = GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve';
             const isOnline = GameState.mode === 'online';
             const localRole = window.localOnlineRole || 'host'; // Fix: Read from memory, not localStorage to avoid cross-tab pollution
             const isLocalP1 = !isOnline || localRole === 'host';
@@ -1556,6 +1596,9 @@
                     `;
 
                     btn.onclick = async () => {
+                        if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                            TutorialSystem.onActionCompleted('click_skill_option');
+                        }
                         closeSkillModal();
                         await doAction('skill', idx);
                     };
@@ -1563,6 +1606,11 @@
                 });
             }
             modal.classList.add('active');
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_skill');
+                setTimeout(() => TutorialSystem.checkTrigger('onSkillPanelOpen'), 100);
+            }
 
             if (GameState.mode === 'online') {
                 NetManager.sendState({ type: 'thinking', isThinking: true });
@@ -1647,6 +1695,9 @@
                 if (!attacker || !defender) return;
 
                 if (type === 'attack') {
+                    if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                        TutorialSystem.onActionCompleted('click_attack');
+                    }
                     await BattleSystem.normalAttack(attacker, defender);
                 } else if (type === 'skill') {
                     await BattleSystem.useSkill(attacker, defender, skillIndex); // Await async skill
@@ -1708,7 +1759,7 @@
                 updateBattleLog();
 
                 // Trigger AI if it's Player 2's turn in story mode or PvE
-                if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                     const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
                     const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
                     setTimeout(playAITurn, delay); // Wait a bit before AI acts
@@ -1935,7 +1986,7 @@
                 const player = GameState[playerKey];
 
                 // --- Story / PvE mode AI check for replacements ---
-                if ((GameState.mode === 'story' || GameState.type === 'pve') && playerKey === 'player2') {
+                if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && playerKey === 'player2') {
                     const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
 
                     if (player.standbyCards.length > 0) {
@@ -2038,6 +2089,9 @@
                 div.innerHTML = renderCardInfo(card);
 
                 div.onclick = async () => {
+                    if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                        TutorialSystem.onActionCompleted('click_retreat_option');
+                    }
                     if (GameState.mode === 'online') {
                         NetManager.sendAction({ type: 'retreat', skillIdx: idx });
                     }
@@ -2050,7 +2104,7 @@
                     updateUI();
 
                     // Trigger AI if it's Player 2's turn in story mode or PvE
-                    if ((GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                    if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
                         setTimeout(playAITurn, 1200); // Wait a bit before AI acts
                     }
                 };
@@ -2058,6 +2112,11 @@
             });
 
             document.getElementById('retreatModal').classList.add('active');
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_retreat');
+                setTimeout(() => TutorialSystem.checkTrigger('onRetreatPanelOpen'), 100);
+            }
         }
 
         function closeRetreatModal() {
