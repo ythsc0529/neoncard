@@ -998,25 +998,37 @@
             if (isAppStarted) return;
             isAppStarted = true;
 
-            // 1. Version Check
+            // 立即隱藏載入畫面，提供即時回饋
+            const preloader = document.getElementById('resourcePreloader');
+            if (preloader) preloader.classList.add('hidden');
+
+            // 1. 版本檢查 (加上逾時機制，避免網路延遲導致按鈕沒反應)
             try {
-                const configRef = AuthManager.getRtdb().ref('game_config');
-                const snapshot = await configRef.once('value');
-                const config = snapshot.val() || {};
+                const checkVersion = async () => {
+                    const configRef = AuthManager.getRtdb().ref('game_config');
+                    const snapshot = await configRef.once('value');
+                    return snapshot.val() || {};
+                };
+
+                // 逾時設定為 3 秒
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
+                const config = await Promise.race([checkVersion(), timeout]).catch(e => {
+                    console.warn('[VersionControl] 檢查逾時或失敗，跳過檢查:', e);
+                    return {}; 
+                });
+
                 const latestVersion = config.latest_version || APP_VERSION;
                 const updateNotes = config.update_notes || [];
 
                 if (latestVersion !== APP_VERSION) {
-                    console.warn(`[VersionControl] Update Required! Local: ${APP_VERSION}, Remote: ${latestVersion}`);
+                    console.warn(`[VersionControl] 需要更新！本地: ${APP_VERSION}, 雲端: ${latestVersion}`);
                     showUpdateModal(latestVersion, updateNotes);
-                    return; // HALT initialization
+                    return; 
                 }
             } catch (e) {
-                console.error('[VersionControl] Failed to check version:', e);
-                // Continue anyway if check fails to avoid bricking the game for offline or DB issues
+                console.error('[VersionControl] 初始化異常:', e);
             }
 
-            document.getElementById('resourcePreloader').classList.add('hidden');
             AuthManager.init();
             AuthManager.onAuthChanged(async (user) => {
                 if (isGuest) return; // Guest already set up
