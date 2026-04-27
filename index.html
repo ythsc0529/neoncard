@@ -1071,8 +1071,11 @@
         });
 
         function skipLoading() {
-            console.log("[App] Skipping resource preloading...");
-            startAppAfterLoading();
+            const msg = "確定要跳過載入嗎？\n\n如果是 App 版本建議不要跳過，只有第一次載入會比較久。完整載入後，圖片將儲存在手機中，下次開啟即可秒讀。";
+            if (confirm(msg)) {
+                console.log("[App] Skipping resource preloading...");
+                startAppAfterLoading();
+            }
         }
 
         function showUpdateModal(latestVersion, notes) {
