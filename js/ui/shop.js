@@ -11,6 +11,20 @@ let allCharacters = [];
 let activeTab = 'gacha';
 let activePoolId = 'general';
 let isAnimating = false;
+let isProcessingBuy = false; // New flag for shop purchases
+
+function toggleUIButtons(disabled) {
+    const pull1 = document.getElementById('btnPull1');
+    const pull10 = document.getElementById('btnPull10');
+    if (pull1) pull1.disabled = disabled;
+    if (pull10) pull10.disabled = disabled;
+    
+    // Also disable shop buy buttons
+    document.querySelectorAll('.btn-buy').forEach(btn => {
+        btn.disabled = disabled;
+        btn.style.opacity = disabled ? '0.5' : '1';
+    });
+}
 
 // ── Shop Items ──────────────────────────────────────────────────────────────
 const SHOP_ITEMS = [
@@ -181,6 +195,10 @@ async function buyItem(id) {
     }
     if (!confirm(confirmMsg)) return;
 
+    if (isProcessingBuy || isAnimating) return;
+    isProcessingBuy = true;
+    toggleUIButtons(true);
+
     try {
         await UserProfile.updateInventory(myProfile.uid, item.currency, -item.price);
 
@@ -233,6 +251,9 @@ async function buyItem(id) {
         if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
     } catch (err) {
         alert('購買異動發生錯誤: ' + err.message);
+    } finally {
+        isProcessingBuy = false;
+        toggleUIButtons(false);
     }
 }
 
@@ -341,6 +362,13 @@ async function performPull(times) {
     }
 
     isAnimating = true; // Lock UI immediately
+    toggleUIButtons(true);
+    
+    // Show temporary feedback on the clicked button
+    const btnId = times === 1 ? 'btnPull1' : 'btnPull10';
+    const btnElem = document.getElementById(btnId);
+    const originalText = btnElem.innerHTML;
+    btnElem.innerHTML = `<span class="loading-spinner"></span> 處理中...`;
 
     try {
         // ── 1. Deduct tickets FIRST and sync to Firestore ──────────────────
@@ -429,10 +457,17 @@ async function performPull(times) {
         await refreshProfile(myProfile.uid);
         // Update global notification dots
         if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
+        // Restore button text (but they remain disabled until modal closes)
+        const btn1 = document.getElementById('btnPull1');
+        const btn10 = document.getElementById('btnPull10');
+        if (btn1) btn1.innerHTML = `單次抽取 <span class="cost">${document.getElementById('costPull1').innerHTML}</span>`;
+        if (btn10) btn10.innerHTML = `十連抽取 <span class="cost">${document.getElementById('costPull10').innerHTML}</span>`;
+
         showGachaModal(results);
 
     } catch(e) {
         isAnimating = false;
+        toggleUIButtons(false);
         alert('抽獎發生錯誤: ' + e.message);
         console.error(e);
     }
@@ -550,6 +585,7 @@ function closeGachaModal() {
     const modal = document.getElementById('gachaAnimModal');
     if (modal) modal.style.display = 'none';
     isAnimating = false;
+    toggleUIButtons(false);
 }
 
 function skipAnim() {

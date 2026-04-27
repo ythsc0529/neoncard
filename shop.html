@@ -683,6 +683,26 @@
         .rarity-legendary{ border-color: #ffd700;  }
         .rarity-mythic   { border-color: #ff3366;  }
 
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        button:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.6;
+            filter: grayscale(0.8);
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
     </style>
