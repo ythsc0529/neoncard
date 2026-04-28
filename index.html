@@ -8,19 +8,19 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="manifest" href="manifest.json">
     <script>
-        // 【核彈級清理】強制註銷所有舊版 Service Worker
+        // ── 版本號：必須是此檔案最先執行的 script ──
+        window.APP_VERSION = "1.8.0";
+
+        // ── Service Worker 更新管理 ──
+        // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
+        // 不強制 unregister，避免造成頁面重載循環
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for(let registration of registrations) {
-                    registration.unregister().then(() => console.log('SW unregistered'));
-                }
-            });
-        }
-        // 清除所有舊的快取儲存
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-            });
+            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+                .then(reg => {
+                    reg.update(); // 強制檢查 SW 是否有更新
+                    console.log('[SW] Registered & update checked');
+                })
+                .catch(err => console.warn('[SW] Registration failed:', err));
         }
     </script>
     <script src="js/theme.js"></script>
@@ -30,27 +30,43 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script>
-        window.APP_VERSION = "1.7.0";
+        // APP_VERSION 已在最頂部定義，此處移除重複定義
     </script>
     <script src="capacitor.js"></script>
     <script>
         const Updater = (() => {
             const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
-            let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases";
+            let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
+            let _isDownloading = false;
 
             async function checkVersion() {
+                // 防呆：若本 session 已觸發過更新，不重複觸發
+                if (sessionStorage.getItem('update_shown')) return;
+
+                // 防呆：APP_VERSION 必須是有效版號
+                const localVersion = window.APP_VERSION;
+                if (!localVersion || localVersion === '0.0.0') {
+                    console.warn('[Updater] APP_VERSION invalid, skipping check:', localVersion);
+                    return;
+                }
+
                 try {
-                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now());
+                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now(), {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
                     const data = await response.json();
                     const serverVersion = data.version;
-                    const localVersion = window.APP_VERSION || "0.0.0";
                     if (data.apk_url) _apkDownloadUrl = data.apk_url;
+
                     console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
+
                     if (isVersionOlder(localVersion, serverVersion)) {
+                        sessionStorage.setItem('update_shown', '1');
                         forceUpdate(data.notes || []);
                     }
                 } catch (error) {
-                    console.warn("[Updater] Version check failed", error);
+                    console.warn('[Updater] Version check failed:', error);
                 }
             }
 
@@ -69,6 +85,10 @@
             function forceUpdate(notes) {
                 const modal = document.getElementById('updateModal');
                 const list = document.getElementById('updateNotesList');
+                const versionDisplay = document.getElementById('versionDisplay');
+                if (versionDisplay) {
+                    versionDisplay.textContent = 'Current Version: ' + (window.APP_VERSION || '?');
+                }
                 if (modal) {
                     if (list && notes.length > 0) {
                         list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
@@ -78,63 +98,108 @@
             }
 
             async function startDownloadFlow() {
+                if (_isDownloading) return;
+                _isDownloading = true;
+
                 const btn = document.getElementById('mainUpdateBtn');
                 const progressContainer = document.getElementById('updateProgressContainer');
                 const progressBar = document.getElementById('updateProgressBar');
                 const progressPercent = document.getElementById('updateProgressPercent');
                 const progressStatus = document.getElementById('updateProgressStatus');
 
+                const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+
+                if (!isNative) {
+                    // 網頁版：開新分頁下載
+                    window.open(_apkDownloadUrl, '_blank');
+                    _isDownloading = false;
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = '準備下載...';
+                progressContainer.classList.remove('hidden');
+                progressStatus.textContent = '連接中...';
+
                 try {
-                    const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
-                    if (!isNative) {
-                        window.location.href = _apkDownloadUrl;
-                        return;
-                    }
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    const FileOpener = window.Capacitor.Plugins.FileOpener;
 
-                    btn.disabled = true;
-                    btn.textContent = "正在下載...";
-                    progressContainer.classList.remove('hidden');
+                    if (!Filesystem) throw new Error('Filesystem plugin 未載入');
+                    if (!FileOpener) throw new Error('FileOpener plugin 未載入');
 
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', _apkDownloadUrl, true);
-                    xhr.responseType = 'blob';
-                    xhr.onprogress = (e) => {
-                        if (e.lengthComputable) {
-                            const p = Math.round((e.loaded / e.total) * 100);
-                            progressBar.style.width = p + "%";
-                            progressPercent.textContent = p + "%";
-                            progressStatus.textContent = `已下載: ${(e.loaded/1024/1024).toFixed(1)}MB / ${(e.total/1024/1024).toFixed(1)}MB`;
-                        } else {
-                            progressStatus.textContent = "下載中...";
+                    progressStatus.textContent = '下載中（原生下載器）...';
+                    btn.textContent = '下載中...';
+
+                    // ✅ 使用 Capacitor 原生 downloadFile：在 Java 層執行，
+                    // 完全繞開 Webview 的 302 重定向攔截與 CORS 限制
+                    const downloadResult = await Filesystem.downloadFile({
+                        url: _apkDownloadUrl,
+                        path: 'neoncard_update.apk',
+                        directory: 'CACHE',
+                        progress: true,     // 啟用進度事件
+                        recursive: false,
+                        headers: {
+                            'Accept': 'application/vnd.android.package-archive'
                         }
-                    };
-                    xhr.onload = async () => {
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            progressStatus.textContent = "下載完成，安裝中...";
-                            const blob = xhr.response;
-                            const { Filesystem, FileOpener } = window.Capacitor.Plugins;
-                            const fileName = "update.apk";
-                            const reader = new FileReader();
-                            const base64 = await new Promise(r => {
-                                reader.onloadend = () => r(reader.result.split(',')[1]);
-                                reader.readAsDataURL(blob);
-                            });
-                            const save = await Filesystem.writeFile({ path: fileName, data: base64, directory: 'CACHE' });
-                            await FileOpener.open({ filePath: save.uri, contentType: 'application/vnd.android.package-archive' });
-                        } else {
-                            alert("伺服器錯誤: " + xhr.status);
-                        }
-                    };
-                    xhr.onerror = () => alert("網路錯誤，請手動更新");
-                    xhr.send();
+                    });
+
+                    progressBar.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    progressStatus.textContent = '下載完成，啟動安裝...';
+                    btn.textContent = '安裝中...';
+
+                    // 取得下載後的本地 URI
+                    const filePath = downloadResult.path;
+                    if (!filePath) throw new Error('下載完成但未取得檔案路徑');
+
+                    await FileOpener.open({
+                        filePath: filePath,
+                        contentType: 'application/vnd.android.package-archive'
+                    });
+
                 } catch (err) {
-                    alert("發生錯誤: " + err.message);
+                    console.error('[Updater] Download failed:', err);
+                    progressStatus.textContent = '下載失敗：' + err.message;
                     btn.disabled = false;
+                    btn.textContent = '重試下載';
+                    _isDownloading = false;
                 }
             }
-            return { checkVersion, startDownloadFlow };
+
+            // 監聽原生 downloadFile 進度事件
+            function initProgressListener() {
+                if (!window.Capacitor) return;
+                const { Filesystem } = window.Capacitor.Plugins;
+                if (!Filesystem || !Filesystem.addListener) return;
+
+                Filesystem.addListener('progress', (progress) => {
+                    const progressBar = document.getElementById('updateProgressBar');
+                    const progressPercent = document.getElementById('updateProgressPercent');
+                    const progressStatus = document.getElementById('updateProgressStatus');
+                    if (!progressBar) return;
+
+                    if (progress.contentLength > 0) {
+                        const pct = Math.round((progress.bytes / progress.contentLength) * 100);
+                        progressBar.style.width = pct + '%';
+                        progressPercent.textContent = pct + '%';
+                        const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                        const totalMB = (progress.contentLength / 1024 / 1024).toFixed(1);
+                        progressStatus.textContent = `已下載: ${dlMB}MB / ${totalMB}MB`;
+                    } else {
+                        const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                        progressStatus.textContent = `已下載: ${dlMB}MB...`;
+                    }
+                });
+            }
+
+            return { checkVersion, startDownloadFlow, initProgressListener };
         })();
-        window.addEventListener('load', () => setTimeout(Updater.checkVersion, 2000));
+
+        window.addEventListener('load', () => {
+            Updater.initProgressListener();
+            setTimeout(Updater.checkVersion, 2000);
+        });
     </script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
@@ -649,10 +714,7 @@
             </div>
 
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay">Current Version: Loading...</div>
-            <script>
-                document.getElementById('versionDisplay').textContent = "Current Version: " + (window.APP_VERSION || "1.6.4");
-            </script>
+            <div class="update-footer" id="versionDisplay">Current Version: 1.8.0</div>
         </div>
     </div>
 

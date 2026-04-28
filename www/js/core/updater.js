@@ -1,28 +1,42 @@
 /**
- * Neon Card Game - Mandatory Update System (Pro Edition)
- * Handles in-app download with progress bar and background notification.
+ * Neon Card Game - Mandatory Update System
+ * 版本：重寫，使用 Capacitor Filesystem.downloadFile() 原生下載
+ * 解決：Webview 302 重定向攔截 + CORS 限制問題
  */
 const Updater = (() => {
     const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
-    let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases";
+    let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
+    let _isDownloading = false;
 
     async function checkVersion() {
+        // 防呆：同一 session 已觸發過更新，不重複彈出
+        if (sessionStorage.getItem('update_shown')) return;
+
+        // 防呆：APP_VERSION 必須是有效版號
+        const localVersion = window.APP_VERSION;
+        if (!localVersion || localVersion === '0.0.0') {
+            console.warn('[Updater] APP_VERSION invalid, skipping check:', localVersion);
+            return;
+        }
+
         try {
-            const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now());
+            const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now(), {
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
             const data = await response.json();
-            
+
             const serverVersion = data.version;
-            const localVersion = window.APP_VERSION || "0.0.0";
-            
             if (data.apk_url) _apkDownloadUrl = data.apk_url;
-            
+
             console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
 
             if (isVersionOlder(localVersion, serverVersion)) {
+                sessionStorage.setItem('update_shown', '1');
                 forceUpdate(data.notes || []);
             }
         } catch (error) {
-            console.warn("[Updater] Version check failed, skipping...", error);
+            console.warn('[Updater] Version check failed:', error);
         }
     }
 
@@ -41,141 +55,118 @@ const Updater = (() => {
     function forceUpdate(notes) {
         const modal = document.getElementById('updateModal');
         const list = document.getElementById('updateNotesList');
+        const versionDisplay = document.getElementById('versionDisplay');
 
+        if (versionDisplay) {
+            versionDisplay.textContent = 'Current Version: ' + (window.APP_VERSION || '?');
+        }
         if (modal) {
             if (list && notes.length > 0) {
                 list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
             }
             modal.classList.add('active');
-            modal.onclick = (e) => e.stopPropagation(); 
+            modal.onclick = (e) => e.stopPropagation();
         }
     }
 
     async function startDownloadFlow() {
+        if (_isDownloading) return;
+        _isDownloading = true;
+
         const btn = document.getElementById('mainUpdateBtn');
         const progressContainer = document.getElementById('updateProgressContainer');
         const progressBar = document.getElementById('updateProgressBar');
         const progressPercent = document.getElementById('updateProgressPercent');
         const progressStatus = document.getElementById('updateProgressStatus');
 
+        const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+
+        if (!isNative) {
+            // 網頁版：開新分頁下載
+            window.open(_apkDownloadUrl, '_blank');
+            _isDownloading = false;
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '準備下載...';
+        if (progressContainer) progressContainer.classList.remove('hidden');
+        if (progressStatus) progressStatus.textContent = '連接中...';
+
         try {
-            const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
-            console.log("[Updater] Platform isNative:", isNative);
+            const { Filesystem } = window.Capacitor.Plugins;
+            const FileOpener = window.Capacitor.Plugins.FileOpener;
 
-            if (!isNative) {
-                console.log("[Updater] Web mode: Redirecting to", _apkDownloadUrl);
-                window.location.href = _apkDownloadUrl;
-                return;
-            }
+            if (!Filesystem) throw new Error('Filesystem plugin 未載入');
+            if (!FileOpener) throw new Error('FileOpener plugin 未載入');
 
-            // --- Native Flow ---
-            btn.disabled = true;
-            btn.textContent = "正在下載更新...";
-            progressContainer.classList.remove('hidden');
+            if (progressStatus) progressStatus.textContent = '下載中（原生下載器）...';
+            btn.textContent = '下載中...';
 
-            console.log("[Updater] Starting Native Download:", _apkDownloadUrl);
+            // ✅ 核心修正：使用 Capacitor 原生 downloadFile
+            // 在 Java/OkHttp 層執行，完全繞開 Webview 的 302 重定向攔截與 CORS 限制
+            const downloadResult = await Filesystem.downloadFile({
+                url: _apkDownloadUrl,
+                path: 'neoncard_update.apk',
+                directory: 'CACHE',
+                progress: true,
+                headers: {
+                    'Accept': 'application/vnd.android.package-archive'
+                }
+            });
 
-            // Use XHR for progress tracking (Capacitor Webview usually allows CORS for specific setups, 
-            // but let's add an error handler to fallback if needed)
-            await downloadWithProgress(_apkDownloadUrl, (percent, status) => {
-                progressBar.style.width = percent + "%";
-                progressPercent.textContent = percent + "%";
-                if (status) progressStatus.textContent = status;
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressPercent) progressPercent.textContent = '100%';
+            if (progressStatus) progressStatus.textContent = '下載完成，啟動安裝...';
+            btn.textContent = '安裝中...';
+
+            const filePath = downloadResult.path;
+            if (!filePath) throw new Error('下載完成但未取得檔案路徑');
+
+            await FileOpener.open({
+                filePath: filePath,
+                contentType: 'application/vnd.android.package-archive'
             });
 
         } catch (err) {
-            console.error("[Updater] Download error:", err);
-            alert("下載失敗，原因: " + err.message + "\n\n將嘗試開啟瀏覽器下載。");
-            // Final fallback: Browser
-            if (window.Capacitor && window.Capacitor.Plugins.Browser) {
-                window.Capacitor.Plugins.Browser.open({ url: _apkDownloadUrl });
-            } else {
-                window.location.href = _apkDownloadUrl;
-            }
+            console.error('[Updater] Download failed:', err);
+            if (progressStatus) progressStatus.textContent = '下載失敗：' + err.message;
             btn.disabled = false;
-            btn.textContent = "重試下載";
+            btn.textContent = '重試下載';
+            _isDownloading = false;
         }
     }
 
-    function downloadWithProgress(url, onProgress) {
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.responseType = 'blob';
+    // 監聽原生 downloadFile 進度事件
+    function initProgressListener() {
+        if (!window.Capacitor) return;
+        const { Filesystem } = window.Capacitor.Plugins;
+        if (!Filesystem || !Filesystem.addListener) return;
 
-            xhr.onprogress = (event) => {
-                if (event.lengthComputable) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
-                    onProgress(percent, `正在下載: ${(event.loaded / 1024 / 1024).toFixed(1)}MB / ${(event.total / 1024 / 1024).toFixed(1)}MB`);
-                } else {
-                    // GitHub sometimes doesn't send Content-Length on redirects
-                    onProgress(50, "正在下載 (進度計算中)...");
-                }
-            };
+        Filesystem.addListener('progress', (progress) => {
+            const progressBar = document.getElementById('updateProgressBar');
+            const progressPercent = document.getElementById('updateProgressPercent');
+            const progressStatus = document.getElementById('updateProgressStatus');
+            if (!progressBar) return;
 
-            xhr.onload = async () => {
-                console.log("[Updater] XHR Load Status:", xhr.status);
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    onProgress(100, "下載完成，正在安裝...");
-                    try {
-                        await saveAndInstallApk(xhr.response);
-                        resolve();
-                    } catch (e) {
-                        reject(new Error("儲存檔案失敗: " + e.message));
-                    }
-                } else {
-                    reject(new Error("伺服器回應錯誤 (" + xhr.status + ")"));
-                }
-            };
-
-            xhr.onerror = () => reject(new Error("網路連線或 CORS 跨域限制錯誤"));
-            xhr.send();
+            if (progress.contentLength > 0) {
+                const pct = Math.round((progress.bytes / progress.contentLength) * 100);
+                progressBar.style.width = pct + '%';
+                if (progressPercent) progressPercent.textContent = pct + '%';
+                const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                const totalMB = (progress.contentLength / 1024 / 1024).toFixed(1);
+                if (progressStatus) progressStatus.textContent = `已下載: ${dlMB}MB / ${totalMB}MB`;
+            } else {
+                const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                if (progressStatus) progressStatus.textContent = `已下載: ${dlMB}MB...`;
+            }
         });
     }
 
-    async function saveAndInstallApk(blob) {
-        const { Filesystem, LocalNotifications, FileOpener } = window.Capacitor.Plugins;
-        const fileName = "NeonCard_Update_" + Date.now() + ".apk";
-
-        const reader = new FileReader();
-        const base64Data = await new Promise((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-
-        const saveResult = await Filesystem.writeFile({
-            path: fileName,
-            data: base64Data,
-            directory: 'CACHE'
-        });
-
-        console.log("[Updater] Saved to:", saveResult.uri);
-
-        try {
-            await LocalNotifications.schedule({
-                notifications: [{
-                    id: 999,
-                    title: "霓虹牌 更新",
-                    body: "下載完成，點擊開始安裝",
-                    schedule: { at: new Date(Date.now() + 500) }
-                }]
-            });
-        } catch (e) {}
-
-        if (FileOpener) {
-            await FileOpener.open({
-                filePath: saveResult.uri,
-                contentType: 'application/vnd.android.package-archive'
-            });
-        } else {
-            throw new Error("找不到檔案開啟插件");
-        }
-    }
-
-    return { checkVersion, startDownloadFlow };
+    return { checkVersion, startDownloadFlow, initProgressListener };
 })();
 
 window.addEventListener('load', () => {
+    Updater.initProgressListener();
     setTimeout(Updater.checkVersion, 2000);
 });

@@ -1,6 +1,5 @@
 /**
  * Neon Card Game - Version Control
- * This file defines the current client version.
+ * ⚠️ 每次發布新版本時，務必同步更新此版本號
  */
-const APP_VERSION = "1.6.8";
-window.APP_VERSION = APP_VERSION;
+window.APP_VERSION = "1.8.0";
