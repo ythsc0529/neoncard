@@ -490,24 +490,6 @@
             letter-spacing: 1px;
         }
     </style>
-    <script>
-        // ── 強力清理舊版快取 ──
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for (let registration of registrations) {
-                    if (localStorage.getItem('sw_reset_1.6.4') !== 'done') {
-                        registration.unregister();
-                        console.log('[SW] 已註銷舊版 Service Worker');
-                    }
-                }
-                if (localStorage.getItem('sw_reset_1.6.4') !== 'done') {
-                    localStorage.clear(); 
-                    localStorage.setItem('sw_reset_1.6.4', 'done');
-                    // location.reload(true); // Temporarily disabled to avoid update loop
-                }
-            });
-        }
-    </script>
 </head>
 
 <body>

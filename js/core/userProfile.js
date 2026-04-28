@@ -125,7 +125,7 @@ const UserProfile = (() => {
             dailyResetTime: { dailyMissions: 0, freeGacha: 0 },
             redeemedCodes: []
         };
-        await db().collection('users').doc(uid).set(profile);
+        await db().collection('users').doc(uid).set(profile, { merge: true });
         return profile;
     }
 
