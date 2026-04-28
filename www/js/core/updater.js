@@ -66,14 +66,17 @@ const Updater = (() => {
         const progressPercent = document.getElementById('updateProgressPercent');
         const progressStatus = document.getElementById('updateProgressStatus');
 
+        console.log("[Updater] Starting download from:", _apkDownloadUrl);
+        
         btn.disabled = true;
         btn.textContent = "正在啟動下載...";
         progressContainer.classList.remove('hidden');
 
         try {
-            const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+            const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            
             if (!isNative) {
-                // Browser: Fallback to direct download
+                console.log("[Updater] Web platform detected, using browser download.");
                 window.location.href = _apkDownloadUrl;
                 return;
             }
@@ -87,7 +90,7 @@ const Updater = (() => {
 
         } catch (err) {
             console.error("[Updater] Download failed:", err);
-            alert("下載失敗，請手動前往 GitHub 下載或檢查網路連線。");
+            alert("下載發生錯誤: " + err.message);
             btn.disabled = false;
             btn.textContent = "重試下載";
         }
@@ -169,7 +172,7 @@ const Updater = (() => {
         }
     }
 
-    return { checkVersion };
+    return { checkVersion, startDownloadFlow };
 })();
 
 // Start check

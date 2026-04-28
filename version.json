@@ -1,9 +1,9 @@
 {
-  "version": "1.6.5",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.5/app-debug.apk",
+  "version": "1.6.6",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.6/app-debug.apk",
   "notes": [
-    "v1.6.5 測試更新功能",
-    "驗證進度條顯示是否正常",
-    "驗證下載完成後是否自動啟動安裝程式"
+    "v1.6.6 最終測試版",
+    "驗證 UI 事件綁定修復",
+    "驗證進度條與自動安裝完整流程"
   ]
 }
