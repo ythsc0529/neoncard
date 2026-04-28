@@ -1756,7 +1756,6 @@
         // ── Update Modal ───────────────────────────────────────────────
 
         function showUpdateModal() { document.getElementById('updateModal').classList.add('active'); }
-        function closeUpdateModal() { document.getElementById('updateModal').classList.remove('active'); }
 
         // ── Utilities ──────────────────────────────────────────────────
         function escHtml(str) {
@@ -1765,7 +1764,7 @@
 
         // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
-        document.getElementById('updateModal').addEventListener('click', e => { if (e.target === document.getElementById('updateModal')) closeUpdateModal(); });
+        // document.getElementById('updateModal').removeEventListener... (Forced update, no closing)
         document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
         document.getElementById('entertainmentModal').addEventListener('click', e => { if (e.target === document.getElementById('entertainmentModal')) closeEntertainmentModal(); });
 
