@@ -367,8 +367,10 @@ async function performPull(times) {
     // Show temporary feedback on the clicked button
     const btnId = times === 1 ? 'btnPull1' : 'btnPull10';
     const btnElem = document.getElementById(btnId);
-    const originalText = btnElem.innerHTML;
-    btnElem.innerHTML = `<span class="loading-spinner"></span> 處理中...`;
+    const originalContent = btnElem.innerHTML;
+    
+    // 不要徹底取代，只是在前面加個轉圈圈，並讓文字變灰
+    btnElem.style.opacity = "0.7";
 
     try {
         // ── 1. Deduct tickets FIRST and sync to Firestore ──────────────────
@@ -457,17 +459,20 @@ async function performPull(times) {
         await refreshProfile(myProfile.uid);
         // Update global notification dots
         if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
-        // Restore button text (but they remain disabled until modal closes)
-        const btn1 = document.getElementById('btnPull1');
-        const btn10 = document.getElementById('btnPull10');
-        if (btn1) btn1.innerHTML = `單次抽取 <span class="cost">${document.getElementById('costPull1').innerHTML}</span>`;
-        if (btn10) btn10.innerHTML = `十連抽取 <span class="cost">${document.getElementById('costPull10').innerHTML}</span>`;
+        
+        // [修正] 不再從 DOM 讀取已刪除的 innerHTML，改為直接觸發 selectPool 來還原按鈕狀態
+        isAnimating = false;
+        selectPool(activePoolId);
 
         showGachaModal(results);
 
     } catch(e) {
         isAnimating = false;
         toggleUIButtons(false);
+        // 還原按鈕透明度
+        document.getElementById('btnPull1').style.opacity = "1";
+        document.getElementById('btnPull10').style.opacity = "1";
+        
         alert('抽獎發生錯誤: ' + e.message);
         console.error(e);
     }

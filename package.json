@@ -18,10 +18,14 @@
   },
   "homepage": "https://github.com/ythsc0529/neoncard#readme",
   "dependencies": {
+    "@capacitor-community/file-opener": "^8.0.0",
+    "@capacitor-firebase/authentication": "^8.2.0",
     "@capacitor/android": "^8.3.1",
+    "@capacitor/camera": "^8.2.0",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
-    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/local-notifications": "^8.0.2"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"

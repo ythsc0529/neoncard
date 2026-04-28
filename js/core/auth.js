@@ -19,8 +19,9 @@ const AuthManager = (() => {
     let _rtdb = null;
     let _currentUser = null;
     let _initialized = false;
+    let _onAuthCallbacks = [];
 
-    function init() {
+    async function init() {
         if (_initialized) return;
         _initialized = true;
         if (!firebase.apps.length) {
@@ -29,34 +30,83 @@ const AuthManager = (() => {
         if (typeof firebase.auth === 'function') _auth = firebase.auth();
         if (typeof firebase.firestore === 'function') _db = firebase.firestore();
         if (typeof firebase.database === 'function') _rtdb = firebase.database();
+
+        // ── [新增] 原生環境權限請求 ──
+        const platform = (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : "web";
+        if (platform !== 'web') {
+            requestNativePermissions();
+        }
+
+        // [核心] 檢查是否有從瀏覽器跳回來的登入結果
+        if (_auth) {
+            _auth.onAuthStateChanged(user => {
+                _currentUser = user;
+                _onAuthCallbacks.forEach(cb => cb(user));
+            });
+
+            _auth.getRedirectResult().then((result) => {
+                if (result.user) {
+                    console.log("[Auth] 已透過瀏覽器跳轉成功登入:", result.user);
+                    _currentUser = result.user;
+                }
+            }).catch((error) => {
+                if (error.code !== "auth/no-auth-event") {
+                    console.error("[Auth] 跳轉登入發生錯誤:", error);
+                }
+            });
+        }
+    }
+
+    async function requestNativePermissions() {
+        try {
+            const { LocalNotifications } = window.Capacitor.Plugins;
+            if (LocalNotifications) {
+                const status = await LocalNotifications.requestPermissions();
+                console.log("[Auth] 通知權限狀態:", status.display);
+            }
+        } catch (e) {
+            console.warn("[Auth] 請求通知權限失敗:", e);
+        }
     }
 
     async function signInWithGoogle() {
         if (!_auth) init();
 
-        // 偵測是否在原生 App 環境 (Capacitor)
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        // [診斷] 先跳出視窗告訴我們偵測到了什麼環境
+        const platform = (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : "unknown";
+        console.log("[Auth] 當前偵測平台:", platform);
+
+        // 如果是 android 或是 ios，我們強制只走原生路徑
+        if (platform === 'android' || platform === 'ios') {
             try {
-                // 使用原生插件進行 Google 登入
-                const { GoogleAuth } = window.Capacitor.Plugins;
-                const result = await GoogleAuth.signIn();
+                const { FirebaseAuthentication } = window.Capacitor.Plugins;
+                if (!FirebaseAuthentication) {
+                    alert("錯誤：App 尚未載入 FirebaseAuthentication 插件！請確認是否有執行 npx cap sync");
+                    return;
+                }
+
+                alert("正在啟動原生 Google 登入...");
+                const result = await FirebaseAuthentication.signInWithGoogle();
                 
-                // 將原生取得的 idToken 換成 Firebase Credential
-                const credential = firebase.auth.GoogleAuthProvider.credential(result.authentication.idToken);
-                return _auth.signInWithCredential(credential);
+                if (result.credential && result.credential.idToken) {
+                    const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
+                    return _auth.signInWithCredential(credential);
+                } else {
+                    throw new Error("無法從 Google 取得憑證 (idToken missing)");
+                }
             } catch (error) {
-                console.error("Native Google Sign-In failed:", error);
+                console.error("[Auth] 原生登入失敗:", error);
+                alert("原生登入失敗代碼: " + JSON.stringify(error));
                 throw error;
             }
+        } else {
+            // 只有在真的網頁版才執行 Redirect
+            alert("偵測為網頁環境，執行網頁版登入...");
+            await _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            return _auth.signInWithRedirect(provider);
         }
-
-        // 確保使用本地持久化 (網頁版)
-        await _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        
-        // 在行動裝置/TWA 建議使用 Redirect 模式
-        return _auth.signInWithRedirect(provider);
     }
 
     async function signOut() {
@@ -67,6 +117,7 @@ const AuthManager = (() => {
 
     function onAuthChanged(callback) {
         if (!_auth) init();
+        _onAuthCallbacks.push(callback);
         return _auth.onAuthStateChanged((user) => {
             _currentUser = user;
             callback(user);

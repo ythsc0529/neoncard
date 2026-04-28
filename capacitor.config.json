@@ -2,12 +2,10 @@
   "appId": "app.netlify.uptocard.twa",
   "appName": "NeonCard",
   "webDir": "www",
-  "bundledWebRuntime": false,
   "plugins": {
-    "GoogleAuth": {
-      "scopes": ["profile", "email"],
-      "serverClientId": "757364529881-khhn1g9a051o620pb75t6bffidg6nb2j.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
     }
   }
 }

@@ -1569,6 +1569,24 @@
             const scannerModal = document.getElementById('scannerModal');
             scannerModal.classList.add('active');
 
+            // ── [新增] 原生環境請求相機權限 ──
+            const platform = (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : "web";
+            if (platform !== 'web') {
+                try {
+                    const { Camera } = window.Capacitor.Plugins;
+                    if (Camera) {
+                        const status = await Camera.requestPermissions({ permissions: ['camera'] });
+                        if (status.camera !== 'granted') {
+                            alert("請允許相機權限以進行掃描");
+                            stopScanner();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("[Scanner] 請求相機權限失敗:", e);
+                }
+            }
+
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
