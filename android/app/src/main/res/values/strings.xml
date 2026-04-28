@@ -4,4 +4,5 @@
     <string name="title_activity_main">NeonCard</string>
     <string name="package_name">app.netlify.uptocard.twa</string>
     <string name="custom_url_scheme">app.netlify.uptocard.twa</string>
+    <string name="google_login_client_id">757364529881-khhn1g9a051o620pb75t6bffidg6nb2j.apps.googleusercontent.com</string>
 </resources>
