@@ -1,11 +1,12 @@
 /**
- * Neon Card Game - Mandatory Update System
+ * Neon Card Game - Mandatory Update System (Pro Edition)
+ * Handles in-app download with progress bar and background notification.
  */
 const Updater = (() => {
-    // 【重要】請修改為你存放版本資訊的網址
     const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
-    // 【重要】請修改為你新版 APK 的下載連結
-    const APK_DOWNLOAD_URL = "https://github.com/ythsc0529/neoncard/releases";
+    
+    // Default URL, will be overridden by version.json's apk_url
+    let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases";
 
     async function checkVersion() {
         try {
@@ -14,6 +15,8 @@ const Updater = (() => {
             
             const serverVersion = data.version;
             const localVersion = window.APP_VERSION || "0.0.0";
+            
+            if (data.apk_url) _apkDownloadUrl = data.apk_url;
             
             console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
 
@@ -40,36 +43,136 @@ const Updater = (() => {
     function forceUpdate(notes) {
         const modal = document.getElementById('updateModal');
         const list = document.getElementById('updateNotesList');
-        const btn = document.querySelector('.btn-update');
+        const btn = document.getElementById('mainUpdateBtn');
 
         if (modal) {
-            // 更新更新日誌
             if (list && notes.length > 0) {
                 list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
             }
 
-            // 修改更新按鈕行為
             if (btn) {
-                btn.textContent = "立即下載新版本";
-                btn.onclick = () => {
-                    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-                        window.Capacitor.Plugins.Browser.open({ url: APK_DOWNLOAD_URL });
-                    } else {
-                        window.location.href = APK_DOWNLOAD_URL;
-                    }
-                };
+                btn.onclick = () => startDownloadFlow();
             }
 
-            // 顯示並鎖定 Modal (不允許點擊背景關閉)
             modal.classList.add('active');
             modal.onclick = (e) => e.stopPropagation(); 
+        }
+    }
+
+    async function startDownloadFlow() {
+        const btn = document.getElementById('mainUpdateBtn');
+        const progressContainer = document.getElementById('updateProgressContainer');
+        const progressBar = document.getElementById('updateProgressBar');
+        const progressPercent = document.getElementById('updateProgressPercent');
+        const progressStatus = document.getElementById('updateProgressStatus');
+
+        btn.disabled = true;
+        btn.textContent = "正在啟動下載...";
+        progressContainer.classList.remove('hidden');
+
+        try {
+            const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+            if (!isNative) {
+                // Browser: Fallback to direct download
+                window.location.href = _apkDownloadUrl;
+                return;
+            }
+
+            // Native Flow: Download with progress
+            await downloadWithProgress(_apkDownloadUrl, (percent, status) => {
+                progressBar.style.width = percent + "%";
+                progressPercent.textContent = percent + "%";
+                if (status) progressStatus.textContent = status;
+            });
+
+        } catch (err) {
+            console.error("[Updater] Download failed:", err);
+            alert("下載失敗，請手動前往 GitHub 下載或檢查網路連線。");
+            btn.disabled = false;
+            btn.textContent = "重試下載";
+        }
+    }
+
+    function downloadWithProgress(url, onProgress) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'blob';
+
+            xhr.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    onProgress(percent, `正在下載: ${(event.loaded / 1024 / 1024).toFixed(1)}MB / ${(event.total / 1024 / 1024).toFixed(1)}MB`);
+                } else {
+                    onProgress(0, "正在下載 (無法計算進度)...");
+                }
+            };
+
+            xhr.onload = async () => {
+                if (xhr.status === 200) {
+                    onProgress(100, "下載完成，正在準備安裝...");
+                    try {
+                        await saveAndInstallApk(xhr.response);
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    reject(new Error("HTTP Status " + xhr.status));
+                }
+            };
+
+            xhr.onerror = () => reject(new Error("網路連線錯誤"));
+            xhr.send();
+        });
+    }
+
+    async function saveAndInstallApk(blob) {
+        const { Filesystem, LocalNotifications } = window.Capacitor.Plugins;
+        const fileName = "NeonCard_Update.apk";
+
+        // Convert blob to base64
+        const reader = new FileReader();
+        const base64Data = await new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+        });
+
+        // Save to cache directory
+        const saveResult = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: 'CACHE'
+        });
+
+        // Notify user
+        try {
+            await LocalNotifications.schedule({
+                notifications: [{
+                    id: 999,
+                    title: "霓虹牌 更新",
+                    body: "更新檔下載完成，點擊以安裝",
+                    schedule: { at: new Date(Date.now() + 1000) }
+                }]
+            });
+        } catch (e) { console.warn("Notification failed", e); }
+
+        // Open APK for installation
+        const { FileOpener } = window.Capacitor.Plugins;
+        if (FileOpener) {
+            await FileOpener.open({
+                filePath: saveResult.uri,
+                contentType: 'application/vnd.android.package-archive'
+            });
+        } else {
+            alert("請手動開啟下載資料夾安裝更新檔。");
         }
     }
 
     return { checkVersion };
 })();
 
-// 啟動時檢查
+// Start check
 window.addEventListener('load', () => {
-    setTimeout(Updater.checkVersion, 2000); // 延遲兩秒檢查，避免卡住 Preloader
+    setTimeout(Updater.checkVersion, 2000);
 });

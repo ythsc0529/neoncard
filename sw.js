@@ -1,10 +1,9 @@
 // Neon Card Game - Service Worker (Caching optimized)
-const CACHE_NAME = 'neoncard-v1.1';
+const CACHE_NAME = 'neoncard-v1.6.4';
 
-// 核心資源清單
+// 核心資源清單 (移除 index.html，讓它總是檢查更新)
 const CORE_ASSETS = [
     '/',
-    '/index.html',
     '/manifest.json',
     '/css/styles.css',
     '/js/theme.js',

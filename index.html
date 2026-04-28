@@ -490,6 +490,24 @@
             letter-spacing: 1px;
         }
     </style>
+    <script>
+        // ── 強力清理舊版快取 ──
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    if (localStorage.getItem('sw_reset_1.6.4') !== 'done') {
+                        registration.unregister();
+                        console.log('[SW] 已註銷舊版 Service Worker');
+                    }
+                }
+                if (localStorage.getItem('sw_reset_1.6.4') !== 'done') {
+                    localStorage.clear(); // 清除舊版 localStorage 可能的干擾
+                    localStorage.setItem('sw_reset_1.6.4', 'done');
+                    location.reload(true);
+                }
+            });
+        }
+    </script>
 </head>
 
 <body>
@@ -1088,31 +1106,7 @@
             }
         }
 
-        function showUpdateModal(latestVersion, notes) {
-            const modal = document.getElementById('updateModal');
-            const notesList = document.getElementById('updateNotesList');
-            const versionDisplay = document.getElementById('versionDisplay');
-
-            versionDisplay.textContent = `Current: ${APP_VERSION} | Latest: ${latestVersion}`;
-            
-            // Clear and fill notes
-            notesList.innerHTML = '';
-            if (Array.isArray(notes)) {
-                notes.forEach(note => {
-                    const li = document.createElement('li');
-                    li.textContent = note;
-                    notesList.appendChild(li);
-                });
-            } else if (typeof notes === 'string' && notes) {
-                const li = document.createElement('li');
-                li.textContent = notes;
-                notesList.appendChild(li);
-            } else {
-                notesList.innerHTML = '<li>優化多項遊戲體驗</li><li>穩定性提升</li>';
-            }
-
-            modal.classList.add('active');
-        }
+        // showUpdateModal 已經移除，由 Updater.js 直接處理 UI
 
         // --- Title Achievement Checks ---
         async function checkPendingTitles() {
@@ -1743,7 +1737,7 @@
 
         // ── Update Modal ───────────────────────────────────────────────
 
-        function showUpdateModal() { document.getElementById('updateModal').classList.add('active'); }
+        // 移除重複定義
 
         // ── Utilities ──────────────────────────────────────────────────
         function escHtml(str) {
