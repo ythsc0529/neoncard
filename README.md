@@ -7,7 +7,10 @@
 
 ## 🚀 立即體驗
 
-**線上版本：[https://uptocard.netlify.app](https://uptocard.netlify.app)**
+**📱 Android App (最新穩定版)**：[點此下載 v1.8.3 APK](https://github.com/ythsc0529/neoncard/releases/latest)
+*(基於 Trusted Web Activity (TWA) 與 Capacitor 打包，提供沉浸式全螢幕原生體驗，內建強制熱更新系統)*
+
+**🌐 線上免安裝版**：[https://uptocard.netlify.app](https://uptocard.netlify.app)
 
 ---
 

@@ -8,23 +8,19 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="manifest" href="manifest.json">
     <script>
+        // ── 版本號：必須是此檔案最先執行的 script ──
+        window.APP_VERSION = "1.8.3";
+
         // ── Service Worker 更新管理 ──
-        // 策略：註冊新版 SW（含 updateViaCache: none 避免 SW 本身被快取），
-        // 新 SW 在啟動時自動清除舊版快取，不需強制 unregister
+        // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
+        // 不強制 unregister，避免造成頁面重載循環
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
                 .then(reg => {
-                    reg.update(); // 強制檢查 SW 更新
+                    reg.update(); // 強制檢查 SW 是否有更新
                     console.log('[SW] Registered & update checked');
                 })
                 .catch(err => console.warn('[SW] Registration failed:', err));
-        }
-        // 請求持久化儲存權限
-        if (navigator.storage && navigator.storage.persist) {
-            navigator.storage.persist().then(persistent => {
-                if (persistent) console.log('[Storage] Persistent storage granted.');
-                else console.log('[Storage] Storage may be cleared under pressure.');
-            });
         }
     </script>
     <script src="js/theme.js"></script>
@@ -34,11 +30,177 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script>
-        // 強制內嵌版本號，確保永遠不會被 Service Worker 快取舊版
-        window.APP_VERSION = "1.8.2";
+        // APP_VERSION 已在最頂部定義，此處移除重複定義
     </script>
     <script src="capacitor.js"></script>
-    <script src="js/core/updater.js"></script>
+    <script>
+        const Updater = (() => {
+            const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
+            let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
+            let _isDownloading = false;
+
+            async function checkVersion() {
+                // 防呆：若本 session 已觸發過更新，不重複觸發
+                if (sessionStorage.getItem('update_shown')) return;
+
+                // 防呆：APP_VERSION 必須是有效版號
+                const localVersion = window.APP_VERSION;
+                if (!localVersion || localVersion === '0.0.0') {
+                    console.warn('[Updater] APP_VERSION invalid, skipping check:', localVersion);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now(), {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const data = await response.json();
+                    const serverVersion = data.version;
+                    if (data.apk_url) _apkDownloadUrl = data.apk_url;
+
+                    console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
+
+                    if (isVersionOlder(localVersion, serverVersion)) {
+                        sessionStorage.setItem('update_shown', '1');
+                        forceUpdate(data.notes || []);
+                    }
+                } catch (error) {
+                    console.warn('[Updater] Version check failed:', error);
+                }
+            }
+
+            function isVersionOlder(local, server) {
+                const lp = local.split('.').map(Number);
+                const sp = server.split('.').map(Number);
+                for (let i = 0; i < Math.max(lp.length, sp.length); i++) {
+                    const l = lp[i] || 0;
+                    const s = sp[i] || 0;
+                    if (s > l) return true;
+                    if (l > s) return false;
+                }
+                return false;
+            }
+
+            function forceUpdate(notes) {
+                const modal = document.getElementById('updateModal');
+                const list = document.getElementById('updateNotesList');
+                const versionDisplay = document.getElementById('versionDisplay');
+                if (versionDisplay) {
+                    versionDisplay.textContent = 'Current Version: ' + (window.APP_VERSION || '?');
+                }
+                if (modal) {
+                    if (list && notes.length > 0) {
+                        list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
+                    }
+                    modal.classList.add('active');
+                }
+            }
+
+            async function startDownloadFlow() {
+                if (_isDownloading) return;
+                _isDownloading = true;
+
+                const btn = document.getElementById('mainUpdateBtn');
+                const progressContainer = document.getElementById('updateProgressContainer');
+                const progressBar = document.getElementById('updateProgressBar');
+                const progressPercent = document.getElementById('updateProgressPercent');
+                const progressStatus = document.getElementById('updateProgressStatus');
+
+                const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+
+                if (!isNative) {
+                    // 網頁版：開新分頁下載
+                    window.open(_apkDownloadUrl, '_blank');
+                    _isDownloading = false;
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = '準備下載...';
+                progressContainer.classList.remove('hidden');
+                progressStatus.textContent = '連接中...';
+
+                try {
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    const FileOpener = window.Capacitor.Plugins.FileOpener;
+
+                    if (!Filesystem) throw new Error('Filesystem plugin 未載入');
+                    if (!FileOpener) throw new Error('FileOpener plugin 未載入');
+
+                    progressStatus.textContent = '下載中（原生下載器）...';
+                    btn.textContent = '下載中...';
+
+                    // ✅ 使用 Capacitor 原生 downloadFile：在 Java 層執行，
+                    // 完全繞開 Webview 的 302 重定向攔截與 CORS 限制
+                    const downloadResult = await Filesystem.downloadFile({
+                        url: _apkDownloadUrl,
+                        path: 'neoncard_update.apk',
+                        directory: 'CACHE',
+                        progress: true,     // 啟用進度事件
+                        recursive: false,
+                        headers: {
+                            'Accept': 'application/vnd.android.package-archive'
+                        }
+                    });
+
+                    progressBar.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    progressStatus.textContent = '下載完成，啟動安裝...';
+                    btn.textContent = '安裝中...';
+
+                    // 取得下載後的本地 URI
+                    const filePath = downloadResult.path;
+                    if (!filePath) throw new Error('下載完成但未取得檔案路徑');
+
+                    await FileOpener.open({
+                        filePath: filePath,
+                        contentType: 'application/vnd.android.package-archive'
+                    });
+
+                } catch (err) {
+                    console.error('[Updater] Download failed:', err);
+                    progressStatus.textContent = '下載失敗：' + err.message;
+                    btn.disabled = false;
+                    btn.textContent = '重試下載';
+                    _isDownloading = false;
+                }
+            }
+
+            // 監聽原生 downloadFile 進度事件
+            function initProgressListener() {
+                if (!window.Capacitor) return;
+                const { Filesystem } = window.Capacitor.Plugins;
+                if (!Filesystem || !Filesystem.addListener) return;
+
+                Filesystem.addListener('progress', (progress) => {
+                    const progressBar = document.getElementById('updateProgressBar');
+                    const progressPercent = document.getElementById('updateProgressPercent');
+                    const progressStatus = document.getElementById('updateProgressStatus');
+                    if (!progressBar) return;
+
+                    if (progress.contentLength > 0) {
+                        const pct = Math.round((progress.bytes / progress.contentLength) * 100);
+                        progressBar.style.width = pct + '%';
+                        progressPercent.textContent = pct + '%';
+                        const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                        const totalMB = (progress.contentLength / 1024 / 1024).toFixed(1);
+                        progressStatus.textContent = `已下載: ${dlMB}MB / ${totalMB}MB`;
+                    } else {
+                        const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
+                        progressStatus.textContent = `已下載: ${dlMB}MB...`;
+                    }
+                });
+            }
+
+            return { checkVersion, startDownloadFlow, initProgressListener };
+        })();
+
+        window.addEventListener('load', () => {
+            Updater.initProgressListener();
+            setTimeout(Updater.checkVersion, 2000);
+        });
+    </script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>
@@ -530,14 +692,14 @@
         <div class="update-modal">
             <div class="update-icon">🚀</div>
             <div class="update-title">發現新版本</div>
-            <div class="update-subtitle">為了確保遇戲穩定性與戰鬥數據同步，請更新至最新版本以繼續。</div>
-
+            <div class="update-subtitle">為了確保遊戲穩定性與戰鬥數據同步，請更新至最新版本以繼續。</div>
+            
             <div class="update-notes-container">
                 <div class="update-notes-title">更新內容</div>
                 <ul class="update-notes-list" id="updateNotesList">
                     <!-- Dynamic Notes -->
-                    <li>優化遂戲性能</li>
-                    <li>修复已知問題</li>
+                    <li>優化遊戲性能</li>
+                    <li>修復已知問題</li>
                 </ul>
             </div>
 
@@ -552,7 +714,7 @@
             </div>
 
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay">Current Version: 1.8.2</div>
+            <div class="update-footer" id="versionDisplay">Current Version: 1.8.3</div>
         </div>
     </div>
 
@@ -638,7 +800,7 @@
             <button class="btn menu-btn" onclick="location.href='team.html'">隊伍配置</button>
             <button class="btn menu-btn" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" onclick="location.href='strategy.html'">攻略專區</button>
-            <button class="btn menu-btn" onclick="Updater.checkVersion(true)">版本更新</button>
+            <button class="btn menu-btn" onclick="showUpdateLog()">版本更新</button>
             <button class="btn menu-btn hidden" id="profileMenuBtn" onclick="location.href='profile.html'">個人檔案</button>
         </div>
         <!-- Stats Card (shown when logged in) -->
@@ -934,8 +1096,8 @@
     </div>
 
 
-    <!-- ── Update Modal ── -->
-    <div class="modal-overlay" id="updateModal">
+    <!-- ── Version Log Modal (Renamed to avoid conflict) ── -->
+    <div class="modal-overlay" id="versionLogModal">
         <div class="modal glass"
             style="max-width:800px;max-height:80vh;text-align:left;display:flex;flex-direction:column;">
             <h2 style="text-align:center;margin-bottom:20px;">v3.0.0 社群功能正式上線</h2>
@@ -1019,8 +1181,7 @@
             const preloader = document.getElementById('resourcePreloader');
             if (preloader) preloader.classList.add('hidden');
 
-            if (preloader) preloader.classList.add('hidden');
-            // 舊版 Firebase 版本檢查已移除，統一由 js/core/updater.js 處理
+            // 1. 版本檢查已由 Updater.js 接手，此處移除舊邏輯
 
             AuthManager.init();
             AuthManager.onAuthChanged(async (user) => {
@@ -1093,7 +1254,7 @@
             }
         }
 
-
+        // showUpdateModal 已經移除，由 Updater.js 直接處理 UI
 
         // --- Title Achievement Checks ---
         async function checkPendingTitles() {
@@ -1188,11 +1349,11 @@
             // Check for new titles!
             checkPendingTitles();
 
-            // Auto-show update modal on new version
-            const APP_VERSION = '3.0.0';
-            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
-                showUpdateModal();
-                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            // Auto-show update log on new version
+            const LOG_VERSION = '1.6.3';
+            if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
+                showUpdateLog();
+                localStorage.setItem('lastSeenVersion', LOG_VERSION);
             }
             
             // Refresh recent matches for profile card
@@ -1248,10 +1409,10 @@
             document.getElementById('topLeftActions').classList.remove('hidden');
             document.getElementById('tournamentBtn').disabled = true;
             document.getElementById('tournamentBtn').title = '需要登入才能使用競賽模式';
-            const APP_VERSION = '3.0.0';
-            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
-                showUpdateModal();
-                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            const LOG_VERSION = '1.6.3';
+            if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
+                showUpdateLog();
+                localStorage.setItem('lastSeenVersion', LOG_VERSION);
             }
         }
 
@@ -1722,6 +1883,10 @@
             document.getElementById('lobbyModal').classList.remove('active');
         }
 
+        // ── Update Modal ───────────────────────────────────────────────
+
+        // 移除重複定義
+
         // ── Utilities ──────────────────────────────────────────────────
         function escHtml(str) {
             return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1729,7 +1894,7 @@
 
         // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
-        // (Mandatory update modal should NOT be closeable via background click)
+        // document.getElementById('updateModal').removeEventListener... (Forced update, no closing)
         document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
         document.getElementById('entertainmentModal').addEventListener('click', e => { if (e.target === document.getElementById('entertainmentModal')) closeEntertainmentModal(); });
 
