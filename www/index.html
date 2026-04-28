@@ -33,7 +33,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="js/core/version.js"></script>
+    <script>
+        // 強制內嵌版本號，確保永遠不會被 Service Worker 快取舊版
+        window.APP_VERSION = "1.8.1";
+    </script>
     <script src="capacitor.js"></script>
     <script src="js/core/updater.js"></script>
     <script src="js/core/resourceManifest.js"></script>
@@ -549,7 +552,7 @@
             </div>
 
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay">Current Version: 1.8.0</div>
+            <div class="update-footer" id="versionDisplay">Current Version: 1.8.1</div>
         </div>
     </div>
 
@@ -1779,7 +1782,7 @@
 
         // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
-        document.getElementById('updateModal').addEventListener('click', e => { if (e.target === document.getElementById('updateModal')) closeUpdateModal(); });
+        // (Mandatory update modal should NOT be closeable via background click)
         document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
         document.getElementById('entertainmentModal').addEventListener('click', e => { if (e.target === document.getElementById('entertainmentModal')) closeEntertainmentModal(); });
 
