@@ -501,9 +501,9 @@
                     }
                 }
                 if (localStorage.getItem('sw_reset_1.6.4') !== 'done') {
-                    localStorage.clear(); // 清除舊版 localStorage 可能的干擾
+                    localStorage.clear(); 
                     localStorage.setItem('sw_reset_1.6.4', 'done');
-                    location.reload(true);
+                    // location.reload(true); // Temporarily disabled to avoid update loop
                 }
             });
         }
@@ -562,7 +562,7 @@
                 </div>
             </div>
 
-            <button class="btn-update" id="mainUpdateBtn" style="margin-top:20px; width:100%;">立即更新並安裝</button>
+            <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
             <div class="update-footer" id="versionDisplay">Current Version: Loading...</div>
             <script>
                 document.getElementById('versionDisplay').textContent = "Current Version: " + (window.APP_VERSION || "1.6.4");
