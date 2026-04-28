@@ -52,6 +52,7 @@ const Updater = (() => {
     }
 
     async function startDownloadFlow() {
+        alert("[Updater] 開始下載流程...");
         const btn = document.getElementById('mainUpdateBtn');
         const progressContainer = document.getElementById('updateProgressContainer');
         const progressBar = document.getElementById('updateProgressBar');
