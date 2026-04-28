@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 玩家檔案</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
+    <script src="js/core/friends.js"></script>
+    <script src="js/data/botProfiles.js"></script>
+    <style>
+        body { background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%); min-height: 100vh; }
+        @keyframes fadeIn   { from{opacity:0;} to{opacity:1;} }
+        @keyframes slideUp  { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:none;} }
+        @keyframes pulse    { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+        .player-page { max-width: 700px; margin: 0 auto; padding: 30px 20px; animation: fadeIn 0.4s ease; }
+        .back-btn    { display:inline-flex;align-items:center;gap:8px;color:var(--neon-cyan);text-decoration:none;font-family:var(--font-heading);letter-spacing:1px;font-size:0.9rem;transition:all 0.2s;margin-bottom:28px; }
+        .back-btn:hover { transform:translateX(-3px); }
+
+        /* Profile hero card */
+        .hero-card { padding:36px 32px; text-align:center; animation:slideUp 0.5s ease; }
+        .hero-avatar { width:100px;height:100px;border-radius:50%;margin:0 auto 20px;border:3px solid var(--neon-cyan);overflow:hidden;background:var(--glass-bg);display:flex;align-items:center;justify-content:center; }
+        .hero-avatar img { width:100%;height:100%;object-fit:cover; }
+        .hero-name  { font-family:var(--font-heading);font-size:2rem;color:var(--text-primary);margin-bottom:6px; }
+        .hero-bio   { color:var(--text-secondary);font-size:0.95rem;line-height:1.6;max-width:420px;margin:0 auto; }
+        .hero-meta  { margin-top:14px;color:var(--text-muted);font-size:0.8rem; }
+
+        /* Fav chars */
+        .fav-section { margin-top:22px;padding-top:18px;border-top:1px solid var(--glass-border); }
+        .section-label { color:var(--text-secondary);font-size:0.75rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px; }
+        .fav-chips { display:flex;gap:8px;flex-wrap:wrap;justify-content:center; }
+        .fav-chip  { background:rgba(0,243,255,0.08);border:1px solid rgba(0,243,255,0.3);border-radius:20px;padding:5px 14px;font-size:0.85rem;color:var(--neon-cyan); }
+
+        /* Stats grid */
+        .stats-section { margin-top:8px;padding:24px 28px; }
+        .stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px; }
+        .stat-card  { background:rgba(0,0,0,0.25);border:1px solid var(--glass-border);border-radius:12px;padding:14px 16px; }
+        .stat-mode  { font-size:0.8rem;color:var(--text-muted);margin-bottom:6px; }
+        .stat-rate  { font-family:var(--font-heading);font-size:1.8rem;font-weight:700;margin-bottom:4px; }
+        .stat-detail{ font-size:0.78rem;color:var(--text-muted); }
+        .stat-bar-bg{ height:4px;background:rgba(255,255,255,0.08);border-radius:4px;margin-top:8px; }
+        .stat-bar-fill { height:100%;border-radius:4px;transition:width 0.6s ease; }
+
+        /* Action bar */
+        .action-bar { display:flex;gap:12px;justify-content:center;margin-top:20px;padding:0 28px 24px; }
+        .action-bar .btn { flex:1;max-width:200px; }
+
+        /* Error / loading states */
+        .pg-loading { display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.3rem;letter-spacing:3px;animation:pulse 1.5s infinite; }
+        .pg-error   { max-width:500px;margin:80px auto;text-align:center;color:var(--text-muted); }
+
+        /* Match History Styles */
+        .match-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
+        .match-item:hover { border-color: rgba(0, 243, 255, 0.3); background: rgba(255, 255, 255, 0.05); }
+        .match-result-badge { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 1rem; flex-shrink: 0; }
+        .match-result-badge.win { background: rgba(0, 255, 104, 0.12); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .match-result-badge.loss { background: rgba(255, 68, 102, 0.12); color: var(--neon-pink); border: 1px solid var(--neon-pink); }
+        .match-info { flex: 1; min-width: 0; }
+        .match-opponent { font-weight: 600; font-size: 1rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .match-opponent a { color: var(--text-primary); text-decoration: none; transition: color 0.2s; }
+        .match-opponent a:hover { color: var(--neon-cyan); }
+        .match-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-muted); }
+        .match-time { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div id="pgLoading" class="pg-loading">載入中...</div>
+    <div id="pgError" class="pg-error" style="display:none;">
+        <div style="font-size:3rem;margin-bottom:16px;">😶</div>
+        <div id="pgErrorMsg" style="font-size:1rem;">找不到玩家</div>
+        <a href="javascript:history.back()" style="color:var(--neon-cyan);text-decoration:none;font-size:0.9rem;margin-top:12px;display:inline-block;">← 返回</a>
+    </div>
+
+    <div class="player-page" id="playerPage" style="display:none;">
+        <a href="javascript:history.back()" class="back-btn">← 返回</a>
+
+        <div class="glass hero-card">
+            <!-- Avatar + Name -->
+            <div class="hero-avatar">
+                <span id="heroAvatarEmoji" style="font-size:3rem;">👤</span>
+                <img id="heroAvatarImg" style="display:none;" alt="Avatar">
+            </div>
+            <div class="hero-name" id="heroName">-</div>
+            <div class="hero-bio"  id="heroBio"></div>
+            <div class="hero-meta" id="heroMeta"></div>
+            <div class="hero-meta" id="heroUid" style="margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span id="uidText" style="color:var(--text-muted); font-family:monospace;"></span>
+                <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="cursor:pointer; font-size:0.8rem;">📋</span>
+            </div>
+            <div id="heroLevel" style="color:var(--neon-cyan); font-family:var(--font-heading); font-size:1.1rem; margin-top:10px;"></div>
+
+            <!-- Fav Characters -->
+            <div class="fav-section" id="favSection" style="display:none;">
+                <div class="section-label">愛用角色</div>
+                <div class="fav-chips" id="favChips"></div>
+            </div>
+
+            <!-- Ranked + Title -->
+            <div class="fav-section" id="rankTitleSection" style="display:none;border-top:1px solid var(--glass-border);margin-top:16px;padding-top:16px;">
+                <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+                    <div style="text-align:center;">
+                        <div class="section-label" style="margin-bottom:8px;">🏅 排位</div>
+                        <img id="playerRankImg" src="" style="width:56px;height:56px;object-fit:contain;);" alt="rank">
+                        <div id="playerRankName" style="font-family:var(--font-heading);color:var(--neon-gold);font-size:0.95rem;margin-top:4px;"></div>
+                        <div id="playerRankStars" style="font-size:0.9rem;letter-spacing:2px;"></div>
+                    </div>
+                    <div id="playerTitleBlock" style="text-align:center;display:none;">
+                        <div class="section-label" style="margin-bottom:8px;">🎖 稱號</div>
+                        <img id="playerTitleImg" src="" style="height:36px;object-fit:contain;" alt="title">
+                        <div id="playerTitleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:0.85rem;margin-top:4px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="glass stats-section" style="margin-top:16px;" id="statsSection" style="display:none;">
+            <div class="section-label" style="margin-bottom:14px;">📊 戰績</div>
+            <div class="stats-grid" id="statsGrid">
+                <div style="color:var(--text-muted);font-size:0.9rem;">此玩家尚無戰績</div>
+            </div>
+        </div>
+
+        <!-- Recent Matches -->
+        <div class="glass stats-section" style="margin-top:16px;" id="historySection" style="display:none;">
+            <div class="section-label" style="margin-bottom:14px;">⚔️ 最近對戰</div>
+            <div id="historyList">
+                <div style="color:var(--text-muted);font-size:0.9rem;">尚無對戰紀錄</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-bar" id="actionBar"></div>
+    </div>
+
+    <script>
+        const STAT_MODES = [
+            { key:'pve',         label:'🤖 PvE',    color:'var(--neon-cyan)'    },
+            { key:'pvp',         label:'👥 本地PvP', color:'var(--neon-magenta)' },
+            { key:'online',      label:'🌐 線上',    color:'var(--neon-gold)'    },
+            { key:'competitive', label:'🏆 競賽',    color:'#ff6b35'             }
+        ];
+
+        function escHtml(s) {
+            return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function copyUid() {
+            const text = document.getElementById('uidText').textContent;
+            const uid = text.replace('UID: ', '');
+            if (!uid) return;
+            navigator.clipboard.writeText(uid).then(() => {
+                const btn = event.currentTarget;
+                const oldText = btn.textContent;
+                btn.textContent = '✅';
+                setTimeout(() => btn.textContent = oldText, 2000);
+            }).catch(err => {
+                console.error('複製失敗:', err);
+            });
+        }
+
+        function formatJoinDate(ts) {
+            if (!ts) return '';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+        }
+
+        function winRate(wins, losses) {
+            const total = (wins||0) + (losses||0);
+            return total ? Math.round((wins||0)/total*100) : null;
+        }
+
+        function renderStats(stats) {
+            const grid = document.getElementById('statsGrid');
+            const cards = STAT_MODES.map(m => {
+                const st = (stats||{})[m.key] || {};
+                const w  = st.wins   || 0;
+                const l  = st.losses || 0;
+                if (w + l === 0) return null;
+                const rate = winRate(w, l);
+                return `<div class="stat-card">
+                    <div class="stat-mode">${m.label}</div>
+                    <div class="stat-rate" style="color:${m.color};">${rate}%</div>
+                    <div class="stat-detail">${w}勝 ${l}敗</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${rate}%;background:${m.color};"></div></div>
+                </div>`;
+            }).filter(Boolean);
+
+            if (cards.length) {
+                grid.innerHTML = cards.join('');
+                document.getElementById('statsSection').style.display = 'block';
+            }
+        }
+
+        function renderRecentMatches(matches) {
+            const list = document.getElementById('historyList');
+            if (!matches || matches.length === 0) {
+                document.getElementById('historySection').style.display = 'none';
+                return;
+            }
+
+            list.innerHTML = matches.map(m => {
+                const isWin = m.result === 'win';
+                const timeStr = formatTimeAgo(m.timestamp);
+                const modeLabel = getModeLabel(m.mode);
+                const opponentUrl = `player.html?uid=${m.opponentUid}`;
+
+                return `
+                    <div class="match-item">
+                        <div class="match-result-badge ${m.result}">
+                            ${isWin ? '勝' : '敗'}
+                        </div>
+                        <div class="match-info">
+                            <div class="match-opponent">
+                                <a href="${opponentUrl}">${escHtml(m.opponentName)}</a>
+                            </div>
+                            <div class="match-meta">
+                                <span>${modeLabel}</span>
+                                <span style="opacity:0.5;">|</span>
+                                <span style="color:${isWin ? 'var(--neon-green)' : 'var(--neon-pink)'}">${isWin ? '勝利' : '敗北'}</span>
+                            </div>
+                        </div>
+                        <div class="match-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('historySection').style.display = 'block';
+        }
+
+        function getModeLabel(mode) {
+            const modes = {
+                'ranked': '🏆 排位賽',
+                'online': '🌐 線上對戰',
+                'pve': '🤖 PVE 模式',
+                'story': '📖 劇情模式'
+            };
+            return modes[mode] || '⚔️ 自由對戰';
+        }
+
+        function formatTimeAgo(ts) {
+            if (!ts) return '';
+            const date = ts.toDate ? ts.toDate() : new Date(ts);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffMin < 1) return '剛剛';
+            if (diffMin < 60) return `${diffMin}分鐘前`;
+            if (diffHour < 24) return `${diffHour}小時前`;
+            if (diffDay < 7) return `${diffDay}天前`;
+            return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+        }
+
+        function init() {
+            AuthManager.init();
+
+            const params    = new URLSearchParams(location.search);
+            const targetUid = params.get('uid');
+            if (!targetUid) { showError('缺少玩家 ID'); return; }
+
+            // Wait for auth to be confirmed, THEN read Firestore
+            AuthManager.onAuthChanged(async (user) => {
+                // user can be null (not logged in) — still show public profile
+                // but Firestore rules must allow read for auth != null
+                if (!user) {
+                    // Not logged in — redirect to home
+                    location.href = 'index.html';
+                    return;
+                }
+
+                try {
+                    const profile = await UserProfile.getProfile(targetUid);
+                    if (!profile) { showError('找不到此玩家'); return; }
+
+                    // Render avatar
+                    if (profile.googlePhotoURL) {
+                        document.getElementById('heroAvatarEmoji').style.display = 'none';
+                        const img = document.getElementById('heroAvatarImg');
+                        img.src = profile.googlePhotoURL;
+                        img.style.display = 'block';
+                    }
+
+                    document.getElementById('heroName').textContent = profile.displayName || '玩家';
+                    document.getElementById('heroBio').textContent  = profile.bio || '這位玩家沒有留下自我介紹';
+
+                    if (profile.createdAt) {
+                        document.getElementById('heroMeta').textContent = `📅 加入於 ${formatJoinDate(profile.createdAt)}`;
+                    }
+
+                    // UID and Level
+                    document.getElementById('uidText').textContent = `UID: ${profile.uid}`;
+                    const lvl = profile.level !== undefined ? profile.level : 0;
+                    document.getElementById('heroLevel').textContent = `⭐ 等級 Lv.${lvl}`;
+
+                    // Fav characters
+                    if (profile.favoriteChars?.length) {
+                        document.getElementById('favChips').innerHTML =
+                            profile.favoriteChars.map(n => `<div class="fav-chip">${escHtml(n)}</div>`).join('');
+                        document.getElementById('favSection').style.display = 'block';
+                    }
+
+                    // Ranked + Title
+                    if (profile.ranked && typeof RankedSystem !== 'undefined') {
+                        const ranked = profile.ranked;
+                        document.getElementById('playerRankImg').src = RankedSystem.getImgPath(ranked);
+                        document.getElementById('playerRankName').textContent = RankedSystem.getDisplayName(ranked);
+                        document.getElementById('playerRankStars').innerHTML = RankedSystem.getStarsHtml(ranked);
+                        document.getElementById('rankTitleSection').style.display = 'block';
+                    }
+                    if (profile.activeTitle && typeof RankedSystem !== 'undefined') {
+                        const tInfo = RankedSystem.getTitleInfo(profile.activeTitle);
+                        if (tInfo) {
+                            document.getElementById('playerTitleImg').src = tInfo.img;
+                            document.getElementById('playerTitleName').textContent = profile.activeTitle;
+                            document.getElementById('playerTitleBlock').style.display = 'block';
+                        }
+                    }
+
+                    // Stats
+                    renderStats(profile.stats);
+
+                    // Recent Matches
+                    renderRecentMatches(profile.recentMatches);
+
+                    // Action bar: add friend / already friend
+                    const isBot = profile.isBot || targetUid.startsWith('NPC_');
+                    if (user.uid !== targetUid) {
+                        if (isBot) {
+                            // Bots cannot be added as friends, show as verified/special
+                            document.getElementById('actionBar').innerHTML = 
+                                `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);opacity:0.8;" disabled>✨ 認證玩家</button>`;
+                        } else {
+                            const isFriend   = await FriendsManager.isFriend(targetUid);
+                            const hasPending = await FriendsManager.hasOutgoingRequest(targetUid);
+                            let btn = '';
+                            if (isFriend) {
+                                btn = `<button class="btn" style="border-color:var(--neon-green);color:var(--neon-green);" disabled>✓ 已是好友</button>`;
+                            } else if (hasPending) {
+                                btn = `<button class="btn" style="opacity:0.5;" disabled>請求已送出</button>`;
+                            } else {
+                                btn = `<button class="btn btn-cyan" id="addFriendBtn" onclick="sendRequest('${targetUid}')">➕ 加為好友</button>`;
+                            }
+                            const viewBtn = `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);" onclick="location.href='characters.html?uid=${targetUid}'">檢視擁有角色</button>`;
+                            document.getElementById('actionBar').innerHTML = btn + viewBtn;
+                        }
+                    } else {
+                        // User looking at their own public player.html profile via link
+                        const viewBtn = `<button class="btn" style="border-color:var(--neon-gold);color:var(--neon-gold);flex:1;" onclick="location.href='characters.html?uid=${targetUid}'">檢視擁有角色</button>`;
+                        document.getElementById('actionBar').innerHTML = viewBtn;
+                    }
+
+                    // Bot avatar emoji variety
+                    if (isBot && !profile.googlePhotoURL) {
+                        const emojis = ['👤', '👤', '🎭', '🎩', '🕶️', '⚔️', '🛡️', '🦊', '🐺', '🦊'];
+                        const index = profile.displayName.length % emojis.length;
+                        document.getElementById('heroAvatarEmoji').textContent = emojis[index];
+                    }
+
+                    document.getElementById('pgLoading').style.display = 'none';
+                    document.getElementById('playerPage').style.display = 'block';
+
+                } catch (e) {
+                    console.error('載入玩家資料失敗:', e);
+                    showError('載入失敗，請稍後再試（' + e.code + '）');
+                }
+            });
+        }
+
+        async function sendRequest(uid) {
+            const btn = document.getElementById('addFriendBtn');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.textContent = '送出中...';
+            try {
+                await FriendsManager.sendFriendRequest(uid);
+                btn.textContent = '✓ 請求已送出';
+                btn.style.borderColor = 'var(--neon-green)';
+                btn.style.color = 'var(--neon-green)';
+            } catch(e) {
+                btn.textContent = '送出失敗';
+                btn.disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('pgLoading').style.display = 'none';
+            document.getElementById('pgErrorMsg').textContent = msg;
+            document.getElementById('pgError').style.display = 'block';
+        }
+
+        init();
+    </script>
+</body>
+</html>
+

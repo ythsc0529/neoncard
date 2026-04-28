@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 商店與抽獎</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/data/missionData.js"></script>
+    <script src="js/data/passData.js"></script>
+    <script src="js/data/trialData.js"></script>
+    <script src="js/data/gachaData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters_part5.js"></script>
+    <script src="js/data/characters_part6.js"></script>
+    <script src="js/data/characters.js"></script>
+    <script src="js/ui/shop.js" defer></script>
+    <style>
+        body {
+            background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .shop-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            
+            transform: translateX(-3px);
+        }
+
+        .currency-bar {
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px 16px;
+        }
+
+        .currency-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            font-family: var(--font-heading);
+        }
+
+        .item-icon-inline {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+
+        .shop-item-icon-container {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .shop-item-img {
+            max-height: 100px;
+            max-width: 100%;
+            );
+            transition: transform 0.3s;
+        }
+
+        .shop-item:hover .shop-item-img {
+            transform: scale(1.1);
+        }
+        
+        .c-money { color: var(--neon-gold); }
+        .c-deed { color: #ff6b35; }
+        .c-t1 { color: #aaaaaa; }
+        .c-t2 { color: var(--neon-cyan); }
+        .c-t3 { color: var(--neon-magenta); }
+
+        /* Bundle Specific Styles */
+        .shop-item.purchased {
+            filter: grayscale(0.5);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .shop-item-tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 10;
+        }
+        .shop-item-tag.bundle {
+            background: linear-gradient(135deg, var(--neon-magenta), #6000ff);
+            color: white;
+            
+        }
+        .shop-item-tag.item {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+        }
+
+        .bundle-details {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .bundle-item-chip {
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+        }
+
+        .shop-item-limit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.3);
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .shop-item.purchased .btn-buy {
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: var(--neon-cyan);
+        }
+
+        .tab-btn.active::after {
+            background: var(--neon-cyan);
+            
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Shop Grid */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .shop-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shop-item:hover {
+            border-color: var(--neon-gold);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.1);
+        }
+
+        .shop-item-title {
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .shop-item-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .shop-item-limit {
+            font-size: 0.75rem;
+            color: var(--neon-pink);
+            margin-bottom: 10px;
+        }
+
+        .btn-buy {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
+            padding: 10px;
+        }
+
+        /* Gacha Pools Layout */
+        .gacha-container {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .gacha-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pool-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pool-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pool-btn:hover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .pool-btn.active {
+            border-color: var(--neon-cyan);
+            
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .pool-title {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .pool-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .gacha-display {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .gacha-banner {
+            width: 100%;
+            height: 200px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(74, 134, 232, 0.2), rgba(153, 0, 255, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            
+        }
+
+        .gacha-rates {
+            width: 100%;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .gacha-content-list {
+            width: 100%;
+            height: 180px;
+            background: rgba(0,0,0,0.2);
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-border) transparent;
+        }
+
+        .content-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .content-chip[data-rarity="MYTHIC"] { border-color: #ff3366; color: #ff3366; }
+        .content-chip[data-rarity="LEGENDARY"] { border-color: #ffd700; color: #ffd700; }
+        .content-chip[data-rarity="EPIC"] { border-color: #cc44ff; color: #cc44ff; }
+        .content-chip[data-rarity="RARE"] { border-color: #4a9eff; color: #4a9eff; }
+        .content-chip[data-rarity="COMMON"] { border-color: #aaaaaa; color: #aaaaaa; }
+        .content-chip[data-rarity="SPECIAL"] { border-color: #00ff88; color: #00ff88; }
+
+        .gacha-actions {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-pull {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            min-width: 180px;
+        }
+
+        .btn-pull .cost {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            font-family: var(--font-main);
+        }
+
+        /* ── Gacha Animation Modal ─────────────────────────────────── */
+        #gachaAnimModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(16px);
+        }
+
+        .gacha-modal-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .gacha-modal-header h2 {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 3px;
+            margin-bottom: 6px;
+        }
+
+        .gacha-modal-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Scrollable card row */
+        .gacha-results-row {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 30px 40px;
+            max-width: 95vw;
+            perspective: 1200px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-cyan) transparent;
+        }
+        .gacha-results-row::-webkit-scrollbar { height: 4px; }
+        .gacha-results-row::-webkit-scrollbar-track { background: transparent; }
+        .gacha-results-row::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 2px; }
+
+        /* Card base */
+        .gc-card {
+            flex: 0 0 150px;
+            height: 220px;
+            cursor: pointer;
+            position: relative;
+            perspective: 800px;
+            animation: gcCardSlideIn 0.5s cubic-bezier(.2,.8,.2,1) both;
+        }
+
+        @keyframes gcCardSlideIn {
+            from { opacity:0; transform: translateY(40px) scale(0.85); }
+            to   { opacity:1; transform: translateY(0) scale(1); }
+        }
+
+        .gc-card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.55s cubic-bezier(.4,.2,.2,1);
+        }
+
+        .gc-card.revealed .gc-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* Back face */
+        .gc-card-back, .gc-card-front {
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            overflow: hidden;
+        }
+
+        .gc-card-back {
+            background: linear-gradient(135deg, #1a1a3e 0%, #0d0d1f 100%);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: inset 0 0 30px rgba(0,243,255,0.05), 0 0 20px rgba(0,243,255,0.15);
+        }
+
+        .gc-card-back-pattern {
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(0,243,255,0.03) 0, rgba(0,243,255,0.03) 1px,
+                transparent 0, transparent 50%
+            );
+            background-size: 16px 16px;
+        }
+
+        .gc-card-back-icon {
+            font-size: 2.5rem;
+            color: var(--neon-cyan);
+            );
+            animation: gcBackPulse 2s infinite alternate;
+        }
+
+        @keyframes gcBackPulse {
+            from { opacity: 0.5; transform: scale(0.95); }
+            to   { opacity: 1;   transform: scale(1.05); }
+        }
+
+        /* Front face */
+        .gc-card-front {
+            background: var(--card-bg, linear-gradient(135deg,#1a1a1a,#2a2a2a));
+            border: 2px solid var(--card-color, #aaa);
+            box-shadow: 0 0 18px var(--card-glow, rgba(180,180,180,0.2)), inset 0 0 15px rgba(0,0,0,0.4);
+            transform: rotateY(180deg);
+        }
+
+        /* Shimmer sweep on revealed cards */
+        .gc-card.revealed .gc-card-front::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -60%;
+            width: 40%; height: 200%;
+            background: linear-gradient(105deg, transparent, rgba(255,255,255,0.12), transparent);
+            animation: gcShimmer 1s ease-out forwards;
+        }
+        @keyframes gcShimmer {
+            from { left: -60%; }
+            to   { left: 120%; }
+        }
+
+        .gc-rarity-band {
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: var(--card-color);
+            
+            text-transform: uppercase;
+            border: 1px solid var(--card-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            opacity: 0.9;
+        }
+
+        .gc-icon {
+            font-size: 2.8rem;
+            );
+        }
+
+        .gc-name {
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            text-align: center;
+            color: white;
+            
+            line-height: 1.3;
+            word-break: break-all;
+        }
+
+        .gc-status {
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .gc-status.is-new {
+            background: rgba(0,255,104,0.15);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            
+        }
+        .gc-status.is-dupe {
+            background: rgba(255,215,0,0.1);
+            color: var(--neon-gold);
+            border: 1px solid rgba(255,215,0,0.4);
+        }
+
+        /* MYTHIC/LEGENDARY glow on revealed front */
+        .gc-card[data-rarity="MYTHIC"].revealed .gc-card-front {
+            animation: mythicPulse 1.5s infinite;
+        }
+        @keyframes mythicPulse {
+            0%,100% {  }
+            50%      { , 0 0 80px rgba(255,51,102,0.3); }
+        }
+        .gc-card[data-rarity="LEGENDARY"].revealed .gc-card-front {
+            animation: legendPulse 2s infinite;
+        }
+        @keyframes legendPulse {
+            0%,100% {  }
+            50%      { , 0 0 70px rgba(255,215,0,0.25); }
+        }
+
+        /* Particle animation */
+        @keyframes particleFly {
+            from { transform: translate(0,0) scale(1); opacity:1; }
+            to   { transform: translate(var(--dx), var(--dy)) scale(0); opacity:0; }
+        }
+
+        /* Bottom action bar */
+        .gacha-modal-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #btnSkipAnim {
+            padding: 12px 40px;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            letter-spacing: 2px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #btnSkipAnim:hover {
+            background: rgba(0,243,255,0.1);
+            
+        }
+
+        #btnRevealAll {
+            font-size: 0.8rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 4px;
+        }
+        #btnRevealAll:hover { color: white; }
+
+        /* Rarity colors for modal (override) */
+        .rarity-common   { border-color: #ffffff;  }
+        .rarity-rare     { border-color: #4a9eff;  }
+        .rarity-epic     { border-color: #cc44ff;  }
+        .rarity-legendary{ border-color: #ffd700;  }
+        .rarity-mythic   { border-color: #ff3366;  }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        button:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.6;
+            filter: grayscale(0.8);
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+    </style>
+</head>
+
+<body>
+    <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class="" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+    </div>
+
+    <div class="shop-page" id="shopPage" style="display:none;">
+        <div class="header-row">
+            <a href="index.html" class="back-btn">← 返回主選單</a>
+            <div class="currency-bar">
+                <div class="currency-item c-money" title="錢錢"><img src="item_pic/錢錢.png" class="item-icon-inline"> <span id="v-money">0</span></div>
+                <div class="currency-item c-deed" title="地契"><img src="item_pic/地契.png" class="item-icon-inline"> <span id="v-deed">0</span></div>
+                <div class="currency-item" style="width:1px;background:var(--glass-border);height:16px;margin:0 5px;"></div>
+                <div class="currency-item c-t1" title="普通抽獎券"><img src="item_pic/普通抽獎券.png" class="item-icon-inline"> <span id="v-ticket-normal">0</span></div>
+                <div class="currency-item c-t2" title="高級抽獎券"><img src="item_pic/高級抽獎券.png" class="item-icon-inline"> <span id="v-ticket-premium">0</span></div>
+                <div class="currency-item c-t3" title="特殊抽獎券"><img src="item_pic/特殊抽獎券.png" class="item-icon-inline"> <span id="v-ticket-special">0</span></div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('gacha')" id="tab-gacha">機率抽獎</button>
+            <button class="tab-btn" onclick="switchTab('shop')" id="tab-shop">資源商店</button>
+        </div>
+
+        <!-- Gacha Section -->
+        <div class="tab-content active" id="content-gacha">
+            <div class="gacha-container">
+                <div class="pool-list" id="poolList">
+                    <!-- Injected via JS -->
+                </div>
+                <div class="gacha-display">
+                    <div class="gacha-banner" id="poolBanner">
+                        ✨ 選擇獎池
+                    </div>
+                    <div class="gacha-rates" id="poolDesc">
+                        請從左側選擇一個獎池來查看詳情。
+                    </div>
+                    <div class="gacha-content-list" id="poolContent">
+                        <!-- Characters list injected via JS -->
+                    </div>
+                    <div class="gacha-actions" id="poolActions" style="display:none;">
+                        <button class="btn btn-pull" id="btnPull1" onclick="performPull(1)">
+                            單次抽取
+                            <span class="cost" id="costPull1">-</span>
+                        </button>
+                        <button class="btn btn-gold btn-pull" id="btnPull10" onclick="performPull(10)">
+                            十連抽取
+                            <span class="cost" id="costPull10">-</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Section -->
+        <div class="tab-content" id="content-shop">
+            <div class="shop-grid" id="shopGrid">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Gacha Animation Modal -->
+    <div id="gachaAnimModal">
+        <div class="gacha-modal-header">
+            <h2>✦ 抽獎結果 ✦</h2>
+            <p>點擊卡片翻開查看結果</p>
+        </div>
+        <div class="gacha-results-row" id="gachaResults"></div>
+        <div class="gacha-modal-footer">
+            <button id="btnSkipAnim" onclick="skipAnim()">翻開全部並確認</button>
+            <button id="btnRevealAll" onclick="revealAll()">一鍵全部翻開</button>
+        </div>
+    </div>
+
+</body>
+</html>

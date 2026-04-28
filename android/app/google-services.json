@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "757364529881",
+    "firebase_url": "https://neoncard-c4e2c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "neoncard-c4e2c",
+    "storage_bucket": "neoncard-c4e2c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:757364529881:android:cead31b649a314ea9e3cc8",
+        "android_client_info": {
+          "package_name": "app.netlify.uptocard.twa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "757364529881-dhhorted52m051tjivo3qdaietjcj9sr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.netlify.uptocard.twa",
+            "certificate_hash": "70938f2862284c7bea03de8d0b30b6e78b5887a6"
+          }
+        },
+        {
+          "client_id": "757364529881-khhn1g9a051o620pb75t6bffidg6nb2j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrnoP6DshBrWgT7oAM_wlcpHZdMh6sfXk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "757364529881-khhn1g9a051o620pb75t6bffidg6nb2j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

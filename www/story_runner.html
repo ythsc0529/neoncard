@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>劇情進行中 - Neon Card Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/theme.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .vn-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .vn-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.6;
+            z-index: 1;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        .vn-dialogue-area {
+            position: relative;
+            z-index: 10;
+            padding: 20px 40px calc(40px + env(safe-area-inset-bottom)) 40px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
+            min-height: 30%;
+            max-height: 65%;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .vn-speaker {
+            font-size: 1.5rem;
+            color: #00ffff;
+            
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .vn-location {
+            font-size: 1rem;
+            color: #aaeebb;
+            margin-bottom: 10px;
+            font-style: italic;
+            border-bottom: 1px solid rgba(170, 238, 187, 0.3);
+            padding-bottom: 5px;
+            display: inline-block;
+            align-self: flex-start;
+            
+        }
+
+        .vn-text {
+            font-size: 1.2rem;
+            color: #fff;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .vn-next-indicator {
+            align-self: flex-end;
+            font-size: 1.5rem;
+            color: #00ffff;
+            animation: bounceLeft 1s infinite alternate;
+            opacity: 0;
+        }
+
+        .vn-next-indicator.visible {
+            opacity: 1;
+        }
+
+        @keyframes bounceLeft {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .skip-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .skip-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 劇情特效 */
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        .effect-shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                opacity: 0;
+                background-color: transparent;
+            }
+
+            50% {
+                opacity: 1;
+                background-color: rgba(255, 255, 255, 0.85);
+            }
+        }
+
+        body.effect-flash::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            animation: flash 0.4s ease-out;
+        }
+
+        @keyframes flash-red {
+
+            0%,
+            100% {
+                opacity: 0;
+                background-color: transparent;
+            }
+
+            50% {
+                opacity: 1;
+                background-color: rgba(255, 0, 0, 0.7);
+            }
+        }
+
+        body.effect-flash-red::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            animation: flash-red 0.5s ease-out;
+        }
+
+        @keyframes glitch {
+            0% {
+                filter: hue-rotate(0deg) contrast(100%);
+                transform: translate(0);
+            }
+
+            20% {
+                filter: hue-rotate(90deg) contrast(150%);
+                transform: translate(-2px, 2px);
+            }
+
+            40% {
+                filter: hue-rotate(-90deg) contrast(200%);
+                transform: translate(2px, -2px);
+            }
+
+            60% {
+                filter: hue-rotate(180deg) contrast(50%);
+                transform: translate(-2px, -2px);
+            }
+
+            80% {
+                filter: hue-rotate(-180deg) contrast(150%);
+                transform: translate(2px, 2px);
+            }
+
+            100% {
+                filter: hue-rotate(0deg) contrast(100%);
+                transform: translate(0);
+            }
+        }
+
+        .effect-glitch {
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: inset 0 0 0 rgba(255, 0, 0, 0);
+            }
+
+            50% {
+                box-shadow: inset 0 0 80px rgba(255, 0, 0, 0.6);
+            }
+
+            100% {
+                box-shadow: inset 0 0 0 rgba(255, 0, 0, 0);
+            }
+        }
+
+        body.effect-pulse-red::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 9998;
+            animation: pulse-red 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .vn-dialogue-area {
+                padding: 15px 20px calc(30px + env(safe-area-inset-bottom)) 20px;
+            }
+
+            .vn-speaker {
+                font-size: 1.3rem;
+            }
+
+            .vn-text {
+                font-size: 1.05rem;
+            }
+
+            .vn-location {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Theme Toggle Removed -->
+    <div class="vn-container" id="vnContainer" onclick="nextDialogue()">
+        <div class="vn-bg" id="vnBg"></div>
+        <button class="skip-btn" onclick="skipDialogue(event)">跳過劇情</button>
+
+        <div class="vn-dialogue-area">
+            <div class="vn-location" id="vnLocation" style="display: none;"></div>
+            <div class="vn-speaker" id="vnSpeaker"></div>
+            <div class="vn-text" id="vnText"></div>
+            <div class="vn-next-indicator" id="vnNext">▼</div>
+        </div>
+    </div>
+
+    <!-- Chapter Complete Modal -->
+    <div class="modal-overlay" id="chapterCompleteModal">
+        <div class="modal">
+            <h2 class="" style=" color: var(--neon-pink);">章節完成
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">新的劇情與挑戰已解鎖！</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center;">
+                <button class="btn btn-magenta" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.2rem; padding: 15px 30px;">返回故事大廳</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data/story.js"></script>
+    <script>
+        let currentChapterId = localStorage.getItem('story_current_chapter');
+        let currentNodeIndex = parseInt(localStorage.getItem('story_current_node'), 10);
+        let chapter = STORY_CHAPTERS.find(c => c.id === currentChapterId);
+        let node = chapter ? chapter.nodes[currentNodeIndex] : null;
+
+        if (!chapter || !node || node.type !== 'dialogue') {
+            console.error('Invalid story state', { chapter, node });
+            location.href = 'story_menu.html';
+        }
+
+        let currentLine = 0;
+        let isTyping = false;
+        let typingTimer = null;
+        let currentText = '';
+        let targetText = '';
+
+        if (currentNodeIndex === 0 && currentLine === 0) {
+            localStorage.removeItem('story_current_location');
+        }
+        let savedLocation = localStorage.getItem('story_current_location') || '';
+
+        function renderDialogue() {
+            if (currentLine >= node.conversations.length) {
+                finishNode();
+                return;
+            }
+
+            const dialogue = node.conversations[currentLine];
+
+            // 嘗試解析地點資訊
+            if (dialogue.speaker === '系統' && dialogue.text.includes('地點：')) {
+                const locMatch = dialogue.text.match(/地點：([^\n]+)/);
+                if (locMatch) {
+                    savedLocation = locMatch[1].trim();
+                } else {
+                    savedLocation = dialogue.text.replace('地點：', '').trim();
+                }
+                localStorage.setItem('story_current_location', savedLocation);
+            } else if (dialogue.speaker === '系統' && dialogue.text === '怪人谷的日常') {
+                savedLocation = '怪人谷';
+                localStorage.setItem('story_current_location', savedLocation);
+            } else if (dialogue.speaker === '系統' && dialogue.text.includes('回到至高數據塔')) {
+                savedLocation = '虛擬第 1 區 —— 「至高數據塔（The Ivory Spire）」';
+                localStorage.setItem('story_current_location', savedLocation);
+            }
+
+            // 顯示位置如果尚未設定，但 chapter有提供 (例如 第一章 預設值)
+            if (!savedLocation) {
+                if (chapter.id === 'main_1') savedLocation = '虛擬第 7 區 —— 「破碎程式碼荒原」';
+                else if (chapter.id === 'main_2') savedLocation = '虛擬第 8 區 —— 「手搖飲流域（The Sugar-Ice Valley）」';
+                else if (chapter.id === 'main_3') savedLocation = '虛擬第 1 區 —— 「至高數據塔（The Ivory Spire）」';
+                else if (chapter.id === 'main_4') savedLocation = '虛擬第 4 區 —— 「草東街（The Melancholy Street）」';
+                else if (chapter.id === 'main_5') savedLocation = '虛擬第 9 區 —— 「資源回收筒（The Recycle Bin）」';
+                else if (chapter.id === 'main_6') savedLocation = '虛擬第 9 區 —— 「資源回收筒」與「至高數據塔」的交界';
+                localStorage.setItem('story_current_location', savedLocation);
+            }
+
+            const locationEl = document.getElementById('vnLocation');
+            if (locationEl && savedLocation) {
+                locationEl.textContent = `📍 所在區域：${savedLocation}`;
+                locationEl.style.display = 'block';
+            } else if (locationEl) {
+                locationEl.style.display = 'none';
+            }
+
+            document.getElementById('vnSpeaker').textContent = dialogue.speaker || '';
+
+            // 處理特效
+            document.body.classList.remove('effect-shake', 'effect-flash', 'effect-flash-red', 'effect-glitch', 'effect-pulse-red');
+            if (dialogue.effect) {
+                document.body.classList.add(`effect-${dialogue.effect}`);
+
+                // 動態移除單次回合的特效，除了pulse-red這種持續性的
+                if (dialogue.effect !== 'pulse-red') {
+                    setTimeout(() => {
+                        document.body.classList.remove(`effect-${dialogue.effect}`);
+                    }, 600);
+                }
+            }
+
+            // Handle Typewriter effect
+            targetText = dialogue.text || '';
+            currentText = '';
+            document.getElementById('vnText').textContent = '';
+            document.getElementById('vnNext').classList.remove('visible');
+
+            isTyping = true;
+            let charIndex = 0;
+
+            clearInterval(typingTimer);
+            typingTimer = setInterval(() => {
+                if (charIndex < targetText.length) {
+                    currentText += targetText[charIndex];
+                    document.getElementById('vnText').textContent = currentText;
+                    charIndex++;
+                } else {
+                    finishTyping();
+                }
+            }, 30); // Typing speed
+        }
+
+        function finishTyping() {
+            clearInterval(typingTimer);
+            isTyping = false;
+            document.getElementById('vnText').textContent = targetText;
+            document.getElementById('vnNext').classList.add('visible');
+        }
+
+        function nextDialogue(e) {
+            if (isTyping) {
+                // If currently typing, finish instantly
+                finishTyping();
+            } else {
+                // If finished typing, go to next line
+                currentLine++;
+                renderDialogue();
+            }
+        }
+
+        function skipDialogue(e) {
+            if (e) e.stopPropagation(); // prevent clicking vnContainer
+            finishNode();
+        }
+
+        function finishNode() {
+            // Unlock next node
+            unlockNextNode(currentChapterId, currentNodeIndex);
+
+            const nextIndex = currentNodeIndex + 1;
+            if (nextIndex < chapter.nodes.length) {
+                // Determine what next node is and load it
+                localStorage.setItem('story_current_node', nextIndex);
+                const nextNode = chapter.nodes[nextIndex];
+                if (nextNode.type === 'dialogue') {
+                    // Just reload runner properly, or redirect to itself to reset
+                    location.reload();
+                } else if (nextNode.type === 'battle') {
+                    localStorage.setItem('gameMode', 'story');
+                    location.href = 'game.html';
+                }
+            } else {
+                // End of chapter
+                document.getElementById('chapterCompleteModal').classList.add('active');
+            }
+        }
+
+        // Init
+        if (node.background) {
+            // Apply background if needed
+            // document.getElementById('vnBg').style.backgroundImage = `url(images/bgs/${node.background}.jpg)`;
+            // For now, we don't have images so just change color or let CSS handle class
+            document.getElementById('vnContainer').classList.add(node.background);
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                const modal = document.getElementById('chapterCompleteModal');
+                if (modal && modal.classList.contains('active')) {
+                    location.href = 'story_menu.html';
+                    return;
+                }
+                e.preventDefault();
+                nextDialogue();
+            }
+        });
+
+        renderDialogue();
+    </script>
+</body>
+
+</html>

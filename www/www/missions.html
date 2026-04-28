@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 任務系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/data/gachaData.js"></script>
+    <script src="js/data/missionData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
+    <style>
+        body {
+            background: #0F0F23;
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .missions-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            
+            transform: translateX(-3px);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active { color: var(--neon-cyan); }
+        .tab-btn.active::after { background: var(--neon-cyan);  }
+
+        .mission-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .mission-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .mission-card:hover { border-color: rgba(0, 243, 255, 0.4); background: rgba(0, 243, 255, 0.05); }
+
+        .m-info { flex: 1; }
+        
+        .m-title {
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .m-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; }
+
+        .item-icon-inline {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            object-fit: contain;
+            );
+            margin-right: 2px;
+        }
+        
+        .tag-novice { background: rgba(255,215,0,0.1); color: var(--neon-gold); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        .tag-daily { background: rgba(0,255,104,0.1); color: var(--neon-green); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        .tag-perm { background: rgba(153,0,255,0.1); color: var(--neon-magenta); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+        .m-rewards { display: flex; gap: 10px; }
+        .r-chip { background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: var(--neon-cyan); border: 1px solid rgba(0,243,255,0.2); }
+
+    </style>
+</head>
+
+<body>
+    <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class="" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+    </div>
+
+    <div class="missions-page" id="missionsPage" style="display:none;">
+        <div class="header-row">
+            <a href="index.html" class="back-btn">← 返回大廳</a>
+            <h1 style="margin:0;font-family:var(--font-heading);color:var(--neon-cyan);">📜 任務系統</h1>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('novice')" id="tab-novice">新手任務</button>
+            <button class="tab-btn" onclick="switchTab('daily')" id="tab-daily">每日任務</button>
+            <button class="tab-btn" onclick="switchTab('perm')" id="tab-perm">常駐任務</button>
+        </div>
+
+        <div class="mission-list" id="missionList">
+            <!-- Rendered by JS -->
+        </div>
+
+    </div>
+
+    <script>
+        let myProfile = null;
+        let activeTab = 'novice';
+
+
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (!user) { location.href = 'index.html'; return; }
+            myProfile = await UserProfile.getProfile(user.uid);
+            
+            // standardized daily reset for daily missions tracking (5:00 AM)
+            const lastReset = myProfile.dailyResetTime?.dailyMissions || 0;
+            if (typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastReset)) {
+                await UserProfile.updateProfile(user.uid, { 
+                    "dailyResetTime.dailyMissions": Date.now(),
+                    "dailyStats": { onlineMatches: 0, onlineWins: 0, gachaPulls: 0, shopPurchases: 0 }
+                });
+                myProfile = await UserProfile.getProfile(user.uid); // Refresh local cache after reset
+            }
+            
+            renderMissions();
+            document.getElementById('pageLoading').style.display = 'none';
+            document.getElementById('missionsPage').style.display = 'block';
+        });
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            renderMissions();
+        }
+
+        function getRepeatProgressTxt(m) {
+            if (!m.repeatable) return '';
+            const p = myProfile;
+            const repeats = (p.missions?.repeatCounts || {})[m.id] || 0;
+            if (m.condKey === 'titlesCount') {
+                const owned = (p.titles || []).length;
+                return `已領 ${repeats} / 可領 ${owned} 次`;
+            }
+            return `已領取 ${repeats} 次`;
+        }
+
+        function renderMissions() {
+            const list = document.getElementById('missionList');
+            list.innerHTML = '';
+            const claimed = myProfile.missions?.claimed || [];
+            const filtered = MISSIONS_DATA.filter(m => m.type === activeTab);
+
+            if (!filtered.length) {
+                list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px;">暫未有相關任務</div>';
+                return;
+            }
+
+            filtered.forEach(m => {
+                const isClaimed  = MissionLogic.isClaimed(m, myProfile);
+                if (activeTab === 'novice' && isClaimed) return;
+
+                const condMet   = MissionLogic.checkCondition(m, myProfile);
+                const canClaim  = condMet && !isClaimed;
+
+                const tagClass  = m.type === 'novice' ? 'tag-novice' : (m.type === 'daily' ? 'tag-daily' : 'tag-perm');
+                const tagTxt    = m.type === 'novice' ? '新手' : (m.type === 'daily' ? '每日' : '常駐');
+                const statusTxt   = isClaimed ? '已完成 ✓' : (condMet ? '可領取 ✓' : '進行中...');
+                const statusColor = isClaimed ? 'var(--text-muted)' : (condMet ? 'var(--neon-green)' : '#6b6b9a');
+                const progressTxt = m.repeatable ? `<div style="font-size:0.72rem;color:#8888aa;margin-top:3px;">${getRepeatProgressTxt(m)}</div>` : '';
+
+                let btnHtml;
+                if (isClaimed)      btnHtml = `<button class="btn btn-sm" disabled style="opacity:0.4;">已領取</button>`;
+                else if (canClaim)  btnHtml = `<button class="btn btn-sm btn-cyan" onclick="claimMission('${m.id}')">領取獎勵</button>`;
+                else                btnHtml = `<button class="btn btn-sm" disabled style="opacity:0.4;">未達成</button>`;
+
+                const card = document.createElement('div');
+                card.className = 'mission-card';
+                card.innerHTML = `
+                    <div class="m-info">
+                        <div class="m-title">${m.name} <span class="${tagClass}">${tagTxt}</span></div>
+                        <div class="m-desc">${m.desc}</div>
+                        ${progressTxt}
+                        <div class="m-rewards">${m.rewards.map(r=>`<div class="r-chip">${getItemIconHtml(r.type)} ${r.txt}</div>`).join('')}</div>
+                    </div>
+                    <div class="m-action" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;">
+                        <div style="font-size:0.75rem;color:${statusColor};">${statusTxt}</div>
+                        ${btnHtml}
+                    </div>`;
+                list.appendChild(card);
+            });
+        }
+
+        async function claimMission(id) {
+            const m = MISSIONS_DATA.find(x => x.id === id);
+            if(!m) return;
+            
+            try {
+                // Apply rewards
+                for(let r of m.rewards) {
+                    if(r.type === 'money' || r.type === 'landDeed' || r.type.startsWith('draw')) {
+                        await UserProfile.updateInventory(myProfile.uid, r.type, r.amt);
+                    } else if (r.type === 'exp') {
+                        await UserProfile.gainExp(myProfile.uid, r.amt);
+                    } else if (r.type === 'title') {
+                        await UserProfile.unlockTitle(myProfile.uid, r.amt);
+                    }
+                }
+                
+                if (!m.repeatable && m.type !== 'daily') {
+                    // Mark as permanently claimed for non-daily, non-repeatable
+                    const claimed = myProfile.missions?.claimed || [];
+                    if (!claimed.includes(id)) {
+                        claimed.push(id);
+                        await UserProfile.updateProfile(myProfile.uid, { "missions.claimed": claimed });
+                    }
+                } else if (m.repeatable) {
+                    // Increment repeat count
+                    const repeatCounts = myProfile.missions?.repeatCounts || {};
+                    repeatCounts[id] = (repeatCounts[id] || 0) + 1;
+                    if(!myProfile.missions) myProfile.missions = {};
+                    myProfile.missions.repeatCounts = repeatCounts; // update local cache
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.repeatCounts": repeatCounts });
+                }
+                
+                // For daily tasks: record claim timestamp
+                if (m.type === 'daily') {
+                    const dailyClaims = myProfile.missions?.dailyClaims || {};
+                    dailyClaims[id] = Date.now();
+                    await UserProfile.updateProfile(myProfile.uid, { "missions.dailyClaims": dailyClaims });
+                }
+                
+                // Clear the mission progress flag (it was used, reset)
+                const missionProgress = myProfile.missionProgress || {};
+                delete missionProgress[id];
+                await UserProfile.updateProfile(myProfile.uid, { missionProgress });
+                
+                myProfile = await UserProfile.getProfile(myProfile.uid);
+                alert("領取成功！");
+                // Refresh UI
+                renderMissions();
+                // Update global notification dots
+                if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(myProfile);
+            } catch(err) {
+                alert("領取失敗：" + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

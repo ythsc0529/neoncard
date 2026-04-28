@@ -1,0 +1,26 @@
+{
+  "name": "neoncard-main",
+  "version": "1.0.0",
+  "description": "![Game Status](https://img.shields.io/badge/Status-Active%20Development-00f3ff?style=for-the-badge) ![Tech Stack](https://img.shields.io/badge/Tech-Vanilla%20JS%20|%20Firebase%20|%20PeerJS-purple?style=for-the-badge)",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ythsc0529/neoncard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ythsc0529/neoncard/issues"
+  },
+  "homepage": "https://github.com/ythsc0529/neoncard#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+  }
+}

@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>霓虹牌 - 對戰</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/theme.js"></script>
+    <style>
+        /* Rank & Title badges in battle headers */
+        .rank-badge-text {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            color: var(--neon-gold);
+            background: rgba(255,215,0,0.1);
+            border: 1px solid rgba(255,215,0,0.4);
+            border-radius: 10px;
+            padding: 1px 7px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .title-badge-text {
+            font-size: 0.65rem;
+            color: var(--neon-cyan);
+            letter-spacing: 1px;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+        /* Rank reveal overlay (shown when a character enters battlefield) */
+        #rankRevealOverlay {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 8000; pointer-events: none;
+        }
+        .rank-reveal-card {
+            background: linear-gradient(135deg, rgba(10,10,30,0.97), rgba(20,20,50,0.97));
+            border: 2px solid var(--neon-gold);
+            border-radius: 20px;
+            padding: 28px 40px;
+            text-align: center;
+            animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                       rankRevealOut 0.4s ease 2.2s forwards;
+            
+        }
+        @keyframes rankRevealIn {
+            from { opacity:0; transform:scale(0.85) translateY(20px); }
+            to   { opacity:1; transform:scale(1)  translateY(0); }
+        }
+        @keyframes rankRevealOut {
+            from { opacity:1; transform:scale(1); }
+            to   { opacity:0; transform:scale(0.9); }
+        }
+        /* Ranked result overlay */
+        #rankedResultOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none; align-items: center; justify-content: center;
+            z-index: 8500; backdrop-filter: blur(6px);
+        }
+        #rankedResultOverlay.active { display: flex; }
+        .ranked-result-card {
+            background: linear-gradient(135deg, rgba(10,10,35,0.98), rgba(20,15,40,0.98));
+            border: 2px solid var(--neon-gold);
+            border-radius: 22px;
+            padding: 32px 40px;
+            text-align: center;
+            max-width: 420px; width: 90%;
+            animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Theme Toggle Removed -->
+
+    <!-- Animation Overlay -->
+    <div class="animation-overlay hidden" id="animationOverlay"></div>
+
+    <!-- Network Waiting Overlay -->
+    <div class="modal-overlay hidden" id="networkWaitingOverlay" style="z-index: 1000; background: rgba(0, 0, 0, 0.85);">
+        <div class="modal glass" style="max-width:520px;padding:0;overflow:hidden;max-height:92vh;display:flex;flex-direction:column;text-align:left;">
+            <!-- Header -->
+            <div style="padding:22px 28px 16px;border-bottom:1px solid var(--glass-border);">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 id="networkWaitingTitle" style="color:var(--neon-cyan);font-family:var(--font-heading);margin:0;font-size:1.3rem;letter-spacing:2px;">🎮 連線大廳</h2>
+                    <div id="lobbyModeBadge" style="background:rgba(0,243,255,0.1);border:1px solid rgba(0,243,255,0.3);border-radius:20px;padding:4px 12px;font-size:0.78rem;color:var(--neon-cyan);">-</div>
+                </div>
+            </div>
+
+            <!-- Room Code Block -->
+            <div id="lobbyHostSection" class="hidden" style="padding:24px 28px;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--glass-border);">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">房間代碼</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div id="networkRoomCode" style="
+                        font-family:var(--font-heading);
+                        font-size:2.8rem;
+                        font-weight:900;
+                        letter-spacing:12px;
+                        color:var(--neon-gold);
+                        
+                        background:rgba(255,215,0,0.05);
+                        border:2px solid rgba(255,215,0,0.3);
+                        border-radius:12px;
+                        padding:12px 20px;
+                        flex:1;
+                        text-align:center;
+                        user-select:all;
+                        cursor:pointer;
+                    ">----</div>
+                    <button id="lobbyCopyBtn" onclick="copyRoomCode()" style="
+                        background:rgba(255,215,0,0.1);
+                        border:1px solid rgba(255,215,0,0.4);
+                        color:var(--neon-gold);
+                        border-radius:10px;
+                        padding:10px 14px;
+                        cursor:pointer;
+                        font-size:1.2rem;
+                        transition:all 0.2s;
+                        white-space:nowrap;
+                    " title="複製房號">📋</button>
+                </div>
+                <div id="lobbyCopyHint" style="color:var(--text-muted);font-size:0.8rem;margin-top:8px;min-height:18px;"></div>
+            </div>
+
+            <!-- Friends List (host only: invite friends) -->
+            <div id="lobbyFriendsSection" class="hidden" style="padding:20px 28px;border-bottom:1px solid var(--glass-border);max-height:200px;overflow-y:auto;">
+                <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">📨 邀請好友</div>
+                <div id="lobbyFriendsList" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="color:var(--text-muted);font-size:0.85rem;">載入好友中...</div>
+                </div>
+            </div>
+
+            <!-- Status & Actions — pinned at bottom -->
+            <div style="padding:16px 28px 20px;border-top:1px solid var(--glass-border);margin-top:auto;">
+                <div id="lobbyStatus" style="display:flex;align-items:center;gap:10px;color:var(--text-secondary);font-size:0.9rem;margin-bottom:14px;">
+                    <div class="lobby-pulse" style="width:10px;height:10px;border-radius:50%;background:var(--neon-green);animation:pulse 1.5s infinite;flex-shrink:0;"></div>
+                    <span id="networkWaitingText">初始化網路中...</span>
+                </div>
+                <button id="cancelLobbyBtn" class="btn" onclick="location.href='index.html'" style="width:100%;opacity:0.7;">取消連線</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Selection Phase -->
+    <div class="selection-phase hidden" id="selectionPhase">
+        <h2 class="selection-title" id="selectionTitle">玩家1 抽牌階段</h2>
+        <p class="selection-subtitle" id="selectionSubtitle">選擇一張牌放入戰鬥區</p>
+        <div class="drawn-cards" id="drawnCards"></div>
+        <div class="selection-info" id="selectionInfo"></div>
+        <button class="btn confirm-selection" id="confirmSelection" disabled>確認選擇</button>
+    </div>
+
+    <!-- Battle Screen -->
+    <div class="battle-container" id="battleContainer">
+        <!-- Player 1 Area (Left / Top) -->
+        <div class="player-area player1" id="player1Area">
+            <div class="player-header glass">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="player-name" id="p1Name" style="cursor:pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''" onclick="viewMyProfile()">玩家1</span>
+                        <span id="p1RankBadge" class="rank-badge-text" style="display:none;"></span>
+                    </div>
+                    <span id="p1TitleBadge" class="title-badge-text" style="display:none;"></span>
+                </div>
+                <span class="thinking-indicator hidden" id="p1Thinking"
+                    style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
+                    思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+                </span>
+                <span class="turn-badge hidden" id="p1TurnBadge">你的回合</span>
+            </div>
+
+            <div class="battle-card glass" id="p1BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p1CharName">-</span>
+                    <span class="battle-char-rarity" id="p1CharRarity">-</span>
+                </div>
+
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p1ShieldBar" style="width: 0%"></div>
+                        <div class="hp-bar" id="p1HpBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p1HpText">100 / 100</div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p1Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p1Shield">0</span></span>
+                </div>
+
+                <div class="status-effects" id="p1Status"></div>
+                <div class="passive-info" id="p1Passive"></div>
+
+
+                <div class="action-buttons" id="p1Actions">
+                    <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn skill-btn-main" id="p1SkillBtn"
+                        onclick="openSkillModal('player1')">使用技能</button>
+                    <button class="btn action-btn view-skill-btn hidden" id="p1ViewSkillBtn"
+                        onclick="openViewSkillModal('player1')">查看對手技能</button>
+                    <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
+                </div>
+            </div>
+
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p1Standby"></div>
+            </div>
+        </div>
+
+        <!-- Center Battle Info -->
+        <div class="battle-center glass">
+            <div class="turn-indicator" id="turnIndicator">
+                回合 <span id="turnCount">0</span><span id="turnTimerDisplay" style="display:none; color:var(--neon-green); margin-left: 8px;">| ⏱ <span id="turnTimerSecs">60</span>s</span>
+            </div>
+
+            <button class="btn btn-gold emoji-btn hidden" id="p1EmojiBtn" onclick="openEmojiMenu()"
+                style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem;">💬 表情</button>
+
+            <button class="btn btn-magenta surrender-btn hidden" id="surrenderBtn" onclick="surrenderBattle()"
+                style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem; background: #661111; color: #fff; border-color: #ff4444;">🏳 投降</button>
+
+            <button class="btn btn-magenta mobile-toggle-btn" id="mobileToggleBtn"
+                onclick="toggleMobileView()">查看對手</button>
+            <div class="battle-log" id="battleLog"></div>
+        </div>
+
+        <!-- Player 2 Area (Right / Bottom) -->
+        <div class="player-area player2" id="player2Area">
+            <div class="player-header glass">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="player-name" id="p2Name" style="cursor:pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''" onclick="viewOpponentProfile()">玩家2</span>
+                        <span id="p2RankBadge" class="rank-badge-text" style="display:none;"></span>
+                    </div>
+                    <span id="p2TitleBadge" class="title-badge-text" style="display:none;"></span>
+                </div>
+                <span class="thinking-indicator hidden" id="p2Thinking"
+                    style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
+                    思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+                </span>
+                <span class="turn-badge hidden" id="p2TurnBadge">你的回合</span>
+            </div>
+
+            <div class="battle-card glass" id="p2BattleCard">
+                <div class="battle-card-header">
+                    <span class="battle-char-name" id="p2CharName">-</span>
+                    <span class="battle-char-rarity" id="p2CharRarity">-</span>
+                </div>
+
+                <div class="hp-bar-container">
+                    <div class="bar-wrapper">
+                        <div class="shield-bar" id="p2ShieldBar" style="width: 0%"></div>
+                        <div class="hp-bar" id="p2HpBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p2HpText">100 / 100</div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stat stat-atk">⚔ ATK: <span id="p2Atk">0</span></span>
+                    <span class="stat">🛡 護盾: <span id="p2Shield">0</span></span>
+                </div>
+
+                <div class="status-effects" id="p2Status"></div>
+                <div class="passive-info" id="p2Passive"></div>
+
+
+                <div class="action-buttons" id="p2Actions">
+                    <button class="btn action-btn attack-btn" onclick="doAction('attack')">普攻</button>
+                    <button class="btn action-btn skill-btn-main" id="p2SkillBtn"
+                        onclick="openSkillModal('player2')">使用技能</button>
+                    <button class="btn action-btn view-skill-btn hidden" id="p2ViewSkillBtn"
+                        onclick="openViewSkillModal('player2')">查看對手技能</button>
+                    <button class="btn action-btn retreat-btn" onclick="showRetreat()">撤退</button>
+                </div>
+            </div>
+
+            <div class="standby-area glass">
+                <div class="standby-title">備戰區</div>
+                <div class="standby-cards" id="p2Standby"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Replacement Modal (Mandatory death replacement) -->
+    <div class="modal-overlay" id="replacementModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="replacementTitle">角色已陣亡！選擇替換上場的角色</h2>
+            <div id="replacementOptions" class="drawn-cards"></div>
+        </div>
+    </div>
+
+    <!-- Retreat Modal -->
+    <div class="modal-overlay" id="retreatModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2>撤退角色</h2>
+            <p style="margin-bottom: 20px; color: var(--text-secondary);">選擇一個隊友來替換當前上場的角色</p>
+            <div id="retreatOptions" class="drawn-cards"></div>
+            <button class="btn" onclick="closeRetreatModal()" style="margin-top: 20px;">取消</button>
+        </div>
+    </div>
+
+    <!-- Mahjong Selection Modal -->
+    <div class="modal-overlay" id="mahjongSelectionModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="mahjongSelectionTitle">選擇要加入的麻將</h2>
+            <div id="mahjongSelectionOptions" class="drawn-cards"></div>
+        </div>
+    </div>
+
+    <!-- Skill Panel Modal -->
+    <div class="modal-overlay" id="skillPanelModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="skillModalTitle">使用技能</h2>
+            <div id="skillModalOptions" class="skills-container-modal"></div>
+            <button class="btn" onclick="closeSkillModal()" style="margin-top: 20px; width: 100%;">返回</button>
+        </div>
+    </div>
+
+    <!-- View Skill Panel Modal -->
+    <div class="modal-overlay" id="viewSkillPanelModal">
+        <div class="modal glass" style="max-width: 800px;">
+            <h2 id="viewSkillModalTitle">查看技能</h2>
+            <div id="viewSkillModalOptions" class="skills-container-modal"></div>
+            <button class="btn" onclick="closeViewSkillModal()" style="margin-top: 20px; width: 100%;">關閉</button>
+        </div>
+    </div>
+
+    <!-- Card Details Modal -->
+
+    <!-- Card Details Modal -->
+    <div class="modal-overlay" id="cardDetailsModal">
+        <div class="modal glass" id="cardDetailsContent">
+            <!-- Content injected via JS -->
+        </div>
+    </div>
+    <!-- Story Battle End Modals -->
+    <div class="modal-overlay" id="storyCompleteModal">
+        <div class="modal">
+            <h2 class="" style=" color: var(--neon-pink);">章節完成
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">防線已突破，新的劇情已解鎖！</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center;">
+                <button class="btn btn-magenta" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.2rem; padding: 15px 30px;">返回故事大廳</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="storyFailModal">
+        <div class="modal">
+            <h2 class="" style=" color: #ff4444;">戰鬥失敗</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">反抗軍被擊潰，是否要重新挑戰？</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 15px;">
+                <button class="btn btn-magenta" onclick="location.reload()"
+                    style="font-size: 1.1rem; padding: 10px 20px;">再次挑戰</button>
+                <button class="btn" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.1rem; padding: 10px 20px;">撤退</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emoji Picker Modal -->
+    <div class="modal-overlay" id="emojiModal" onclick="this.classList.remove('active')">
+        <div class="modal glass" style="max-width: 400px; padding: 20px;" onclick="event.stopPropagation()">
+            <h3 style="margin-bottom: 15px; text-align: center; color: var(--neon-cyan);">發送表情</h3>
+            <div
+                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 2.5rem; text-align: center;">
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('😀')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">😀
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤡')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤡
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🥵')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🥵
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤝')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤝
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('😎')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">😎
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🤔')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🤔
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('👎')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">👎
+                </div>
+                <div style="cursor: pointer; transition: transform 0.2s;" onclick="sendEmoji('🔥')"
+                    onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🔥
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rank Reveal Overlay (on game start) -->
+    <div id="rankRevealOverlay" style="display:none;"></div>
+
+    <!-- Ranked Result Overlay (post-game for ranked mode) -->
+    <div id="rankedResultOverlay">
+        <div class="ranked-result-card">
+            <div id="rr-icon" style="font-size:3rem;margin-bottom:12px;"></div>
+            <div id="rr-title" style="font-family:var(--font-heading);font-size:1.4rem;color:var(--neon-gold);margin-bottom:6px;"></div>
+            <div id="rr-desc" style="font-size:1.1rem;color:var(--text-primary);margin-bottom:16px;"></div>
+            <div id="rr-newRank" style="margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+                <img id="rr-rankImg" style="width:80px;height:80px;object-fit:contain;" src="race_pic/骸1.png" alt="rank">
+                <div id="rr-rankName" style="font-family:var(--font-heading);font-size:1.3rem;color:var(--neon-gold);"></div>
+                <div id="rr-rankStars" style="font-size:1.2rem;letter-spacing:4px;"></div>
+            </div>
+            <div id="rr-titleUnlock" style="display:none;margin-bottom:16px;padding:12px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:12px;">
+                <div style="color:var(--neon-gold);font-size:0.8rem;letter-spacing:2px;margin-bottom:6px;">🎖 稱號解鎖</div>
+                <img id="rr-titleImg" style="width:220px;height:auto;object-fit:contain;max-height:80px;" src="" alt="title">
+                <div id="rr-titleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1rem;margin-top:6px;"></div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;padding:14px;" onclick="document.getElementById('rankedResultOverlay').classList.remove('active');location.href='index.html';">返回主選單</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Firebase (for display names & invites) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js?v=2"></script>
+    <script src="js/core/userProfile.js?v=2"></script>
+    <script src="js/core/friends.js?v=2"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="js/core/rng.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
+    <script src="js/core/titleManager.js"></script>
+    <script src="js/core/networkManager.js"></script>
+    <script src="js/data/story.js"></script>
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters_part5.js"></script>
+    <script src="js/data/characters_part6.js"></script>
+    <script src="js/data/characters.js"></script>
+    <script src="js/core/tutorialSystem.js?v=3"></script>
+    <script src="js/core/gameState.js?v=3"></script>
+    <script src="js/core/battleSystem.js?v=3"></script>
+    <script src="js/ui/animations.js?v=3"></script>
+    <script src="js/ui/audioManager.js"></script>
+    <script>
+        // Game initialization
+        let selectionPhase = 'p1_draw';
+        let selectedBattleCard = null;
+        let isShowingOpponent = false;
+
+        function toggleMobileView() {
+            const container = document.getElementById('battleContainer');
+            const btn = document.getElementById('mobileToggleBtn');
+            isShowingOpponent = !isShowingOpponent;
+
+            if (isShowingOpponent) {
+                container.classList.add('show-opponent-mobile');
+                btn.textContent = '返回我的畫面';
+            } else {
+                container.classList.remove('show-opponent-mobile');
+                btn.textContent = '查看對手';
+            }
+        }
+
+        function renderCardInfo(card) {
+            let skillsHtml = '';
+            if (card.skills && card.skills.length > 0) {
+                skillsHtml = '<div style="margin-top: 10px; flex-grow: 1; overflow-y: auto; text-align: left;">';
+                card.skills.forEach(skill => {
+                    skillsHtml += `<div class="skill-preview" style="margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                        <div style="color: var(--neon-cyan); font-weight: bold;">• ${skill.name} <span style="font-size: 0.7rem; color: #888;">(CD:${skill.cd})</span></div>
+                        <div style="font-size: 0.8rem; color: #ddd; margin-top: 2px; line-height: 1.3;">${skill.desc || '無描述'}</div>
+                    </div>`;
+                });
+                skillsHtml += '</div>';
+            }
+
+            return `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">#${card.id}</span>
+                    <span class="${getRarityClass(card.rarity)}" style="font-size: 0.75rem;">${getRarityName(card.rarity)}</span>
+                </div>
+                <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: var(--text-primary); ">${card.name}</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
+                    <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
+                    <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
+                </div>
+                ${card.passive ? `
+                    <div style="font-size: 0.8rem; color: var(--neon-gold); margin-bottom: 8px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 5px; border-radius: 4px;">
+                        <div style="font-weight: bold;">被動: ${card.passive.name}</div>
+                        <div style="margin-top: 2px; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
+                    </div>` : ''}
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px; border-bottom: 1px solid var(--text-secondary);">技能:</div>
+                ${skillsHtml}
+            `;
+        }
+
+        async function initGame() {
+            // Ensure Auth is ready for all modes (especially ranked bot matches)
+            if (typeof AuthManager !== 'undefined') {
+                AuthManager.init();
+                AuthManager.onAuthChanged((user) => {
+                    if (user) console.log('[Auth] User detected:', user.displayName);
+                });
+            }
+
+            const mode = localStorage.getItem('gameMode') || 'classic';
+            const type = localStorage.getItem('gameType') || 'pvp';
+            const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
+
+            // Set ranked match disconnect penalty flag 
+            if (localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true') {
+                localStorage.setItem('inRankedMatchOngoing', 'true');
+            }
+
+            // Helper to check if we are playing against a bot disguised as a human
+            window.isDisguisedBot = () => {
+                return localStorage.getItem('fromCompetitiveMode') === 'true' && 
+                       (GameState.mode === 'pve' || GameState.type === 'pve');
+            };
+
+            // Show emoji & surrender button for online mode or ranked bot matches
+            const isBotRankedMatch = localStorage.getItem('isBotRankedMatch') === 'true';
+            if (mode === 'online' || isBotRankedMatch) {
+                document.getElementById('p1EmojiBtn').classList.remove('hidden');
+                document.getElementById('surrenderBtn').classList.remove('hidden');
+
+                // Expose emoji function to global Animations object
+                window.Animations = window.Animations || {};
+                window.Animations.showEmoji = function (emoji, playerKey) {
+                    showEmojiAnimation(emoji, playerKey);
+                };
+            }
+
+            if (mode === 'story') {
+                const chapterId = localStorage.getItem('story_current_chapter');
+                const nodeIndex = parseInt(localStorage.getItem('story_current_node'), 10);
+                GameState.initStoryMode(chapterId, nodeIndex);
+
+                document.getElementById('selectionPhase').classList.remove('hidden');
+                document.getElementById('battleContainer').style.display = 'none';
+
+                selectionPhase = 'p1_draw';
+                document.getElementById('selectionTitle').textContent = `${GameState.player1.name} 選擇首發角色`;
+                renderSelectionCards('player1', GameState.player1.allCards);
+            } else if (mode === 'tutorial') {
+                GameState.init('tutorial');
+                
+                // Initialize NPC specifically for tutorial
+                GameState.player2.name = '教學機器人';
+                GameState.setDeckForPlayer('player1', TutorialSystem.tutorialDeck);
+                GameState.setDeckForPlayer('player2', TutorialSystem.enemyDeck);
+                
+                // Always player 1 starts first in tutorial
+                GameState.firstPlayer = 1;
+                GameState.currentPlayer = 1;
+                GameState.turnCount = 1;
+
+                // Start Tutorial System
+                TutorialSystem.init();
+
+                // Trigger draw phase
+                selectionPhase = 'player1_draw';
+                await startDrawPhase('player1', false); // false = use predefined deck
+            } else if (mode === 'online') {
+                window.localOnlineRole = localStorage.getItem('onlineRole');
+                const role = window.localOnlineRole;
+                const onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
+                const overlay = document.getElementById('networkWaitingOverlay');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('active');
+
+                // Apply display names from Firebase/matchmaking
+                const myName = localStorage.getItem('onlineMyName');
+                if (myName) {
+                    if (role === 'host') GameState.player1.name = myName;
+                    else GameState.player2.name = myName;
+                }
+
+                NetManager.onConnected = async () => {
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    GameState.init('online', 'pvp', 'normal');
+                    GameState.onlineSubMode = onlineSubMode; // For getCardCount()
+                    // Restore names after init
+                    const myN = localStorage.getItem('onlineMyName');
+                    if (myN) { if (role === 'host') GameState.player1.name = myN; else GameState.player2.name = myN; }
+                    // Opponent name will be set by onPlayerInfoReceived via P2P exchange.
+                    // Do NOT read from localStorage to avoid stale names from previous matches.
+
+                    if (role === 'host') {
+                        // Host defines first player using RNG
+                        const firstPlayer = window.GameRNG.nextBoolean() ? 1 : 2;
+                        NetManager.sendState({ type: 'first_player', firstPlayer });
+                        GameState.firstPlayer = firstPlayer;
+                        GameState.currentPlayer = firstPlayer;
+
+                        // Show rank reveal if ranked match
+                        if (localStorage.getItem('isRankedMatch') === 'true') {
+                            await showRankReveal();
+                            // Define same rarity sets for both players in Ranked
+                            GameState.setupRankedDistribution(GameState.getCardCount());
+                        }
+
+                        // Play synced coin flip
+                        await Animations.coinFlip(firstPlayer);
+
+                        // Setup pools
+                        const myUnlockedChars = (() => {
+                            try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                        })();
+                        GameState.player1.unlockedCharacters = myUnlockedChars;
+                        GameState.player2.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+
+                        // BOTH players draw deterministically from seed
+                        GameState.drawCards('player1', GameState.getCardCount());
+                        GameState.drawCards('player2', GameState.getCardCount());
+
+                        // ALL players pick simultaneously
+                        const localPlayerKey = 'player1';
+                        selectionPhase = localPlayerKey + '_draw';
+                        await startDrawPhase(localPlayerKey, false); // false = don't redraw
+                    }
+                };
+
+                NetManager.onDataReceived = (action) => {
+                    handleRemoteAction(action);
+                };
+
+                NetManager.onPeerStateChange = async (state) => {
+                    if (state.type === 'first_player' && role === 'join') {
+                        // CRITICAL FIX: Joiner must also consume 1 random number from GameRNG 
+                        // so that its RNG state perfectly matches the Host's state for the upcoming card draws!
+                        window.GameRNG.nextBoolean();
+
+                        GameState.firstPlayer = state.firstPlayer;
+                        GameState.currentPlayer = state.firstPlayer;
+
+                        // Joiner also shows rank reveal if ranked match (Bug 1)
+                        if (localStorage.getItem('isRankedMatch') === 'true') {
+                            await showRankReveal();
+                            // Define same rarity sets for both players in Ranked
+                            GameState.setupRankedDistribution(GameState.getCardCount());
+                        }
+
+                        // Play synced coin flip
+                        await Animations.coinFlip(state.firstPlayer);
+
+                        // Setup pools
+                        const myUnlockedChars = (() => {
+                            try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                        })();
+                        if (role === 'host') {
+                            GameState.player1.unlockedCharacters = myUnlockedChars;
+                            GameState.player2.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+                        } else {
+                            GameState.player2.unlockedCharacters = myUnlockedChars;
+                            GameState.player1.unlockedCharacters = window.opponentPlayerInfo?.unlockedCharacters || null;
+                        }
+
+                        // BOTH players draw deterministically from seed
+                        GameState.drawCards('player1', GameState.getCardCount());
+                        GameState.drawCards('player2', GameState.getCardCount());
+
+                        const localPlayerKey = 'player2';
+                        selectionPhase = localPlayerKey + '_draw';
+                        await startDrawPhase(localPlayerKey, false); // false = don't redraw
+                    } else if (state.type === 'thinking') {
+                        // Show opponent thinking
+                        const opponentThinkingId = role === 'host' ? 'p2Thinking' : 'p1Thinking';
+                        const thinkingUI = document.getElementById(opponentThinkingId);
+                        if (thinkingUI) {
+                            if (state.isThinking) {
+                                thinkingUI.classList.remove('hidden');
+                                thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                            } else {
+                                thinkingUI.classList.add('hidden');
+                            }
+                        }
+                    }
+                };
+
+                NetManager.onNameReceived = (name) => {
+                    console.log('Received opponent name:', name);
+                    if (role === 'host') {
+                        GameState.player2.name = name;
+                    } else {
+                        GameState.player1.name = name;
+                    }
+                    updateUI();
+                };
+
+                NetManager.onPlayerInfoReceived = (info) => {
+                    console.log('Received opponent player info:', info);
+                    const oppKey = role === 'host' ? 'player2' : 'player1';
+                    const oppPrefix = role === 'host' ? 'p2' : 'p1';
+                    // Store opponent info for rank reveal
+                    window.opponentPlayerInfo = info;
+                    // Show rank badge in header
+                    if (info.isRanked && info.rankDisplay) {
+                        const rankBadge = document.getElementById(oppPrefix + 'RankBadge');
+                        if (rankBadge) {
+                            rankBadge.textContent = info.rankDisplay;
+                            rankBadge.style.display = 'inline-block';
+                        }
+                    }
+                    // Show title badge in header
+                    if (info.activeTitle) {
+                        const titleBadge = document.getElementById(oppPrefix + 'TitleBadge');
+                        if (titleBadge) {
+                            titleBadge.textContent = '〔' + info.activeTitle + '〕';
+                            titleBadge.style.display = 'block';
+                        }
+                    }
+                    if (info.unlockedCharacters) {
+                        window.opponentPlayerInfo.unlockedCharacters = info.unlockedCharacters;
+                    }
+                    // Also show own rank badge (from localStorage)
+                    const myPrefix = role === 'host' ? 'p1' : 'p2';
+                    const myInfo = (() => {
+                        try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
+                    })();
+                    if (myInfo && myInfo.isRanked && myInfo.rankDisplay) {
+                        const myBadge = document.getElementById(myPrefix + 'RankBadge');
+                        if (myBadge) { myBadge.textContent = myInfo.rankDisplay; myBadge.style.display = 'inline-block'; }
+                    }
+                    if (myInfo && myInfo.activeTitle) {
+                        const myTitle = document.getElementById(myPrefix + 'TitleBadge');
+                        if (myTitle) { myTitle.textContent = '〔' + myInfo.activeTitle + '〕'; myTitle.style.display = 'block'; }
+                    }
+                };
+
+                NetManager.onDisconnected = () => {
+                    if (window.isRematching) return;
+                    alert('連線已中斷。對方已離開。');
+                    location.href = 'index.html';
+                };
+
+                const isCompetitive = localStorage.getItem('fromCompetitiveMode') === 'true';
+                document.getElementById('lobbyModeBadge').textContent = onlineSubMode === 'quick' ? '快速3張' : '經典7張';
+
+                if (role === 'host') {
+                    // Host Player is Player 1
+                    document.getElementById('networkWaitingTitle').textContent = '連線大廳';
+                    
+                    if (isCompetitive) {
+                        document.getElementById('networkWaitingText').textContent = '正在加入...';
+                    } else {
+                        document.getElementById('networkWaitingText').textContent = '等待對手加入...';
+                        document.getElementById('lobbyHostSection').classList.remove('hidden');
+                        document.getElementById('lobbyFriendsSection').classList.remove('hidden');
+                        document.getElementById('networkRoomCode').textContent = '生成中...';
+                    }
+
+                    // Force show overlay just in case
+                    document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                    document.getElementById('networkWaitingOverlay').classList.add('active');
+
+                    try {
+                        const roomId = await NetManager.initHost();
+                        document.getElementById('networkRoomCode').textContent = roomId;
+                        if (!isCompetitive) {
+                            loadLobbyFriends(roomId);
+                        }
+                    } catch (err) {
+                        alert('無法建立連線: ' + err);
+                        location.href = 'index.html';
+                    }
+                } else if (role === 'join') {
+                    // Joined Player is Player 2
+                    const roomId = localStorage.getItem('roomId');
+                    document.getElementById('networkWaitingTitle').textContent = '連線大廳';
+                    
+                    if (isCompetitive) {
+                        document.getElementById('networkWaitingText').textContent = '正在加入...';
+                    } else {
+                        document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]...`;
+                    }
+
+                    // Force show overlay just in case
+                    document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                    document.getElementById('networkWaitingOverlay').classList.add('active');
+
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    const tryJoin = async () => {
+                        try {
+                            await NetManager.joinRoom(roomId);
+                        } catch (err) {
+                            attempts++;
+                            console.log("Join failed, retry:", err);
+                            if (attempts < maxAttempts && (!err.type || err.type === 'peer-unavailable' || err.type === 'network' || err.type === 'server-error')) {
+                                document.getElementById('networkWaitingText').textContent = `嘗試加入房間 [${roomId}]... (重試 ${attempts}/${maxAttempts})`;
+                                setTimeout(() => {
+                                    NetManager.disconnect();
+                                    tryJoin();
+                                }, 1500);
+                            } else {
+                                alert('無法連線至房間: ' + err);
+                                location.href = 'index.html';
+                            }
+                        }
+                    };
+                    tryJoin();
+                }
+
+            } else {
+                GameState.init(mode, type, difficulty);
+
+                const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
+                if (isRanked) {
+                    GameState.setupRankedDistribution(GameState.getCardCount());
+                }
+
+                // Determine names for bot match / PvP (for coin flip)
+                const botMatchName = localStorage.getItem('botMatchName');
+                let myName = localStorage.getItem('onlineMyName');
+                
+                // Fallback for ranked NPC matches where myName might be missing or generic
+                if (!myName || myName === '玩家1' || myName === '玩家') {
+                    const user = typeof AuthManager !== 'undefined' ? AuthManager.getCurrentUser() : null;
+                    if (user && user.displayName) {
+                        myName = user.displayName;
+                    }
+                }
+
+                if (botMatchName) {
+                    GameState.player2.name = botMatchName;
+                    GameState.onlineSubMode = localStorage.getItem('onlineSubMode') || 'classic';
+                    if (myName) GameState.player1.name = myName;
+                    // Clean up botMatchName later during pve init
+                }
+
+                // Coin flip
+                const firstPlayer = await Animations.coinFlip();
+                GameState.firstPlayer = firstPlayer;
+                GameState.currentPlayer = firstPlayer;
+
+                // Show rank reveal if ranked match
+                if (localStorage.getItem('isBotRankedMatch') === 'true') {
+                    await showRankReveal();
+                }
+
+                if (type === 'pve') {
+                    // Populate my pool 
+                    const myUnlockedChars = (() => {
+                        try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                    })();
+                    GameState.player1.unlockedCharacters = myUnlockedChars;
+
+                    // NPCs don't have constraints by default (or can be given all). Setting to null means all cards available.
+                    GameState.player2.unlockedCharacters = null; 
+
+                    // Draw cards silently for NPC
+                    const npcCards = GameState.drawCards('player2', GameState.getCardCount());
+
+                    // Final name cleanup/override for NPC
+                    if (botMatchName) {
+                        // Populate bot metadata for ranked display
+                        if (localStorage.getItem('isBotRankedMatch') === 'true' && typeof NPC_PROFILES !== 'undefined') {
+                            const bInfo = NPC_PROFILES[botMatchName];
+                            if (bInfo) {
+                                // Mock opponentPlayerInfo for rank reveal and header badges
+                                window.opponentPlayerInfo = {
+                                    name: bInfo.displayName,
+                                    isRanked: true,
+                                    rankDisplay: RankedSystem.getDisplayName(bInfo.ranked),
+                                    rankImg: RankedSystem.getImgPath(bInfo.ranked),
+                                    activeTitle: bInfo.activeTitle
+                                };
+
+                                // Show header badges for the bot (P2 in bot match)
+                                const p2Rank = document.getElementById('p2RankBadge');
+                                if (p2Rank) {
+                                    p2Rank.textContent = window.opponentPlayerInfo.rankDisplay;
+                                    p2Rank.style.display = 'inline-block';
+                                }
+                                const p2Title = document.getElementById('p2TitleBadge');
+                                if (p2Title) {
+                                    p2Title.textContent = '〔' + bInfo.activeTitle + '〕';
+                                    p2Title.style.display = 'block';
+                                }
+
+                                // Also show my own badges in header
+                                try {
+                                    const myRInfo = JSON.parse(localStorage.getItem('myRankedInfo') || 'null');
+                                    if (myRInfo) {
+                                        const p1Rank = document.getElementById('p1RankBadge');
+                                        if (p1Rank) {
+                                            p1Rank.textContent = myRInfo.rankDisplay;
+                                            p1Rank.style.display = 'inline-block';
+                                        }
+                                        const p1Title = document.getElementById('p1TitleBadge');
+                                        if (p1Title) {
+                                            p1Title.textContent = '〔' + myRInfo.activeTitle + '〕';
+                                            p1Title.style.display = 'block';
+                                        }
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                        localStorage.removeItem('botMatchName'); // clean up now
+                    } else if (difficulty === 'hell') {
+                        GameState.player2.name = 'NPC (地獄)';
+                    } else if (difficulty === 'hard') {
+                        GameState.player2.name = 'NPC (困難)';
+                    } else if (difficulty === 'easy') {
+                        GameState.player2.name = 'NPC (簡單)';
+                    } else {
+                        GameState.player2.name = 'NPC';
+                    }
+
+                    // NPC selects a random card
+                    GameState.setBattleCard('player2', Math.floor(window.GameRandom() * GameState.getCardCount()));
+
+                    // Player 1 draw, regardless of firstPlayer
+                    selectionPhase = 'player1_draw';
+                    await startDrawPhase('player1');
+                } else {
+                    // Classic Offline PvP Mode
+                    const myUnlockedChars = (() => {
+                        try { return JSON.parse(localStorage.getItem('myUnlockedChars') || 'null'); } catch(e) { return null; }
+                    })();
+                    GameState.player1.unlockedCharacters = myUnlockedChars;
+                    GameState.player2.unlockedCharacters = myUnlockedChars; // same screen pvp shares pool or gets same for now
+
+                    // Draw phase for the first player
+                    const firstPlayerKey = firstPlayer === 1 ? 'player1' : 'player2';
+                    selectionPhase = firstPlayerKey + '_draw';
+                    await startDrawPhase(firstPlayerKey);
+                }
+            }
+        }
+
+        async function startDrawPhase(playerKey, doDraw = true) {
+            const cardCount = GameState.getCardCount();
+            let cards;
+
+            if (doDraw) {
+                cards = GameState.drawCards(playerKey, cardCount);
+            } else {
+                cards = GameState[playerKey].allCards;
+            }
+
+            document.getElementById('selectionPhase').classList.remove('hidden');
+            document.getElementById('battleContainer').style.display = 'none';
+
+            document.getElementById('selectionTitle').textContent =
+                playerKey === 'player1' ? (GameState.player1.name + ' 抽牌階段') : (GameState.player2.name + ' 抽牌階段');
+
+            // Tutorial hook
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.checkTrigger('onSelectionPhase');
+            }
+
+            // Show card draw animation
+            await Animations.drawCards(cards);
+
+            // Show selection UI
+            renderSelectionCards(playerKey, cards);
+        }
+
+        function renderSelectionCards(playerKey, cards) {
+            const container = document.getElementById('drawnCards');
+            container.innerHTML = '';
+
+            cards.forEach((card, idx) => {
+                const div = document.createElement('div');
+                div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+                div.innerHTML = renderCardInfo(card);
+                div.onclick = () => selectCard(playerKey, idx);
+                container.appendChild(div);
+            });
+
+            selectedBattleCard = null;
+            updateSelectionInfo();
+        }
+
+        function selectCard(playerKey, idx) {
+            const cards = document.querySelectorAll('.select-card');
+            cards.forEach((c, i) => {
+                c.classList.remove('selected-battle');
+                if (i === idx) c.classList.add('selected-battle');
+            });
+
+            selectedBattleCard = idx;
+            updateSelectionInfo();
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_card');
+            }
+        }
+
+        function updateSelectionInfo() {
+            const btn = document.getElementById('confirmSelection');
+            btn.disabled = selectedBattleCard === null;
+
+            document.getElementById('selectionInfo').textContent =
+                selectedBattleCard !== null ? '已選擇戰鬥角色' : '請選擇一張牌作為戰鬥角色';
+        }
+
+        function renderWaitingForOpponentSelection() {
+            document.getElementById('selectionPhase').classList.add('hidden');
+            const overlay = document.getElementById('networkWaitingOverlay');
+            document.getElementById('networkWaitingTitle').textContent = '等待對手...';
+            document.getElementById('networkWaitingText').textContent = '對手正在選擇出戰角色';
+            
+            // Hide connection options
+            document.getElementById('lobbyHostSection').classList.add('hidden');
+            document.getElementById('lobbyFriendsSection').classList.add('hidden');
+            document.getElementById('cancelLobbyBtn').style.display = 'none';
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('active');
+        }
+
+        async function handleRemoteAction(action) {
+            const opponentKey = NetManager.isHost ? 'player2' : 'player1';
+            const localKey = NetManager.isHost ? 'player1' : 'player2';
+
+            if (action.type === 'select_initial') {
+                GameState.setBattleCard(opponentKey, action.cardIdx);
+
+                // Both players selected
+                if (GameState.player1.battleCard && GameState.player2.battleCard) {
+                    const overlay = document.getElementById('networkWaitingOverlay');
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    startBattle();
+                }
+            } else if (action.type === 'do_action') {
+                doAction(action.actionType, action.skillIdx, true);
+            } else if (action.type === 'retreat') {
+                BattleSystem.retreat(opponentKey, action.skillIdx);
+                updateUI();
+                await GameState.endTurn();
+                updateUI();
+            } else if (action.type === 'replace_death') {
+                const player = GameState[opponentKey];
+                player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
+                GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
+
+                const modal = document.getElementById('replacementModal');
+                modal.classList.remove('active');
+
+                updateUI();
+                updateBattleLog();
+                if (window.resolveRemoteReplacement) {
+                    window.resolveRemoteReplacement();
+                    window.resolveRemoteReplacement = null;
+                }
+            } else if (action.type === 'sync_mahjong_choice') {
+                if (window.resolveRemoteMahjongChoice) {
+                    window.resolveRemoteMahjongChoice(action.characterId);
+                    window.resolveRemoteMahjongChoice = null;
+                } else {
+                    window.earlyRemoteMahjongChoice = action.characterId;
+                }
+            } else if (action.type === 'surrender') {
+                GameState.handleSurrender(opponentKey);
+                updateUI();
+                updateBattleLog();
+                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
+                Animations.victory(winnerName);
+            } else if (action.type === 'emoji' && window.Animations) {
+                if (window.Animations.showEmoji) {
+                    window.Animations.showEmoji(action.emojiId, opponentKey);
+                }
+            } else if (action.type === 'lobby_rematch') {
+                window.isRematching = true;
+                if (action.newRoomId) {
+                    localStorage.setItem('roomId', action.newRoomId);
+                }
+                setTimeout(() => window.location.reload(), 200);
+            }
+        }
+
+        window.showMahjongSelectionModal = async function(characters) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('mahjongSelectionModal');
+                const container = document.getElementById('mahjongSelectionOptions');
+                container.innerHTML = '';
+                
+                characters.forEach(char => {
+                    const div = document.createElement('div');
+                    div.className = `select-card glass ${getRarityClass(char.rarity)}`;
+                    div.innerHTML = renderCardInfo(char);
+                    div.style.cursor = 'pointer';
+                    // Optional styling adjustments for compact modal display
+                    div.style.transform = 'scale(0.9)';
+                    div.style.margin = '5px';
+                    
+                    div.onclick = () => {
+                        modal.classList.remove('active');
+                        resolve(char);
+                    };
+                    container.appendChild(div);
+                });
+                
+                modal.classList.add('active');
+            });
+        };
+
+        document.getElementById('confirmSelection').onclick = async function () {
+            if (selectedBattleCard === null) return;
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_confirm');
+            }
+
+            const currentPlayerKey = selectionPhase.startsWith('p1') || selectionPhase.startsWith('player1') ? 'player1' : 'player2';
+            const otherPlayerKey = currentPlayerKey === 'player1' ? 'player2' : 'player1';
+
+            GameState.setBattleCard(currentPlayerKey, selectedBattleCard);
+
+            if (GameState.mode === 'online') {
+                // Send our pick to the opponent
+                NetManager.sendAction({ type: 'select_initial', cardIdx: selectedBattleCard });
+
+                // If opponent hasn't picked yet, show waiting screen
+                if (!GameState[otherPlayerKey].battleCard) {
+                    renderWaitingForOpponentSelection();
+                } else {
+                    const overlay = document.getElementById('networkWaitingOverlay');
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    startBattle(); // Both selected
+                }
+                return;
+            }
+
+            if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && currentPlayerKey === 'player1') {
+                if (GameState.mode === 'tutorial' || GameState.mode === 'story') {
+                    // In story/tutorial mode, opponent (NPC) automatically selects the first card
+                    const npcPick = 0;
+                    GameState.setBattleCard('player2', npcPick);
+                    if (GameState.mode !== 'tutorial') {
+                        GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}玩家2 自動選擇了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                    }
+                } else {
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
+                }
+                startBattle();
+                return;
+            }
+
+            // In classic mode, check if both players have selected their cards
+            const firstPlayerKey = GameState.firstPlayer === 1 ? 'player1' : 'player2';
+
+            if (currentPlayerKey === firstPlayerKey) {
+                // First player has chosen, now second player's turn
+                selectionPhase = otherPlayerKey + '_draw';
+                await startDrawPhase(otherPlayerKey);
+            } else {
+                // Second player has chosen, start battle
+                startBattle();
+            }
+        };
+
+        function startBattle() {
+            document.getElementById('selectionPhase').classList.add('hidden');
+            document.getElementById('battleContainer').style.display = 'flex';
+            GameState.phase = 'battle';
+            GameState.turnCount = 1;
+
+            // Flip perspective for Host so P1 appears at the bottom/right.
+            // Joiner is P2, so P2 is naturally at bottom/right.
+            if (GameState.mode === 'online' && localStorage.getItem('onlineRole') === 'host') {
+                document.getElementById('battleContainer').classList.add('flip-perspective');
+            } else {
+                document.getElementById('battleContainer').classList.remove('flip-perspective');
+            }
+
+            updateUI();
+            GameState.addLog('戰鬥開始！', 'skill');
+            updateBattleLog();
+
+            // Trigger AI if it's Player 2's turn in story, pve, or tutorial
+            if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+                const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                setTimeout(playAITurn, delay); // Wait a bit before AI acts
+            }
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.checkTrigger(GameState.currentPlayer === 1 ? 'onPlayerTurn' : 'onEnemyTurn');
+            }
+        }
+
+        let turnTimerInterval = null;
+        let turnEndTime = 0;
+
+        function stopTurnTimer() {
+            if (turnTimerInterval) {
+                clearInterval(turnTimerInterval);
+                turnTimerInterval = null;
+            }
+            document.getElementById('turnTimerDisplay').style.display = 'none';
+        }
+
+        function startTurnTimer() {
+            stopTurnTimer();
+            const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+            if (GameState.mode !== 'online' && !isBotRanked) return;
+
+            turnEndTime = Date.now() + 60000;
+            document.getElementById('turnTimerDisplay').style.display = 'inline';
+            
+            const localKey = getLocalPlayerKey();
+            const isLocalTurn = (GameState.currentPlayer === 1 && localKey === 'player1') || 
+                                (GameState.currentPlayer === 2 && localKey === 'player2');
+
+            // Force visual update instantly
+            document.getElementById('turnTimerSecs').textContent = '60';
+
+            turnTimerInterval = setInterval(() => {
+                const left = Math.ceil((turnEndTime - Date.now()) / 1000);
+                if (left <= 0) {
+                    stopTurnTimer();
+                    document.getElementById('turnTimerSecs').textContent = '0';
+                    if (isLocalTurn && GameState.phase === 'battle') {
+                        fallbackAutoPlay();
+                    }
+                } else {
+                    document.getElementById('turnTimerSecs').textContent = left;
+                }
+            }, 500); // Check half-second to avoid visual skipping
+        }
+
+        function fallbackAutoPlay() {
+            const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+            const card = GameState[playerKey].battleCard;
+            
+            if (!card) return;
+            
+            // Try to find any available action
+            const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+            
+            if (!isSilenced && card.skills) {
+                for (let i = 0; i < card.skills.length; i++) {
+                    if (card.cooldowns[i] <= 0) {
+                        const speedCost = card.skills[i].speedCost || 0;
+                        const currentSpeed = card.resources?.speed || 0;
+                        if (currentSpeed >= speedCost) {
+                            doAction('skill', i);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            const noAttackPassive = card.passive?.effect?.action === 'no_attack_dot_revive';
+            if (!noAttackPassive) {
+                doAction('attack');
+                return;
+            }
+            
+            const sbIndex = GameState[playerKey].standbyCards.findIndex(c => c.hp > 0);
+            if (sbIndex !== -1) {
+                doAction('swap', sbIndex);
+                return;
+            }
+            
+            // Force attack to push game state if totally blocked
+            doAction('attack');
+        }
+
+        function updateUI() {
+            // Update turn indicator
+            document.getElementById('turnCount').textContent = GameState.turnCount;
+
+            // Update player names
+            const p1NameElem = document.querySelector('#player1Area .player-name');
+            const p2NameElem = document.querySelector('#player2Area .player-name');
+            if (p1NameElem) p1NameElem.textContent = GameState.player1.name;
+            if (p2NameElem) p2NameElem.textContent = GameState.player2.name;
+
+            // Reset mobile view on UI update
+            isShowingOpponent = false;
+            const container = document.getElementById('battleContainer');
+            const toggleBtn = document.getElementById('mobileToggleBtn');
+            if (container) container.classList.remove('show-opponent-mobile');
+            if (toggleBtn) toggleBtn.textContent = '查看對手';
+
+            // Update player cards
+            updatePlayerCard('player1', 'p1');
+            updatePlayerCard('player2', 'p2');
+
+            // Show/hide action buttons based on current player
+            const isP1Turn = GameState.currentPlayer === 1;
+            const isPvE = GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve';
+            const isOnline = GameState.mode === 'online';
+            const localRole = window.localOnlineRole || 'host'; // Fix: Read from memory, not localStorage to avoid cross-tab pollution
+            const isLocalP1 = !isOnline || localRole === 'host';
+            const isLocalP2 = !isOnline || localRole === 'join';
+
+            document.getElementById('p1TurnBadge').classList.toggle('hidden', !isP1Turn);
+            document.getElementById('p2TurnBadge').classList.toggle('hidden', isP1Turn);
+
+            // Update Skill Button state
+            document.getElementById('p1SkillBtn').disabled = !isP1Turn;
+            document.getElementById('p2SkillBtn').disabled = isP1Turn;
+
+            // Highlight active player
+            document.getElementById('player1Area').classList.toggle('active-turn', isP1Turn);
+            document.getElementById('player2Area').classList.toggle('active-turn', !isP1Turn);
+
+            // Re-enable buttons for the active player (fix for buttons sticking disabled)
+            const p1Btns = document.querySelectorAll('#p1Actions .action-btn:not(.view-skill-btn)');
+            const p2Btns = document.querySelectorAll('#p2Actions .action-btn:not(.view-skill-btn)');
+            const p1SkillBtn = document.getElementById('p1SkillBtn');
+            const p2SkillBtn = document.getElementById('p2SkillBtn');
+            const p1ViewBtn = document.getElementById('p1ViewSkillBtn');
+            const p2ViewBtn = document.getElementById('p2ViewSkillBtn');
+            
+            // Sync player names to HUD
+            document.getElementById('p1Name').textContent = GameState.player1.name;
+            document.getElementById('p2Name').textContent = GameState.player2.name;
+
+            if (isP1Turn) {
+                p1Btns.forEach(btn => btn.disabled = false);
+                p2Btns.forEach(btn => btn.disabled = true);
+                if (GameState.player1.battleCard && GameState.player1.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
+                    const attackBtn = document.querySelector('#p1Actions .attack-btn');
+                    if (attackBtn) attackBtn.disabled = true;
+                }
+            } else {
+                p1Btns.forEach(btn => btn.disabled = true);
+                p2Btns.forEach(btn => btn.disabled = false);
+                if (!isPvE) {
+                    if (GameState.player2.battleCard && GameState.player2.battleCard.passive?.effect?.action === 'no_attack_dot_revive') {
+                        const attackBtn = document.querySelector('#p2Actions .attack-btn');
+                        if (attackBtn) attackBtn.disabled = true;
+                    }
+                }
+            }
+
+            // View skill btn is always enabled if it's visible
+            p1ViewBtn.disabled = false;
+            p2ViewBtn.disabled = false;
+
+            // Handle View Skill Button Visibility & Action Buttons
+            // First, reset all action buttons to default visibility (remove inline style)
+            Array.from(document.getElementById('p1Actions').children).forEach(child => child.style.display = '');
+            Array.from(document.getElementById('p2Actions').children).forEach(child => child.style.display = '');
+
+            // Hide opponent thinking indicators initially
+            document.getElementById('p1Thinking').classList.add('hidden');
+            document.getElementById('p2Thinking').classList.add('hidden');
+
+            // Online Mode Overrides
+            if (isOnline) {
+                if (localRole === 'host') {
+                    // Host is P1. 
+                    document.getElementById('p1Actions').style.display = 'flex';
+                    document.getElementById('p2Actions').style.display = 'flex';
+
+                    // P2 action area only shows 'View Skill'
+                    Array.from(document.getElementById('p2Actions').children).forEach(child => {
+                        if (child.id !== 'p2ViewSkillBtn') {
+                            child.style.display = 'none';
+                        }
+                    });
+                    p2ViewBtn.classList.remove('hidden');
+                    p2ViewBtn.disabled = false;
+
+                    p1ViewBtn.classList.add('hidden');
+
+                    if (!isP1Turn) {
+                        p1Btns.forEach(btn => btn.disabled = true);
+                        p1SkillBtn.disabled = true;
+
+                        // Opponent is thinking
+                        const thinkingUI = document.getElementById('p2Thinking');
+                        thinkingUI.classList.remove('hidden');
+                        thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                    }
+                } else if (localRole === 'join') {
+                    // Joiner is P2. 
+                    document.getElementById('p2Actions').style.display = 'flex';
+                    document.getElementById('p1Actions').style.display = 'flex';
+
+                    // P1 action area only shows 'View Skill'
+                    Array.from(document.getElementById('p1Actions').children).forEach(child => {
+                        if (child.id !== 'p1ViewSkillBtn') {
+                            child.style.display = 'none';
+                        }
+                    });
+                    p1ViewBtn.classList.remove('hidden');
+                    p1ViewBtn.disabled = false;
+
+                    p2ViewBtn.classList.add('hidden');
+
+                    if (isP1Turn) {
+                        p2Btns.forEach(btn => btn.disabled = true);
+                        p2SkillBtn.disabled = true;
+
+                        // Opponent is thinking
+                        const thinkingUI = document.getElementById('p1Thinking');
+                        thinkingUI.classList.remove('hidden');
+                        thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+                    }
+                }
+            } else {
+                // Classic / PvE Logic
+                if (isP1Turn) {
+                    // Player 1's turn
+                    document.getElementById('p1Actions').style.display = 'flex';
+                    p1ViewBtn.classList.add('hidden'); // P1 doesn't need view skill btn for themselves
+
+                    // Show view skill button for P2
+                    document.getElementById('p2Actions').style.display = 'flex';
+                    p2ViewBtn.classList.remove('hidden');
+
+                    // Keep P2 area visible (action area), but hide P2's actual action buttons
+                    Array.from(document.getElementById('p2Actions').children).forEach(child => {
+                        if (child.id !== 'p2ViewSkillBtn') {
+                            child.style.display = 'none';
+                        }
+                    });
+                } else {
+                    // Player 2's turn
+                    p2ViewBtn.classList.add('hidden'); // P2 doesn't need view skill btn for themselves
+
+                    if (isPvE) {
+                        // P2 is NPC, hide entire actions area
+                        document.getElementById('p2Actions').style.display = 'none';
+                        // NPC doesn't need to view P1's skills either
+                        document.getElementById('p1Actions').style.display = 'none';
+                        p1ViewBtn.classList.add('hidden');
+                    } else {
+                        // P2 can view P1's skills
+                        document.getElementById('p1Actions').style.display = 'flex';
+                        p1ViewBtn.classList.remove('hidden');
+
+                        // Hide P1's actual action buttons
+                        Array.from(document.getElementById('p1Actions').children).forEach(child => {
+                            if (child.id !== 'p1ViewSkillBtn') {
+                                child.style.display = 'none';
+                            }
+                        });
+
+                        // P2 is Player, show normal buttons
+                        document.getElementById('p2Actions').style.display = 'flex';
+                    }
+                }
+            }
+            
+            // Start or refresh turn timer
+            startTurnTimer();
+        }
+
+        function updatePlayerCard(playerKey, prefix) {
+            const player = GameState[playerKey];
+            const card = player.battleCard;
+
+            if (!card) {
+                document.getElementById(`${prefix}CharName`).textContent = '無角色';
+                return;
+            }
+
+            document.getElementById(`${prefix}CharName`).textContent = card.name;
+            document.getElementById(`${prefix}CharRarity`).textContent = getRarityName(card.rarity);
+            document.getElementById(`${prefix}CharRarity`).className = `battle-char-rarity ${getRarityClass(card.rarity)}`;
+
+            // HP bar
+            const hpPercent = Math.max(0, Math.min(100, (card.hp / card.maxHp) * 100));
+            document.getElementById(`${prefix}HpBar`).style.width = hpPercent + '%';
+            document.getElementById(`${prefix}HpText`).textContent = `${Math.max(0, card.hp)} / ${card.maxHp}`;
+
+            // Shield bar
+            const shieldPercent = Math.min(100, (card.shield / card.maxHp) * 100);
+            document.getElementById(`${prefix}ShieldBar`).style.width = shieldPercent + '%';
+            document.getElementById(`${prefix}Shield`).textContent = card.shield;
+
+            // ATK
+            document.getElementById(`${prefix}Atk`).textContent = card.atk;
+
+            // Status effects & Resources
+            const statusDiv = document.getElementById(`${prefix}Status`);
+            statusDiv.innerHTML = '';
+
+            // 1. Status Effects
+            card.statusEffects.forEach(effect => {
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${effect.type}`;
+                let text = effect.name || effect.type;
+
+                if (effect.turns && effect.turns > 0 && !effect.permanent) {
+                    text += ` (${effect.turns}回)`;
+                } else if (effect.permanent) {
+                    text += ` (∞)`;
+                }
+
+                if (effect.hits !== undefined) {
+                    text += ` [${effect.hits}次]`;
+                } else if (effect.value !== undefined && effect.type !== 'dot' && effect.type !== 'poison' && effect.type !== 'burn') {
+                    text += `: ${effect.value}`;
+                } else if (effect.chance !== undefined) {
+                    text += ` ${effect.chance}%`;
+                }
+
+                badge.textContent = text;
+                statusDiv.appendChild(badge);
+            });
+
+            // 2. Resources (Combo, stacks, etc.)
+            if (card.resources) {
+                Object.entries(card.resources).forEach(([key, value]) => {
+                    const badge = document.createElement('span');
+                    badge.className = 'status-badge resource';
+                    badge.style.background = 'rgba(0, 255, 255, 0.2)';
+                    badge.style.color = '#fff';
+                    badge.textContent = `${key}: ${value}`;
+                    statusDiv.appendChild(badge);
+                });
+            }
+
+            // Passive
+            const passiveDiv = document.getElementById(`${prefix}Passive`);
+            if (card.passive) {
+                passiveDiv.innerHTML = `
+                <div style="font-size: 0.8rem; color: var(--neon-gold); margin: 5px 0; text-align: left; padding: 5px; background: rgba(255, 215, 0, 0.1); border-radius: 4px;">
+                    <div style="font-weight: bold; margin-bottom: 2px;">被動: ${card.passive.name}</div>
+                    <div style="color: #ddd; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
+                </div>`;
+            } else {
+                passiveDiv.innerHTML = '';
+            }
+
+            // Standby cards
+            const standbyDiv = document.getElementById(`${prefix}Standby`);
+            standbyDiv.innerHTML = '';
+            player.standbyCards.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = `standby-card glass ${getRarityClass(c.rarity)}`;
+
+                // Show name
+                let contentHTML = `<div>${c.name}</div>`;
+
+                // Show cooldowns if any
+                if (c.skills && c.cooldowns) {
+                    let cdHTML = '';
+                    c.skills.forEach((skill, sIdx) => {
+                        if (c.cooldowns[sIdx] > 0) {
+                            cdHTML += `<div style="font-size: 0.7rem; color: #ff6b6b; margin-top: 2px;">${skill.name} CD: ${c.cooldowns[sIdx]}</div>`;
+                        }
+                    });
+                    if (cdHTML) {
+                        contentHTML += cdHTML;
+                    }
+                }
+
+                div.innerHTML = contentHTML;
+                div.onclick = () => showCardDetails(c); // Click to view details
+                standbyDiv.appendChild(div);
+            });
+        }
+
+        function openSkillModal(playerKey) {
+            const player = GameState[playerKey];
+            const card = player.battleCard;
+            if (!card) return;
+
+            const modal = document.getElementById('skillPanelModal');
+            const options = document.getElementById('skillModalOptions');
+            const title = document.getElementById('skillModalTitle');
+
+            title.textContent = `${player.name} - 使用技能`;
+            options.innerHTML = '';
+
+            const isMyTurn = (playerKey === 'player1' && GameState.currentPlayer === 1) ||
+                (playerKey === 'player2' && GameState.currentPlayer === 2);
+
+            if (card.skills) {
+                card.skills.forEach((skill, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'skill-btn-modal';
+                    // Strict disable: Not my turn OR cooldown OR silence
+                    const onCooldown = card.cooldowns[idx] > 0;
+                    const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    btn.disabled = !isMyTurn || onCooldown || isSilenced;
+
+                    btn.innerHTML = `
+                        <div class="skill-name-modal">${skill.name}</div>
+                        <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
+                        <div class="skill-footer-modal">
+                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
+                        </div>
+                    `;
+
+                    btn.onclick = async () => {
+                        if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                            TutorialSystem.onActionCompleted('click_skill_option');
+                        }
+                        closeSkillModal();
+                        await doAction('skill', idx);
+                    };
+                    options.appendChild(btn);
+                });
+            }
+            modal.classList.add('active');
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_skill');
+                setTimeout(() => TutorialSystem.checkTrigger('onSkillPanelOpen'), 100);
+            }
+
+            if (GameState.mode === 'online') {
+                NetManager.sendState({ type: 'thinking', isThinking: true });
+            }
+        }
+
+        function closeSkillModal() {
+            document.getElementById('skillPanelModal').classList.remove('active');
+            if (GameState.mode === 'online') {
+                NetManager.sendState({ type: 'thinking', isThinking: false });
+            }
+        }
+
+        function openViewSkillModal(playerKey) {
+            const player = GameState[playerKey];
+            const card = player.battleCard;
+            if (!card) return;
+
+            const modal = document.getElementById('viewSkillPanelModal');
+            const options = document.getElementById('viewSkillModalOptions');
+            const title = document.getElementById('viewSkillModalTitle');
+
+            title.textContent = `查看 ${player.name} (${card.name}) 的技能`;
+            options.innerHTML = '';
+
+            if (card.skills) {
+                card.skills.forEach((skill, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'skill-btn-modal';
+                    btn.disabled = true; // Always disabled, view only
+
+                    const onCooldown = card.cooldowns[idx] > 0;
+                    const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+
+                    btn.innerHTML = `
+                        <div class="skill-name-modal">${skill.name}</div>
+                        <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
+                        <div class="skill-footer-modal">
+                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
+                        </div>
+                    `;
+
+                    options.appendChild(btn);
+                });
+            }
+            modal.classList.add('active');
+        }
+
+        function closeViewSkillModal() {
+            document.getElementById('viewSkillPanelModal').classList.remove('active');
+        }
+
+        function updateBattleLog() {
+            const logDiv = document.getElementById('battleLog');
+            logDiv.innerHTML = '';
+            GameState.battleLog.slice(0, 15).forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry log-${entry.type}`;
+                div.textContent = entry.message;
+                logDiv.appendChild(div);
+            });
+        }
+
+        async function doAction(type, skillIndex = null, isRemote = false) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            if (!isRemote && GameState.mode === 'online') {
+                NetManager.sendAction({ type: 'do_action', actionType: type, skillIdx: skillIndex });
+            }
+
+            // Disable buttons visually
+            document.querySelectorAll('.action-btn').forEach(btn => btn.disabled = true);
+
+            try {
+                const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+                const opponentKey = GameState.currentPlayer === 1 ? 'player2' : 'player1';
+                const attacker = GameState[playerKey].battleCard;
+                const defender = GameState[opponentKey].battleCard;
+
+                if (!attacker || !defender) return;
+
+                if (type === 'attack') {
+                    if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                        TutorialSystem.onActionCompleted('click_attack');
+                    }
+                    await BattleSystem.normalAttack(attacker, defender);
+                } else if (type === 'skill') {
+                    await BattleSystem.useSkill(attacker, defender, skillIndex); // Await async skill
+                }
+
+                updateUI();
+                updateBattleLog();
+
+                // Check for deaths
+                const playersToCheck = ['player1', 'player2'];
+                for (const p of playersToCheck) {
+                    const card = GameState[p].battleCard;
+                    if (card && card.hp <= 0) {
+                        const died = await GameState.handleDeath(p);
+                        if (died) {
+                            GameState.addLog(`${card.name} 被擊敗！`, 'damage');
+                            updateUI();
+                            updateBattleLog();
+
+                            // If there are standby cards, must pick one
+                            if (GameState[p].standbyCards.length > 0) {
+                                if (GameState.mode === 'online') {
+                                    const isLocalPlayer = (NetManager.isHost && p === 'player1') || (!NetManager.isHost && p === 'player2');
+                                    if (isLocalPlayer) {
+                                        await promptReplacement(p);
+                                    } else {
+                                        // Wait for remote action 'replace_death'
+                                        document.getElementById('networkWaitingTitle').textContent = '等待對手替換角色...';
+                                        document.getElementById('networkWaitingText').textContent = '對手正在考慮要派誰上場';
+                                        
+                                        // Hide connection options
+                                        document.getElementById('lobbyHostSection').classList.add('hidden');
+                                        document.getElementById('lobbyFriendsSection').classList.add('hidden');
+                                        document.getElementById('cancelLobbyBtn').style.display = 'none';
+
+                                        document.getElementById('networkWaitingOverlay').classList.remove('hidden');
+                                        document.getElementById('networkWaitingOverlay').classList.add('active');
+                                        await new Promise(resolve => window.resolveRemoteReplacement = resolve);
+                                        document.getElementById('networkWaitingOverlay').classList.add('hidden');
+                                        document.getElementById('networkWaitingOverlay').classList.remove('active');
+                                    }
+                                } else {
+                                    await promptReplacement(p);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Check win
+                if (GameState.checkWin()) {
+                    await Animations.victory(GameState.winner === 1 ? '玩家1' : '玩家2');
+                    return;
+                }
+
+                // End turn
+                await GameState.endTurn();
+                updateUI();
+                updateBattleLog();
+
+                // Trigger AI if it's Player 2's turn in story mode or PvE
+                if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                    const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+                    const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                    setTimeout(playAITurn, delay); // Wait a bit before AI acts
+                }
+
+            } finally {
+                isProcessing = false;
+                // Buttons will be re-enabled by updateUI based on turn state
+                updateUI();
+            }
+        }
+
+        // --- NPC AI Logic ---
+        async function playAITurn() {
+            if (GameState.winner !== null || GameState.currentPlayer !== 2) return;
+
+            const card = GameState.player2.battleCard;
+            if (!card) return; // Should not happen if replacement works
+
+            // If stunned or sleeping, status effects are already processed by endTurn -> next turn start Of Turn.
+            // Wait, startOfTurn might skip the turn immediately. We need to verify if it's still player 2's turn.
+            if (GameState.currentPlayer !== 2) {
+                // If it skipped to player 1
+                return;
+            }
+
+            // Show thinking indicator
+            const thinkingUI = document.getElementById('p2Thinking');
+            if (thinkingUI) {
+                thinkingUI.classList.remove('hidden');
+                thinkingUI.innerHTML = '思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+            }
+
+            // Simulate thinking time (random between 1 to 2.5 seconds)
+            const thinkTime = Math.floor(window.GameRandom() * 1500) + 1000;
+
+            setTimeout(async () => {
+                const availableSkills = [];
+                if (card.skills) {
+                    // Check silence
+                    const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    if (!isSilenced) {
+                        card.skills.forEach((skill, idx) => {
+                            if (card.cooldowns[idx] <= 0) {
+                                availableSkills.push(idx);
+                            }
+                        });
+                    }
+                }
+
+                const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
+
+                let actionType = 'attack';
+                let skillIdx = null;
+
+                // Smart AI Decisions based on difficulty
+                if (difficulty === 'hell') {
+                    // Try to retreat if low HP and have healthy standby
+                    const hpPercent = card.hp / card.maxHp;
+                    const opponentHpPercent = GameState.player1.battleCard ? GameState.player1.battleCard.hp / GameState.player1.battleCard.maxHp : 1;
+
+                    // More aggressive retreat: 100% chance if HP < 35% and opponent is not close to dying
+                    if (hpPercent < 0.35 && opponentHpPercent > 0.2 && GameState.player2.standbyCards.length > 0) {
+                        const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.5);
+                        if (healthyStandbys.length > 0) {
+                            let bestIdx = 0;
+                            let maxScore = 0;
+                            GameState.player2.standbyCards.forEach((c, i) => {
+                                const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
+                                const score = c.hp + (baseAtk * 10);
+                                if (score > maxScore) { maxScore = score; bestIdx = i; }
+                            });
+                            actionType = 'retreat';
+                            skillIdx = bestIdx;
+                        }
+                    }
+
+                    if (actionType !== 'retreat') {
+                        const expectedAtk = typeof card.atk === 'object' ? Math.floor((card.atk.min + card.atk.max) / 2) : card.atk;
+                        const opponentCard = GameState.player1.battleCard;
+                        const totalOpponentHp = opponentCard ? (opponentCard.hp + opponentCard.shield) : 9999;
+
+                        // Categorize available skills
+                        const defensiveSkills = availableSkills.filter(idx =>
+                            card.skills[idx].desc.includes('保護') ||
+                            card.skills[idx].desc.includes('恢復') ||
+                            card.skills[idx].desc.includes('護盾') ||
+                            card.skills[idx].desc.includes('無敵') ||
+                            card.skills[idx].desc.includes('生命')
+                        );
+                        const offensiveSkills = availableSkills.filter(idx =>
+                            !defensiveSkills.includes(idx) && (
+                                card.skills[idx].desc.includes('傷害') ||
+                                card.skills[idx].desc.includes('攻擊') ||
+                                card.skills[idx].desc.includes('暈眩') ||
+                                card.skills[idx].desc.includes('中毒') ||
+                                card.skills[idx].desc.includes('燃燒')
+                            )
+                        );
+                        const otherSkills = availableSkills.filter(idx => !defensiveSkills.includes(idx) && !offensiveSkills.includes(idx));
+
+                        // 1. Kill confirmed with normal attack & we aren't about to die
+                        if (totalOpponentHp <= expectedAtk && hpPercent > 0.3) {
+                            actionType = 'attack';
+                        }
+                        // 2. High priority: Defensive skills when HP is low
+                        else if (hpPercent < 0.65 && defensiveSkills.length > 0) {
+                            actionType = 'skill';
+                            skillIdx = defensiveSkills[Math.floor(window.GameRandom() * defensiveSkills.length)];
+                        }
+                        // 3. Offensive skills when opponent has enough HP to warrant it
+                        else if (offensiveSkills.length > 0 && totalOpponentHp > expectedAtk) {
+                            actionType = 'skill';
+                            skillIdx = offensiveSkills[Math.floor(window.GameRandom() * offensiveSkills.length)];
+                        }
+                        // 4. Other skills (buffs, etc.) with a high chance
+                        else if (otherSkills.length > 0 && window.GameRandom() < 0.8) {
+                            actionType = 'skill';
+                            skillIdx = otherSkills[Math.floor(window.GameRandom() * otherSkills.length)];
+                        }
+                        // 5. Default to attack (e.g., HP is high so we skip defensive skills, or no skills left)
+                        else {
+                            actionType = 'attack';
+                        }
+                    }
+                } else if (difficulty === 'hard') {
+                    // Try to retreat if low HP and have healthy standby
+                    const hpPercent = card.hp / card.maxHp;
+                    if (hpPercent < 0.3 && GameState.player2.standbyCards.length > 0) {
+                        const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.6);
+                        if (healthyStandbys.length > 0 && window.GameRandom() < 0.8) { // 80% retreat chance when low HP
+                            // Find the one with highest HP
+                            let bestIdx = 0;
+                            let maxHp = 0;
+                            GameState.player2.standbyCards.forEach((c, i) => {
+                                if (c.hp > maxHp) { maxHp = c.hp; bestIdx = i; }
+                            });
+                            actionType = 'retreat';
+                            skillIdx = bestIdx;
+                        }
+                    }
+
+                    if (actionType !== 'retreat') {
+                        if (availableSkills.length > 0) {
+                            // Hard mode prioritizes skills whenever possible
+                            actionType = 'skill';
+                            // Prioritize healing/shield if low HP (e.g., skill name contains keywords)
+                            if (hpPercent < 0.5) {
+                                const defensiveSkills = availableSkills.filter(idx =>
+                                    card.skills[idx].desc.includes('保護') ||
+                                    card.skills[idx].desc.includes('恢復') ||
+                                    card.skills[idx].desc.includes('護盾') ||
+                                    card.skills[idx].desc.includes('無敵')
+                                );
+                                if (defensiveSkills.length > 0) {
+                                    skillIdx = defensiveSkills[Math.floor(window.GameRandom() * defensiveSkills.length)];
+                                } else {
+                                    skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
+                                }
+                            } else {
+                                skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
+                            }
+                        } else {
+                            actionType = 'attack';
+                        }
+                    }
+                } else if (difficulty === 'easy') {
+                    // Easy mode: Never retreats. 50% chance to forget to use skills.
+                    if (availableSkills.length > 0 && window.GameRandom() < 0.5) {
+                        actionType = 'skill';
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
+                    } else {
+                        actionType = 'attack';
+                    }
+                } else {
+                    // Default logic for 'normal' difficulty
+                    if (availableSkills.length > 0 && window.GameRandom() < 0.6) {
+                        actionType = 'skill';
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
+                    } else {
+                        actionType = 'attack';
+                    }
+                }
+
+                // If character cannot attack, force skill if available
+                if (actionType === 'attack' && card.passive?.effect?.action === 'no_attack_dot_revive') {
+                    if (availableSkills.length > 0) {
+                        actionType = 'skill';
+                        // Pick any available skill
+                        skillIdx = availableSkills[Math.floor(window.GameRandom() * availableSkills.length)];
+                    } else {
+                        // If no skills available and can't attack, just skip turn by trying to do an empty action or retreat if possible
+                        // Here we just map it back to attack which will be blocked and skip effectively by passing the turn.
+                        // Since normalAttack already blocks 'no_attack_dot_revive' logging "Cannot attack", 
+                        // it won't crash, but it's an elegant way to skip a turn natively.
+                    }
+                }
+
+                if (thinkingUI) thinkingUI.classList.add('hidden');
+
+                if (actionType === 'retreat') {
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}認為情勢不利，選擇撤換角色為 ${GameState.player2.standbyCards[skillIdx].name}`, 'status');
+                } else {
+                    GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}決定使用 ${actionType === 'skill' ? card.skills[skillIdx].name : '普攻'}`, 'status');
+                }
+                updateBattleLog();
+
+                setTimeout(async () => {
+                    if (actionType === 'retreat') {
+                        BattleSystem.retreat('player2', skillIdx);
+                        updateUI();
+                        await GameState.endTurn();
+                        updateUI();
+                    } else {
+                        await doAction(actionType, skillIdx);
+                    }
+                }, 400); // Short delay before executing to make log visible
+            }, thinkTime);
+        }
+        // --------------------
+
+        function promptReplacement(playerKey) {
+            return new Promise((resolve) => {
+                const player = GameState[playerKey];
+
+                // --- Story / PvE mode AI check for replacements ---
+                if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && playerKey === 'player2') {
+                    const difficulty = localStorage.getItem('pveDifficulty') || 'normal';
+
+                    if (player.standbyCards.length > 0) {
+                        setTimeout(() => {
+                            let pickIdx = 0;
+
+                            // Hard & Hell mode picks the best character (highest combined HP+ATK)
+                            if (difficulty === 'hard' || difficulty === 'hell') {
+                                let maxScore = 0;
+                                player.standbyCards.forEach((c, idx) => {
+                                    const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
+                                    const score = c.hp + (baseAtk * 10);
+                                    if (score > maxScore) {
+                                        maxScore = score;
+                                        pickIdx = idx;
+                                    }
+                                });
+                            }
+
+                            player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
+                            GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
+                            updateUI();
+                            updateBattleLog();
+                            resolve();
+                        }, 1000); // Small delay for visual pacing
+                        return;
+                    }
+                }
+                // --------------------------------------------
+
+                // Online: If it's the opponent's character that died, show waiting screen instead of picking for them
+                if (GameState.mode === 'online') {
+                    const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
+                    const isLocalP1 = localRole === 'host';
+                    if ((isLocalP1 && playerKey === 'player2') || (!isLocalP1 && playerKey === 'player1')) {
+                        // We are waiting for the opponent to pick
+                        renderWaitingForOpponentSelection();
+                        const overlay = document.getElementById('networkWaitingOverlay');
+                        document.getElementById('networkWaitingTitle').textContent = '等待對手...';
+                        document.getElementById('networkWaitingText').textContent = '對手正在選擇替補角色';
+
+                        window.resolveRemoteReplacement = () => {
+                            overlay.classList.remove('active');
+                            overlay.classList.add('hidden');
+                            resolve();
+                        };
+                        return;
+                    }
+                }
+
+                const modal = document.getElementById('replacementModal');
+                const optionsDiv = document.getElementById('replacementOptions');
+                const title = document.getElementById('replacementTitle');
+
+                title.textContent = `${player.name} 的角色已陣亡！請選擇替換角色`;
+                optionsDiv.innerHTML = '';
+                modal.classList.add('active');
+
+                player.standbyCards.forEach((card, idx) => {
+                    const div = document.createElement('div');
+                    div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+                    div.innerHTML = renderCardInfo(card);
+
+                    div.onclick = () => {
+                        if (GameState.mode === 'online') {
+                            NetManager.sendAction({ type: 'replace_death', skillIdx: idx });
+                        }
+
+                        // Perform the swap (remove from standby, set as battle)
+                        player.battleCard = player.standbyCards.splice(idx, 1)[0];
+                        GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
+
+                        modal.classList.remove('active');
+                        updateUI();
+                        updateBattleLog();
+                        resolve();
+                    };
+                    optionsDiv.appendChild(div);
+                });
+            });
+        }
+
+        function showRetreat() {
+            if (isProcessing) return;
+            const playerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
+            const player = GameState[playerKey];
+
+            if (player.standbyCards.length === 0) {
+                GameState.addLog('備戰區沒有角色可替換！', 'status');
+                updateBattleLog();
+                return;
+            }
+
+            const optionsDiv = document.getElementById('retreatOptions');
+            optionsDiv.innerHTML = '';
+
+            player.standbyCards.forEach((card, idx) => {
+                const div = document.createElement('div');
+                div.className = `select-card glass ${getRarityClass(card.rarity)}`;
+                div.innerHTML = renderCardInfo(card);
+
+                div.onclick = async () => {
+                    if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                        TutorialSystem.onActionCompleted('click_retreat_option');
+                    }
+                    if (GameState.mode === 'online') {
+                        NetManager.sendAction({ type: 'retreat', skillIdx: idx });
+                    }
+
+                    BattleSystem.retreat(playerKey, idx);
+                    closeRetreatModal();
+                    updateUI();
+                    updateBattleLog();
+                    await GameState.endTurn();
+                    updateUI();
+
+                    // Trigger AI if it's Player 2's turn in story mode or PvE
+                    if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
+                        setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+                    }
+                };
+                optionsDiv.appendChild(div);
+            });
+
+            document.getElementById('retreatModal').classList.add('active');
+
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.onActionCompleted('click_retreat');
+                setTimeout(() => TutorialSystem.checkTrigger('onRetreatPanelOpen'), 100);
+            }
+        }
+
+        function closeRetreatModal() {
+            document.getElementById('retreatModal').classList.remove('active');
+        }
+
+        function showCardDetails(card) {
+            const modal = document.getElementById('cardDetailsModal');
+            const content = document.getElementById('cardDetailsContent');
+
+            let skillsHtml = '';
+            if (card.skills && card.skills.length > 0) {
+                skillsHtml = '<div style="margin-top: 15px; text-align: left;">';
+                card.skills.forEach(skill => {
+                    skillsHtml += `
+                        <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                            <div style="color: var(--neon-cyan); font-weight: bold;">${skill.name} <span style="font-size: 0.8rem; color: #888;">(CD: ${skill.cd})</span></div>
+                            <div style="font-size: 0.9rem; color: #ddd; margin-top: 3px;">${skill.desc || '無描述'}</div>
+                        </div>`;
+                });
+                skillsHtml += '</div>';
+            }
+
+            content.innerHTML = `
+                <div class="battle-card-header" style="justify-content: center; margin-bottom: 20px;">
+                    <span class="battle-char-name" style="font-size: 2rem;">${card.name}</span>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 20px; font-size: 1.2rem; margin-bottom: 20px;">
+                    <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
+                    <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
+                </div>
+                ${card.passive ? `
+                    <div style="margin-bottom: 15px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 10px; border-left: 3px solid var(--neon-gold); border-radius: 4px;">
+                        <div style="color: var(--neon-gold); font-weight: bold;">被動: ${card.passive.name}</div>
+                        <div style="font-size: 0.9rem; margin-top: 5px;">${card.passive.desc || '無描述'}</div>
+                    </div>` : ''}
+                ${skillsHtml}
+                <button class="btn" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('cardDetailsModal').classList.remove('active')">關閉</button>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('cardDetailsModal').onclick = (e) => {
+            if (e.target.id === 'cardDetailsModal') {
+                e.target.classList.remove('active');
+            }
+        };
+
+        // Emoji Features
+        function openEmojiMenu() {
+            document.getElementById('emojiModal').classList.add('active');
+        }
+
+        function sendEmoji(emoji) {
+            document.getElementById('emojiModal').classList.remove('active');
+
+            // Show locally above my own avatar
+            const localKey = getLocalPlayerKey();
+            showEmojiAnimation(emoji, localKey);
+
+            // Broadcast to opponent
+            if (GameState.mode === 'online') {
+                NetManager.sendEmoji(emoji);
+            }
+        }
+
+        function showEmojiAnimation(emoji, playerKey) {
+            const containerId = playerKey === 'player1' ? 'player1Area' : 'player2Area';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const el = document.createElement('div');
+            el.textContent = emoji;
+            el.style.position = 'absolute';
+            el.style.top = '10%';
+            el.style.left = '50%';
+            el.style.transform = 'translate(-50%, 0)';
+            el.style.fontSize = '4rem';
+            el.style.zIndex = '1000';
+            el.style.pointerEvents = 'none';
+            el.style.animation = 'emojiPoof 2s ease-out forwards';
+            el.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
+
+            container.appendChild(el);
+
+            // Add style locally if it doesn't exist
+            if (!document.getElementById('emojiStyle')) {
+                const style = document.createElement('style');
+                style.id = 'emojiStyle';
+                style.textContent = `
+                    @keyframes emojiPoof {
+                        0% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+                        15% { opacity: 1; transform: translate(-50%, -20px) scale(1.2); }
+                        30% { transform: translate(-50%, -10px) scale(1.0); }
+                        80% { opacity: 1; transform: translate(-50%, -30px) scale(1.0); }
+                        100% { opacity: 0; transform: translate(-50%, -50px) scale(0.8); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 2000);
+        }
+
+        function finishStoryBattle() {
+            if (GameState.winner === 1) {
+                unlockNextNode(GameState.currentChapterId, GameState.currentNodeIndex);
+
+                const chapter = STORY_CHAPTERS.find(c => c.id === GameState.currentChapterId);
+                const nextIndex = GameState.currentNodeIndex + 1;
+
+                if (nextIndex < chapter.nodes.length) {
+                    localStorage.setItem('story_current_node', nextIndex);
+                    const nextNode = chapter.nodes[nextIndex];
+                    if (nextNode.type === 'dialogue') {
+                        location.href = 'story_runner.html';
+                    } else if (nextNode.type === 'battle') {
+                        location.reload();
+                    }
+                } else {
+                    document.getElementById('storyCompleteModal').classList.add('active');
+                }
+            } else {
+                document.getElementById('storyFailModal').classList.add('active');
+            }
+        }
+
+        function surrenderBattle() {
+            if (GameState.phase === 'game_over') return;
+            
+            if (confirm("確定要投降嗎？\n如果是排位賽，這將會判定為敗北並扣除星數。")) {
+                const localKey = getLocalPlayerKey();
+                
+                // Set game over locally
+                GameState.handleSurrender(localKey);
+                updateUI();
+                updateBattleLog();
+
+                // Broadcast to opponent
+                if (GameState.mode === 'online') {
+                    NetManager.sendSurrender();
+                }
+
+                // Trigger victory animation (for opponent)
+                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
+                Animations.victory(winnerName);
+            }
+        }
+
+        let isProcessing = false;
+
+        // ── Utilities for Network Lobby ─────────────────
+        function copyRoomCode() {
+            const code = document.getElementById('networkRoomCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const el = document.getElementById('lobbyCopyHint');
+                el.textContent = '✅ 房號已複製！分享給好友吧';
+                el.style.color = 'var(--neon-green)';
+                const btn = document.getElementById('lobbyCopyBtn');
+                btn.textContent = '✅';
+                setTimeout(() => { btn.textContent = '📋'; el.textContent = ''; }, 2500);
+            }).catch(() => {
+                const range = document.createRange();
+                range.selectNode(document.getElementById('networkRoomCode'));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                document.getElementById('lobbyCopyHint').textContent = '已選取，可自行複製';
+            });
+        }
+
+        async function loadLobbyFriends(roomCode) {
+            AuthManager.init();
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            const section = document.getElementById('lobbyFriendsSection');
+            const list = document.getElementById('lobbyFriendsList');
+            try {
+                const friends = await FriendsManager.getFriendList();
+                if (!friends || friends.length === 0) {
+                    list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">還沒有好友，可分享房號給對方</div>';
+                } else {
+                    list.innerHTML = friends.map(f => `
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);">
+                            <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--glass-bg);flex-shrink:0;">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.displayName)}</div>
+                            </div>
+                            <button class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
+                        </div>`).join('');
+                }
+                section.classList.remove('hidden');
+            } catch (e) {
+                list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">無法載入好友</div>';
+                section.classList.remove('hidden');
+            }
+        }
+
+        async function inviteFromLobby(friendUid, friendName, roomCode) {
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            const profile = await UserProfile.getProfile(user.uid);
+            if (!profile) return;
+            
+            try {
+                const gameMode = localStorage.getItem('onlineSubMode') || 'classic';
+                await FriendsManager.sendGameInvite(friendUid, roomCode, gameMode, profile.displayName);
+                // Find the invite button and show feedback
+                const btns = document.querySelectorAll('#lobbyFriendsList .btn-gold');
+                btns.forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(friendUid)) {
+                        btn.textContent = '已送出';
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                    }
+                });
+            } catch(e) {
+                alert('邀請失敗: ' + e.message);
+            }
+        }
+        
+        function escHtml(str) {
+            return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // Rank reveal animation (shown at the start of a ranked match)
+        function getLocalPlayerKey() {
+            if (GameState.mode === 'online') {
+                const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                return role === 'host' ? 'player1' : 'player2';
+            }
+            return 'player1';
+        }
+
+        async function showRankReveal() {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('rankRevealOverlay');
+                if (!overlay) { resolve(); return; }
+
+                const myInfo = (() => {
+                    try { return JSON.parse(localStorage.getItem('myRankedInfo') || 'null'); } catch(e) { return null; }
+                })();
+                const oppInfo = window.opponentPlayerInfo;
+                const localKey = getLocalPlayerKey();
+                const isP1 = localKey === 'player1';
+                const myName = isP1 ? (GameState.player1?.name || '我') : (GameState.player2?.name || '我');
+                const oppName = isP1 ? (GameState.player2?.name || '對手') : (GameState.player1?.name || '對手');
+
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="rank-reveal-card" style="min-width:320px;">
+                        <div style="color:var(--neon-gold);font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">⚔ 排位對戰</div>
+                        <div style="display:flex;justify-content:center;gap:32px;align-items:flex-start;">
+                            <!-- Me -->
+                            <div style="text-align:center;min-width:100px;">
+                                <div style="font-size:0.75rem;color:var(--neon-cyan);letter-spacing:2px;margin-bottom:8px;">我</div>
+                                <img src="${myInfo?.rankImg || 'race_pic/骸1.png'}" style="width:70px;height:70px;object-fit:contain;);">
+                                <div style="font-family:var(--font-heading);color:var(--neon-cyan);font-size:0.9rem;margin-top:6px;">${escHtml(myName)}</div>
+                                <div style="color:var(--neon-gold);font-size:0.8rem;margin-top:2px;">${myInfo?.rankDisplay || '骸1'}</div>
+                                ${myInfo?.activeTitle ? `<div style="color:var(--text-muted);font-size:0.7rem;margin-top:2px;">〔${escHtml(myInfo.activeTitle)}〕</div>` : ''}
+                            </div>
+                            <div style="font-family:var(--font-heading);font-size:2rem;color:var(--text-muted);padding-top:24px;">VS</div>
+                            <!-- Opponent -->
+                            <div style="text-align:center;min-width:100px;">
+                                <div style="font-size:0.75rem;color:var(--neon-magenta);letter-spacing:2px;margin-bottom:8px;">對手</div>
+                                <img src="${oppInfo?.rankImg || 'race_pic/骸1.png'}" style="width:70px;height:70px;object-fit:contain;);">
+                                <div style="font-family:var(--font-heading);color:var(--neon-magenta);font-size:0.9rem;margin-top:6px;">${escHtml(oppName)}</div>
+                                <div style="color:var(--neon-gold);font-size:0.8rem;margin-top:2px;">${oppInfo?.rankDisplay || '骸1'}</div>
+                                ${oppInfo?.activeTitle ? `<div style="color:var(--text-muted);font-size:0.7rem;margin-top:2px;">〔${escHtml(oppInfo.activeTitle)}〕</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Auto-hide after 2.8s (matches animation)
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    overlay.innerHTML = '';
+                    resolve();
+                }, 2800);
+            });
+        }
+
+        // Profile View Helpers
+        function viewMyProfile() {
+            const user = AuthManager.getCurrentUser();
+            if (user) {
+                window.open(`player.html?uid=${user.uid}`, '_blank');
+            }
+        }
+
+        let opponentUid = null;
+        // Listen for player info to get UID
+        window.addEventListener('load', () => {
+            const oldOnPlayerInfo = NetManager.onPlayerInfoReceived;
+            NetManager.onPlayerInfoReceived = (info) => {
+                if (oldOnPlayerInfo) oldOnPlayerInfo(info);
+                if (info && info.uid) {
+                    opponentUid = info.uid;
+                    console.log('Received opponent UID:', opponentUid);
+                }
+            };
+        });
+
+        function viewOpponentProfile() {
+            // Priority:
+            // 1. If disguised bot, use NPC_[botName]
+            // 2. If online pvp, use exchanged opponentUid
+            // 3. Fallback: check botMatchName
+            
+            if (localStorage.getItem('isDisguisedBot') === 'true') {
+                const botName = localStorage.getItem('botMatchName');
+                if (botName) {
+                    window.open(`player.html?uid=NPC_${botName}`, '_blank');
+                    return;
+                }
+            }
+
+            if (opponentUid) {
+                window.open(`player.html?uid=${opponentUid}`, '_blank');
+                return;
+            }
+
+            // Fallback for non-disguised bots or if info not yet received
+            const botName = localStorage.getItem('botMatchName');
+            if (botName) {
+                window.open(`player.html?uid=NPC_${botName}`, '_blank');
+            }
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1804 @@
+// ========== NEON CARD GAME - GAME STATE MANAGEMENT ==========
+
+const GameState = {
+    mode: 'classic', // 'quick' or 'classic'
+    turnCount: 0,
+    currentPlayer: 1,
+    phase: 'init', // 'init', 'coin_flip', 'draw', 'select', 'battle', 'game_over'
+    firstPlayer: null,
+    winner: null,
+
+    player1: {
+        name: '玩家1',
+        battleCard: null,
+        standbyCards: [],
+        allCards: [],
+        skipTurns: 0
+    },
+
+    player2: {
+        name: '玩家2',
+        battleCard: null,
+        standbyCards: [],
+        allCards: [],
+        skipTurns: 0
+    },
+
+    battleLog: [],
+    rarityDistribution: null,
+
+    // Initialize new game
+    init(mode = 'classic', type = 'pvp', difficulty = 'normal') {
+        this.mode = mode;
+        this.type = type;
+        this.difficulty = difficulty;
+        this.turnCount = 0;
+        this.currentPlayer = 1;
+        this.phase = 'coin_flip';
+        this.firstPlayer = null;
+        this.winner = null;
+        // Story mode specific
+        this.currentChapterId = null;
+        this.currentNodeIndex = null;
+        this.storyNode = null;
+
+        ['player1', 'player2'].forEach(p => {
+            this[p].battleCard = null;
+            this[p].standbyCards = [];
+            this[p].allCards = [];
+            this[p].skipTurns = 0;
+        });
+
+        this.battleLog = [];
+        this.didSwapOrDie = { player1: false, player2: false };
+    },
+
+    // Initialize story game
+    initStoryMode(chapterId, nodeIndex) {
+        this.init('story');
+        this.currentChapterId = chapterId;
+        this.currentNodeIndex = nodeIndex;
+
+        // Skip coin flip for story mode, player always goes first
+        this.phase = 'select';
+        this.firstPlayer = 1;
+        this.currentPlayer = 1;
+
+        // Ensure story.js is loaded
+        if (typeof STORY_CHAPTERS === 'undefined') {
+            console.error("STORY_CHAPTERS is not defined. Make sure story.js is loaded.");
+            return;
+        }
+
+        const chapter = STORY_CHAPTERS.find(c => c.id === chapterId);
+        if (!chapter) return;
+
+        this.storyNode = chapter.nodes[nodeIndex];
+        const node = this.storyNode;
+
+        // Update names
+        this.player1.name = node.player.name || '玩家1';
+        this.player2.name = node.enemy.name || '玩家2';
+
+        // Set decks
+        this.setDeckForPlayer('player1', node.player.deck, node.rules?.customStats);
+        this.setDeckForPlayer('player2', node.enemy.deck, node.rules?.customStats);
+    },
+
+    // Helper to set customized deck
+    setDeckForPlayer(playerKey, deckNames, customStats) {
+        const cards = [];
+        deckNames.forEach(name => {
+            const charData = getCharacterByName(name);
+            if (charData) {
+                const instance = createCharacterInstance(charData);
+                // Apply custom stats if any
+                if (customStats && customStats[name]) {
+                    Object.assign(instance, customStats[name]);
+                }
+                cards.push(instance);
+            } else {
+                console.warn(`Character ${name} not found in database.`);
+            }
+        });
+
+        // In story mode, we don't pick 1 out of hand, the entire deck is the hand
+        // Wait, standard game expects player to *select* the battle card initially from `allCards`.
+        // So we populate `allCards`.
+        this[playerKey].allCards = cards;
+        this[playerKey].unlockedCharacters = deckNames; // Store the deck list for drawing
+    },
+
+    // Get card count based on mode
+    getCardCount() {
+        if (this.mode === 'online') {
+            return this.onlineSubMode === 'quick' ? 3 : 7;
+        }
+        return this.mode === 'quick' ? 3 : 7;
+    },
+
+    // Get current player object
+    getCurrentPlayer() {
+        return this.currentPlayer === 1 ? this.player1 : this.player2;
+    },
+
+    // Get opponent player object
+    getOpponent() {
+        return this.currentPlayer === 1 ? this.player2 : this.player1;
+    },
+
+    // Draw cards for a player
+    drawCards(playerKey, count) {
+        const cards = [];
+        for (let i = 0; i < count; i++) {
+            // If fair rarity distribution is set, use it
+            const targetRarity = (this.rarityDistribution && this.rarityDistribution[i]) ? this.rarityDistribution[i] : null;
+            const allowedPool = this[playerKey].unlockedCharacters || null;
+            const char = drawRandomCharacter(targetRarity, allowedPool);
+            const instance = createCharacterInstance(char);
+            cards.push(instance);
+        }
+        this[playerKey].allCards = cards;
+
+        // --- Title Check: Fate Usurper / Lightless ---
+        if (cards.length > 0 && typeof TitleManager !== 'undefined') {
+            const rarities = cards.map(c => c.rarity);
+            if (rarities.every(r => r === 'MYTHIC')) {
+                TitleManager.unlockTitle('命運篡奪者');
+            } else if (rarities.every(r => r === 'COMMON')) {
+                TitleManager.unlockTitle('無光之徒');
+            }
+        }
+
+        return cards;
+    },
+
+    // Pre-generate rarity distribution for fair matches (Ranked)
+    setupRankedDistribution(count) {
+        this.rarityDistribution = [];
+        for (let i = 0; i < count; i++) {
+            const roll = window.GameRandom() * 100;
+            let rarity;
+            if (roll < 5) rarity = 'MYTHIC';           // 5%
+            else if (roll < 17) rarity = 'LEGENDARY';  // 12%
+            else if (roll < 35) rarity = 'EPIC';       // 18%
+            else if (roll < 60) rarity = 'RARE';       // 25%
+            else rarity = 'COMMON';                     // 40%
+            this.rarityDistribution.push(rarity);
+        }
+        console.log('[FairMatch] Generated rarity distribution:', this.rarityDistribution);
+    },
+
+    // Set battle card
+    setBattleCard(playerKey, cardIndex) {
+        const player = this[playerKey];
+        player.battleCard = player.allCards[cardIndex];
+        player.standbyCards = player.allCards.filter((_, i) => i !== cardIndex);
+    },
+
+    // Swap with standby
+    swapWithStandby(playerKey, standbyIndex) {
+        const player = this[playerKey];
+        const oldBattle = player.battleCard;
+        player.battleCard = player.standbyCards[standbyIndex];
+        player.standbyCards[standbyIndex] = oldBattle;
+        this.didSwapOrDie[playerKey] = true;
+    },
+
+    // Add card to standby
+    addToStandby(playerKey, card) {
+        this[playerKey].standbyCards.push(card);
+    },
+
+    // Remove dead cards
+    async handleDeath(playerKey) {
+        const player = this[playerKey];
+        if (player.battleCard && player.battleCard.hp <= 0) {
+            const deadCard = player.battleCard;
+            deadCard.deathCount++;
+
+            // Check for passive on_death effects
+            const revived = await this.checkRevive(deadCard);
+
+            if (!revived) {
+                await this.processPassive(deadCard, 'on_death');
+                player.battleCard = null;
+                this.didSwapOrDie[playerKey] = true;
+            }
+
+            return !revived;
+        }
+        return false;
+    },
+
+    // Check if character can revive
+    async checkRevive(card) {
+        if (!card.passive || card.passive.effect.trigger !== 'on_death') {
+            // Check for 阿共 or other passives that might trigger on death but have trigger: passive
+            if (card.passive?.effect?.action === 'no_attack_dot_revive' || card.passive?.effect?.action === 'revive_chance' || card.passive?.effect?.action === 'revive_decaying_chance') {
+                // fall through to logic below
+            } else {
+                return false;
+            }
+        }
+
+        const effect = card.passive.effect;
+
+        // Handle revive_decaying_chance (骷髏王)
+        if (effect.action === 'revive_decaying_chance') {
+            if (!card.resources) card.resources = {};
+            let currentChance = card.resources.revive_chance_current;
+            if (currentChance === undefined) currentChance = effect.initial_chance || 100;
+            const minChance = effect.min_chance || 40;
+
+            let rollSuccess = true;
+            if (currentChance < 100) {
+                rollSuccess = await Animations.probabilityRoll(currentChance, `${card.name} 復活判定`);
+            }
+
+            if (currentChance >= minChance && rollSuccess) {
+                card.hp = effect.hp || 30;
+                card.resources.revive_chance_current = Math.max(minChance, currentChance - (effect.decay || 10));
+                this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活！(概率: ${currentChance}%)`, 'status');
+                await Animations.reviveEffect(card.name);
+                return true;
+            }
+            return false;
+        }
+
+        if (effect.action === 'revive_chance' || effect.action === 'no_attack_dot_revive' || effect.action === 'draw_revive_limited') {
+            const base = effect.revive_chance || effect.chance || effect.base || 0;
+            const decay = effect.decay || 0;
+            const revCount = (card.reviveCount || 0);
+            const chance = Math.max(effect.min_chance || 0, base - revCount * decay);
+
+            // Check limit
+            if (effect.limit !== undefined && (card.reviveCount || 0) >= effect.limit) {
+                return false;
+            }
+
+            if (effect.action === 'draw_revive_limited' && (card.reviveCount || 0) >= effect.max_revive) {
+                return false;
+            }
+
+            let rollSuccess = true;
+            if (chance > 0 && chance < 100) {
+                rollSuccess = await Animations.probabilityRoll(chance, `${card.name} 復活判定`);
+            }
+
+            if (chance > 0 && rollSuccess) {
+                card.hp = effect.revive_hp !== undefined ? effect.revive_hp : (effect.hp !== undefined ? effect.hp : card.maxHp);
+                card.reviveCount = (card.reviveCount || 0) + 1;
+                const chanceMsg = decay > 0 ? ` (成功機率: ${chance}%)` : '';
+                this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！${chanceMsg}`, 'status');
+                await Animations.reviveEffect(card.name);
+
+                if (effect.action === 'draw_revive_limited') {
+                    // Draw cards to standby (not overwrite allCards)
+                    const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const reviveDrawPool = this[ownerKey].unlockedCharacters || null;
+                    for (let i = 0; i < (effect.draw || 1); i++) {
+                        const drCh = drawRandomCharacter(null, reviveDrawPool);
+                        if (drCh) {
+                            const drInst = createCharacterInstance(drCh);
+                            this[ownerKey].standbyCards.push(drInst);
+                        }
+                    }
+                    this.addLog(`${card.name} 抽卡`, 'skill');
+                }
+                return true;
+            }
+        }
+        return false;
+    },
+
+    checkWin() {
+        const p1Alive = this.player1.battleCard || this.player1.standbyCards.length > 0;
+        const p2Alive = this.player2.battleCard || this.player2.standbyCards.length > 0;
+
+        if (!p1Alive && !p2Alive) {
+            this.winner = 0; // Draw
+        } else if (!p1Alive) {
+            this.winner = 2; // P2 wins
+        } else if (!p2Alive) {
+            this.winner = 1; // P1 wins
+        }
+
+        if (this.winner !== null) {
+            this.phase = 'game_over';
+            if (typeof stopTurnTimer === 'function') stopTurnTimer();
+
+            // --- Title Check: Absolute Dictator ---
+            if (this.winner === 1 || this.winner === 2) {
+                const winnerKey = `player${this.winner}`;
+                const cardCount = this.getCardCount();
+                
+                // If 7-card mode AND player never swapped/died
+                if (cardCount === 7 && !this.didSwapOrDie[winnerKey] && typeof TitleManager !== 'undefined') {
+                    TitleManager.unlockTitle('絕對獨裁');
+                }
+            }
+
+            return true;
+        }
+        return false;
+    },
+
+    // Handle explicit surrender
+    handleSurrender(surrenderingPlayerKey) {
+        if (this.winner !== null) return;
+        
+        const surrenderingPlayer = surrenderingPlayerKey === 'player1' ? 1 : 2;
+        this.winner = surrenderingPlayer === 1 ? 2 : 1;
+        this.phase = 'game_over';
+        
+        if (typeof stopTurnTimer === 'function') stopTurnTimer();
+        
+        const loserName = surrenderingPlayerKey === 'player1' ? this.player1.name : this.player2.name;
+        this.addLog(`${loserName} 投降了！`, 'status');
+        
+        return true;
+    },
+
+    // End turn
+    async endTurn() {
+        // Process end-of-turn effects
+        const currentCard = this.getCurrentPlayer().battleCard;
+        if (currentCard) {
+            await this.processPassive(currentCard, 'on_turn_end');
+        }
+        this.processStatusEffects(currentCard);
+
+        // Process on_enemy_turn_end for the OTHER player's battle card (e.g. L型戰機)
+        const opposingCard = this.getOpponent().battleCard;
+        if (opposingCard && opposingCard.passive?.effect?.trigger === 'on_enemy_turn_end') {
+            await this.processPassive(opposingCard, 'on_enemy_turn_end');
+        }
+
+        // Switch player
+        this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+
+        // If back to first player, increment turn count
+        if (this.currentPlayer === this.firstPlayer) {
+            this.turnCount++;
+
+            // --- Title Check: Immortal ---
+            if (this.turnCount === 300 && typeof TitleManager !== 'undefined') {
+                TitleManager.unlockTitle('不朽者');
+            }
+        }
+
+        // Process start-of-turn effects for new player
+        await this.processStartOfTurn();
+
+        if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+            TutorialSystem.checkTrigger(this.currentPlayer === 1 ? 'onPlayerTurn' : 'onEnemyTurn');
+        }
+    },
+
+    // Process status effects
+    processStatusEffects(card) {
+        if (!card || !card.statusEffects) return;
+
+        card.statusEffects = card.statusEffects.filter(effect => {
+            // 1. Process special turn-start/end behaviors
+            if (['poison', 'burn', 'dot'].includes(effect.type)) {
+                const dmg = effect.damage || 0;
+                card.hp -= dmg;
+                this.addLog(`${card.name} 受到 ${effect.name || effect.type} ${dmg} 傷害`, 'damage');
+            } else if (effect.type === 'shield_dot') {
+                const val = effect.value || 0;
+                card.shield += val;
+                this.addLog(`${card.name} 獲得 ${val} 持續護盾`, 'skill');
+            } else if (effect.type === 'regen') {
+                card.hp = Math.min(card.maxHp, card.hp + (effect.heal || 0));
+                this.addLog(`${card.name} 再生了 ${effect.heal} 點生命`, 'heal');
+            } else if (effect.type === 'shield_decay') {
+                const isPercent = effect.decay_percent !== undefined;
+                const decay = isPercent ? Math.floor(card.shield * (effect.decay_percent / 100)) : (effect.decay || 0);
+                if (decay > 0) {
+                    card.shield = Math.max(0, card.shield - decay);
+                    this.addLog(`${card.name} 的護盾衰減了 ${decay}`, 'status');
+                }
+            } else if (effect.type === 'erosion') {
+                const hpLoss = Math.floor(card.maxHp * ((effect.hp_percent || 0) / 100));
+                const atkLoss = Math.floor(card.atk * ((effect.atk_percent || 0) / 100));
+                card.maxHp = Math.max(1, card.maxHp - hpLoss);
+                if (card.hp > card.maxHp) card.hp = card.maxHp;
+                card.atk = Math.max(0, card.atk - atkLoss);
+                this.addLog(`${card.name} 受到侵蝕，屬性下降`, 'status');
+            } else if (effect.type === 'curable_burn_percent') {
+                // 火哥-著火: 每回合扣除當前生命值的burn_percent%，有cure_chance%概率消除
+                if (window.GameRandom() * 100 < (effect.cure_chance || 40)) {
+                    this.addLog(`${card.name} 的著火效果被撲滅了！`, 'status');
+                    return false; // remove
+                }
+                const burnDmg = Math.floor(card.hp * ((effect.burn_percent || 8) / 100));
+                card.hp -= burnDmg;
+                this.addLog(`${card.name} 著火傷害 ${burnDmg}`, 'damage');
+            } else if (effect.type === 'percent_hp_dot') {
+                // 王欸等-微笑: 每回合-10%當前HP
+                const dmg = Math.floor(card.hp * (effect.percent / 100));
+                card.hp -= dmg;
+                this.addLog(`${card.name} 受到 ${effect.name || '百分比傷害'} ${dmg} 傷害`, 'damage');
+            } else if (effect.type === 'delayed_buff') {
+                // 伽利略-軟禁: 暈眩結束後增益
+                if (effect.triggersAfter !== undefined && effect.triggersAfter > 0) {
+                    effect.triggersAfter--;
+                    if (effect.triggersAfter <= 0) {
+                        card.hp = Math.min(card.maxHp, card.hp + (effect.hp || 0));
+                        card.atk += (effect.atk || 0);
+                        this.addLog(`${card.name} 軟禁結束，HP +${effect.hp}, ATK +${effect.atk}`, 'skill');
+                        return false; // Remove after triggering
+                    }
+                }
+            }
+
+            // 2. Permanent effects always stay
+            if (effect.permanent || effect.turns === -1) return true;
+
+            // 3. Update durations
+            let keep = true;
+
+            if (effect.turns !== undefined) {
+                if (effect.turns > 0) {
+                    effect.turns--;
+                    if (effect.turns <= 0) {
+                        // Clean up effects that have ended
+                        if (effect.type === 'buff_atk_temp') {
+                            card.atk -= (effect.value || 0);
+                            this.addLog(`${card.name} 攻擊增益結束`, 'status');
+                        } else if (effect.type === 'debuff_atk') {
+                            card.atk += (effect.value || 0);
+                            this.addLog(`${card.name} 攻擊下降結束`, 'status');
+                        } else if (effect.type === 'blackhole') {
+                            card.hp = 0;
+                            this.addLog(`${card.name} 被黑洞吞噬了！`, 'damage');
+                        } else if (effect.type === 'atk_zero') {
+                            // Restore atk when set_enemy_atk_zero_timed expires
+                            card.atk = effect.original_atk || card.atk;
+                            this.addLog(`${card.name} 的攻擊力恢復了`, 'status');
+                        } else if (effect.type === 'vulnerable') {
+                            // vulnerable is tracked externally during damage calc
+                        }
+                        keep = false;
+                    }
+                } else if (effect.turns === 0) {
+                    keep = false;
+                }
+            }
+
+            // Hits are checked in combat, but if hit count reaches 0 naturally, remove it
+            if (keep && effect.hits !== undefined) {
+                if (effect.hits <= 0) keep = false;
+            }
+
+            return keep;
+        });
+    },
+
+    // Process start of turn
+    async processStartOfTurn() {
+        const player = this.getCurrentPlayer();
+        const card = player.battleCard;
+        if (!card) return;
+
+        // Check skip turns
+        if (player.skipTurns > 0) {
+            player.skipTurns--;
+            this.addLog(`${player.name} 跳過回合！`, 'status');
+            await this.endTurn();
+            return;
+        }
+
+        // Check stun
+        const stun = card.statusEffects.find(e => e.type === 'stun');
+        if (stun) {
+            this.addLog(`${card.name} 被暈眩，無法行動！`, 'status');
+            await this.endTurn();
+            return;
+        }
+
+        // Check sleep (50% wake chance)
+        const sleep = card.statusEffects.find(e => e.type === 'sleep');
+        if (sleep) {
+            if (window.GameRandom() < 0.5) {
+                card.statusEffects = card.statusEffects.filter(e => e !== sleep);
+                this.addLog(`${card.name} 甦醒了！`, 'status');
+            } else {
+                this.addLog(`${card.name} 還在睡眠中...`, 'status');
+                await this.endTurn();
+                return;
+            }
+        }
+
+        // Process passive on_turn_start effects
+        await this.processPassive(card, 'on_turn_start');
+
+        // Process general passives (e.g. conditional stats)
+        await this.processPassive(card, 'passive');
+
+        // Process turn interval passives (every X turns)
+        this.processTurnIntervalPassives(card);
+
+        // Reduce cooldowns for active card
+        if (card.cooldowns) {
+            Object.keys(card.cooldowns).forEach(k => {
+                if (card.cooldowns[k] > 0) card.cooldowns[k]--;
+            });
+        }
+
+        // Also reduce cooldowns for standby cards
+        player.standbyCards.forEach(standbyCard => {
+            if (standbyCard.cooldowns) {
+                Object.keys(standbyCard.cooldowns).forEach(k => {
+                    if (standbyCard.cooldowns[k] > 0) standbyCard.cooldowns[k]--;
+                });
+            }
+        });
+    },
+
+    // Process passive abilities
+    async processPassive(card, trigger, args = {}) {
+        if (!card.passive) return;
+        const effect = card.passive.effect;
+        // Allow through if trigger matches, or is a 'passive' type, or certain special triggers
+        // that need to fall through to let specific cases handle them
+        if (effect.trigger !== trigger && effect.trigger !== 'passive') {
+            // Allow on_skill/on_skill_count/on_skill_success to fall through ONLY if the passive
+            // itself is triggered by one of those events (not e.g. on_death passives).
+            const skillTriggers = ['on_skill_success', 'on_skill', 'on_skill_count'];
+            if (!skillTriggers.includes(trigger) || !skillTriggers.includes(effect.trigger)) return;
+        }
+
+        switch (effect.action) {
+            case 'buff_atk':
+                card.atk += effect.value;
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.value}`, 'skill');
+                break;
+            case 'shield':
+                if (trigger === 'on_skill_success' && (!effect.skill || effect.skill === args.skillName)) {
+                    card.shield += effect.value;
+                    this.addLog(`${card.name} 獲得 ${effect.value} 護盾`, 'skill');
+                }
+                break;
+            case 'buff_max_hp':
+                card.maxHp += effect.value;
+                card.hp += effect.value;
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限 +${effect.value}`, 'skill');
+                break;
+            case 'buff_hp_atk':
+                // Per user rule: hp+ means recovery
+                const recovery = effect.hp || effect.value || 0;
+                card.hp = Math.min(card.maxHp, card.hp + recovery);
+                card.atk += (effect.atk || 0);
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${recovery} HP 並提升攻擊`, 'skill');
+                break;
+            case 'buff_max_hp_atk':
+                if (effect.trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] >= effect.count) {
+                            card.maxHp += (effect.hp || 0);
+                            card.hp += (effect.hp || 0);
+                            card.atk += (effect.atk || 0);
+                            card.resources[countKey] = 0;
+                            this.addLog(`${card.name} 被動 [${card.passive.name}] 觸發！效果大幅提升`, 'skill');
+                        }
+                    }
+                } else {
+                    card.maxHp += (effect.hp || 0);
+                    card.hp += (effect.hp || 0);
+                    card.atk += (effect.atk || 0);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限提升並提升攻擊`, 'skill');
+                }
+                break;
+            case 'heal':
+                card.hp = Math.min(card.maxHp, card.hp + effect.value);
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${effect.value} HP`, 'heal');
+                break;
+            case 'heal_turn_number': // 太陽-黑子
+                card.hp = Math.min(card.maxHp, card.hp + this.turnCount);
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${this.turnCount} HP`, 'heal');
+                break;
+            case 'scale_with_turn': // 冥王星-遠離
+                // Per user rule: hp+ means recovery. If they want max hp, they say "血量上限".
+                // Since this desc says "hp+", we treat as recovery.
+                card.hp = Math.min(card.maxHp, card.hp + (effect.hp_mult || 0));
+                card.atk += (effect.atk_mult || 0);
+                this.addLog(`${card.name} 被動 [${card.passive.name}] 成長中`, 'skill');
+                break;
+            case 'no_attack_dot_revive': // 阿共-共機擾台
+                {
+                    if (trigger === 'on_turn_start') {
+                        const opp = this.getOpponent();
+                        if (opp.battleCard) {
+                            opp.battleCard.hp -= effect.dot;
+                            this.addLog(`${card.name} 被動：對 ${opp.battleCard.name} 造成 ${effect.dot} 傷害`, 'damage');
+                        }
+                    }
+                    break;
+                }
+            case 'manhattan_project': // 奧本海默-曼哈頓計畫
+                card.resources.plan = (card.resources.plan || 0) + 1;
+                if (card.resources.plan >= 8) {
+                    card.resources.has_nuke = true;
+                    this.addLog(`${card.name} 獲得原子彈！`, 'skill');
+                }
+                break;
+            // conditional_stats handled below (de-duplicated)
+            case 'debuff_max_hp': // 暴擊騎士-詛咒
+                const targetOpp = this.getOpponent();
+                if (targetOpp.battleCard) {
+                    targetOpp.battleCard.maxHp = Math.max(1, targetOpp.battleCard.maxHp - effect.value);
+                    if (targetOpp.battleCard.hp > targetOpp.battleCard.maxHp) targetOpp.battleCard.hp = targetOpp.battleCard.maxHp;
+                    this.addLog(`${card.name} 被動：對手血量上限下降了 ${effect.value}`, 'status');
+                }
+                break;
+            case 'draw': // 魔眼-燃盡, 夏天與你-意志傳承, 達文西-天才
+                const owner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const drawn = [];
+                const drawPassivePool = this[owner].unlockedCharacters || null;
+                for (let i = 0; i < effect.count; i++) {
+                    const ch = drawRandomCharacter(null, drawPassivePool);
+                    const inst = createCharacterInstance(ch);
+                    this[owner].standbyCards.push(inst);
+                    drawn.push(inst);
+                }
+                if (drawn.length > 0) {
+                    this.addLog(`${card.name} 被動：抽取了 ${drawn.map(d => d.name).join(', ')}`, 'skill');
+                    Animations.drawCards(drawn);
+                }
+                break;
+            case 'add_resource': // 小米-研發, 高鐵-速度, Peter-特選
+                card.resources[effect.resource] = (card.resources[effect.resource] || 0) + effect.value;
+                if (effect.resource === 'special_count') {
+                    this.addLog(`${card.name} 特選 +1 (${card.resources[effect.resource]})`, 'skill');
+                }
+                break;
+            case 'damage':
+                if (trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] >= effect.count) {
+                            card.resources[countKey] = 0;
+                            const opp = this.getOpponent().battleCard;
+                            if (opp) {
+                                opp.hp -= (effect.value || effect.damage || 0);
+                                this.addLog(`${card.name} 被動 [${card.passive.name}] 觸發！對 ${opp.name} 造成 ${effect.value || effect.damage} 傷害`, 'damage');
+                            }
+                        }
+                    }
+                } else if (trigger === 'on_death') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp) {
+                        opp.hp -= (effect.value || effect.damage || 0);
+                        this.addLog(`${card.name} 死亡時觸發被動 [${card.passive.name}]！對 ${opp.name} 造成 ${effect.value || effect.damage} 傷害`, 'damage');
+                    }
+                }
+                break;
+
+            // --- NEW PASSIVE HANDLERS ---
+            // --- PART 5 & 6 PASSIVE EFFECTS ---
+            case 'check_mahjong_combo':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const opp = ownerP === 'player1' ? 'player2' : 'player1';
+                    const targetOpp = this[opp].battleCard;
+                    const sb = this[ownerP].standbyCards;
+                    if (!targetOpp) break;
+
+                    const hasSan = ['紅中', '發財', '白板'].every(name => sb.some(c => c.name === name));
+                    const hasSi = ['東風', '南風', '西風', '北風'].every(name => sb.some(c => c.name === name));
+
+                    let mjCount = sb.filter(c => c.tags && c.tags.includes('mahjong')).length;
+                    if (this[ownerP].battleCard && this[ownerP].battleCard.tags && this[ownerP].battleCard.tags.includes('mahjong')) mjCount++;
+
+                    if (hasSan && !card.resources.san_triggered) {
+                        targetOpp.hp -= (effect.san_damage || 80);
+                        card.resources.san_triggered = true;
+                        this.addLog(`${card.name} 達成大三元！對 ${targetOpp.name} 造成 ${effect.san_damage || 80} 傷害`, 'damage');
+                    }
+
+                    if (hasSi && !card.resources.si_triggered) {
+                        targetOpp.hp -= (effect.si_damage || 100);
+                        card.resources.si_triggered = true;
+                        this.addLog(`${card.name} 達成大四喜！對 ${targetOpp.name} 造成 ${effect.si_damage || 100} 傷害`, 'damage');
+                    }
+
+                    if (mjCount >= 17 && !card.resources.seventeen_triggered) {
+                        targetOpp.hp -= (effect.seventeen_damage || 400);
+                        card.resources.seventeen_triggered = true;
+                        this.addLog(`${card.name} 達成十七張！對 ${targetOpp.name} 造成 ${effect.seventeen_damage || 400} 傷害`, 'damage');
+                    }
+                }
+                break;
+            case 'bao_passive':
+                if (trigger === 'on_turn_start') {
+                    card.resources[effect.resource_name || 'bao'] = (card.resources[effect.resource_name || 'bao'] || 0) + 1;
+                    if (effect.limit && card.resources[effect.resource_name || 'bao'] >= effect.limit) {
+                        card.hp = 0;
+                        this.addLog(`${card.name}包到極限了，自爆！`, 'damage');
+                    } else if (effect.threshold && card.resources[effect.resource_name || 'bao'] % effect.threshold === 0) {
+                        card.atk += effect.atk;
+                        this.addLog(`${card.name} 成長了！ATK +${effect.atk}`, 'skill');
+                    }
+                }
+                break;
+            case 'reject_clone':
+                if (trigger === 'on_enter' || trigger === 'passive') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.name === card.name && opp !== card) {
+                        opp.hp = 0;
+                        this.addLog(`世上不需要兩個${card.name}！`, 'damage');
+                    }
+                }
+                break;
+            case 'check_hollow_purple':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const sb = this[ownerP].standbyCards;
+                    if (sb.some(c => c.name === effect.requires[0]) && sb.some(c => c.name === effect.requires[1]) && !card.resources.hollow_purple) {
+                        card.skills[0].effect = { type: 'damage', value: effect.damage };
+                        card.skills[0].name = '虛式「茈」';
+                        card.resources.hollow_purple = true;
+                        this.addLog(`${card.name} 領悟了 虛式「茈」！`, 'skill');
+                    }
+                }
+                break;
+            case 'sacrifice_hp_buff_atk':
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    let hpLossTotal = card.resources.hp_sacrificed || 0;
+                    if (hpLossTotal < effect.max_loss) {
+                        const amount = Math.min(effect.hp_loss, effect.max_loss - hpLossTotal);
+                        card.maxHp = Math.max(1, card.maxHp - amount);
+                        if (card.hp > card.maxHp) card.hp = card.maxHp;
+                        card.atk += effect.atk_gain;
+                        card.resources.hp_sacrificed = hpLossTotal + amount;
+                        this.addLog(`${card.name} 血祭！血量上限 -${amount}，ATK +${effect.atk_gain}`, 'skill');
+                    }
+                }
+                break;
+            case 'refresh_cooldowns':
+                if (trigger === 'on_turn_start' && window.GameRandom() * 100 < effect.chance) {
+                    card.cooldowns.fill(0);
+                    this.addLog(`${card.name} 重置了所有技能冷卻！`, 'skill');
+                }
+                break;
+            case 'damage_cap':
+                if (trigger === 'passive') {
+                    card.statusEffects = card.statusEffects.filter(e => e.type !== 'damage_cap_hit');
+                    card.statusEffects.push({ type: 'damage_cap_hit', cap: effect.value, hits: 99 });
+                }
+                break;
+            case 'summon_chance':
+                if (trigger === 'on_attack') {
+                    if (window.GameRandom() * 100 < effect.chance) {
+                        const targetChar = getCharacterByName(effect.target);
+                        if (targetChar) {
+                            const inst = createCharacterInstance(targetChar);
+                            const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                            this[ownerKey].standbyCards.push(inst);
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${effect.target}`, 'skill');
+                            Animations.drawCards([inst]);
+                        }
+                    }
+                }
+                break;
+            case 'set_atk':
+                if (trigger === 'on_skill_success') {
+                    card.atk = effect.value;
+                }
+                break;
+            case 'set_stats':
+                if (trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        const countKey = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[countKey] = (card.resources[countKey] || 0) + 1;
+                        if (card.resources[countKey] === effect.count) {
+                            if (effect.hp) {
+                                card.hp = effect.hp;
+                                card.maxHp = Math.max(card.maxHp, effect.hp);
+                            }
+                            if (effect.atk) card.atk = effect.atk;
+                            this.addLog(`${card.name} 被動條件達成！能力大幅變化！`, 'skill');
+                        }
+                    }
+                }
+                break;
+            case 'bonus_vs_character':
+                if (trigger === 'on_attack') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.name.includes(effect.target)) {
+                        opp.hp -= effect.damage;
+                        this.addLog(`針對性攻擊！附加 ${effect.damage} 傷害`, 'damage');
+                    }
+                }
+                break;
+            case 'breakthrough':
+                if (trigger === 'on_attack') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.resources && opp.resources.defense_stacks) {
+                        opp.resources.defense_stacks = 0;
+                    }
+                    if (opp && opp.shield > 0) {
+                        opp.shield = 0;
+                        this.addLog(`破壞了護盾與防禦！`, 'skill');
+                    }
+                }
+                break;
+            case 'robot_merge':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const sb = this[ownerP].standbyCards;
+                    const r1 = sb.findIndex(c => c.name === effect.requires[0]);
+                    const r2 = sb.findIndex(c => c.name === effect.requires[1]);
+                    const r3 = sb.findIndex(c => c.name === effect.requires[2]);
+                    if (r1 !== -1 && r2 !== -1 && r3 !== -1) {
+                        const indices = [r1, r2, r3].sort((a, b) => b - a);
+                        indices.forEach(idx => sb.splice(idx, 1));
+
+                        // We will rely on window.BattleSystem in browser, we can't import dynamically in synchronous.
+                        // Wait, processPassive does not have BattleSystem? ProcessPassive is in GameState. In game, BattleSystem is global.
+                        if (typeof BattleSystem !== 'undefined') {
+                            BattleSystem.evolveCharacter(card, effect.target);
+                        } else {
+                            const tChar = getCharacterByName(effect.target);
+                            Object.assign(card, createCharacterInstance(tChar));
+                            this.addLog(`${card.name} 合體完成！`, 'skill');
+                        }
+                    }
+                }
+                break;
+            case 'death_chance_range':
+                if (trigger === 'on_turn_start') {
+                    const chance = Math.floor(window.GameRandom() * (effect.max - effect.min + 1)) + effect.min;
+                    if (window.GameRandom() * 100 < chance) {
+                        card.hp = 0;
+                        this.addLog(`${card.name} 迎來了死亡的隨機性 (判定機率 ${chance}%)！`, 'damage');
+                    } else {
+                        this.addLog(`${card.name} 逃過了死亡 (判定機率 ${chance}%)`, 'status');
+                    }
+                }
+                break;
+            case 'subspace_dodge':
+                if (trigger === 'passive') {
+                    card.resources.dodge = effect.chance || effect.dodge || 90;
+                }
+                break;
+            case 'ignore_dodge':
+                if (trigger === 'passive') {
+                    if (!card.statusEffects.some(e => e.type === 'ignore_dodge')) {
+                        card.statusEffects.push({ type: 'ignore_dodge', name: '必中', hits: 99 });
+                    }
+                }
+                break;
+            case 'revive_decaying_chance':
+                break;
+            case 'tiger_tank_wear':
+                if (trigger === 'on_attack' || trigger === 'on_skill_success') {
+                    if (!card.resources) card.resources = {};
+                    if (card.resources.broken) break;
+
+                    card.resources.wear_chance = (card.resources.wear_chance || 0) + 5;
+                    if (window.GameRandom() * 100 < card.resources.wear_chance) {
+                        card.resources.broken = true;
+                        card.atk = Math.max(0, card.atk - 50);
+                        this.addLog(`${card.name} 觸發品質不良，砲管損壞！ATK 下降 50`, 'status');
+                    }
+                }
+                break;
+            case 'believer_passive':
+                if (trigger === 'on_enter') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const hasGod = this[ownerP].standbyCards.some(c => effect.gods.includes(c.name)) || (this[ownerP].battleCard && effect.gods.includes(this[ownerP].battleCard.name));
+                    if (hasGod) {
+                        card.atk += effect.atk;
+                        card.maxHp += effect.hp;
+                        card.hp += effect.hp;
+                    }
+                }
+                break;
+            case 'follower_of_believed':
+                if (trigger === 'on_enter') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const counts = this[ownerP].standbyCards.filter(c => c.name === '信徒').length;
+                    card.atk += counts * effect.atk_per;
+                }
+                break;
+            case 'powerless':
+                if (trigger === 'passive') {
+                    card.atk = 0;
+                    if (effect.master) {
+                        const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                        const hasMaster = this[ownerKey].standbyCards.some(c => c.name === effect.master) || (this[ownerKey].battleCard && this[ownerKey].battleCard.name === effect.master);
+                        if (!hasMaster) {
+                            card.hp = 0;
+                        }
+                    }
+                }
+                break;
+            case 'low_hp_damage_reduction':
+                if (trigger === 'passive') {
+                    if (card.hp < card.maxHp * (effect.threshold / 100)) {
+                        card.resources.defense_stacks = effect.reduction;
+                    } else {
+                        card.resources.defense_stacks = 0;
+                    }
+                }
+                break;
+            case 'navy_buff':
+                if (trigger === 'passive') {
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const sc = this[ownerP].standbyCards.filter(c => c.name === '海軍').length;
+                    if (sc > 0 && !card.resources.navy_buff_amount) {
+                        card.atk += sc * (effect.atk_per || 0);
+                        card.maxHp += sc * (effect.hp_per || 0);
+                        card.hp += sc * (effect.hp_per || 0);
+                        card.resources.navy_buff_amount = sc;
+                    } else if (sc === 0 && card.resources.navy_buff_amount) {
+                        const lostSc = card.resources.navy_buff_amount;
+                        card.atk -= lostSc * (effect.atk_per || 0);
+                        card.maxHp -= lostSc * (effect.hp_per || 0);
+                        card.resources.navy_buff_amount = 0;
+                    }
+                }
+                break;
+            case 'cheater_passive':
+                if (trigger === 'on_turn_end' && Math.random() * 100 < effect.chance) {
+                    const stolen = Math.min((this.getOpponent().battleCard?.atk || 0), effect.atk_steal);
+                    if (stolen > 0) {
+                        this.getOpponent().battleCard.atk -= stolen;
+                        card.atk += stolen;
+                        this.addLog(`作弊！偷取了 1 點攻擊力`, 'skill');
+                    }
+                }
+                break;
+            case 'transform_to':
+                if (trigger === 'on_skill_count' && card.resources && card.resources.skill_count_all >= effect.skill_uses) {
+                    if (typeof BattleSystem !== 'undefined') {
+                        BattleSystem.evolveCharacter(card, effect.target);
+                    } else {
+                        const tChar = getCharacterByName(effect.target);
+                        Object.assign(card, createCharacterInstance(tChar));
+                    }
+                } else if (trigger === 'on_enemy_turn_end' || trigger === 'on_turn_end') {
+                    if (typeof BattleSystem !== 'undefined') {
+                        BattleSystem.evolveCharacter(card, effect.target);
+                    } else {
+                        const tChar = getCharacterByName(effect.target);
+                        Object.assign(card, createCharacterInstance(tChar));
+                        this.addLog(`${card.name} 轉變為 ${effect.target}`, 'skill');
+                    }
+                }
+                break;
+            case 'dodge_and_reduction':
+                if (trigger === 'passive') {
+                    card.resources.dodge = effect.dodge;
+                    card.resources.defense_stacks = effect.reduction;
+                }
+                break;
+            case 'buff_atk_by_missing_hp':
+                if (trigger === 'passive') {
+                    const missing = card.maxHp - card.hp;
+                    const bonus = Math.floor(missing * (effect.percent / 100));
+                    if (card.resources.missing_hp_bonus !== bonus) {
+                        card.atk = card.atk - (card.resources.missing_hp_bonus || 0) + bonus;
+                        card.resources.missing_hp_bonus = bonus;
+                    }
+                }
+                break;
+            case 'npc_defense':
+                if (trigger === 'passive') {
+                    card.resources.defense_stacks = effect.reduction;
+                    if (this.turnCount > 10) card.hp = 0;
+                    const opp = this.getOpponent().battleCard;
+                    if (opp) card.resources.dodge = Math.floor(opp.atk / 3);
+                }
+                break;
+            case 'dodge_if_enemy_atk_high':
+                if (trigger === 'passive') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.atk >= effect.threshold) card.resources.dodge = effect.value || effect.dodge || 0;
+                    else card.resources.dodge = 0;
+                }
+                break;
+            case 'dodge_if_enemy_anxious':
+                if (trigger === 'passive') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.statusEffects.some(e => e.type === 'anxiety')) card.resources.dodge = effect.dodge;
+                    else card.resources.dodge = 0;
+                }
+                break;
+            case 'set_dodge':
+                if (trigger === 'passive') card.resources.dodge = effect.value;
+                break;
+            case 'buff_atk_chance':
+                if ((trigger === 'on_turn_start' || trigger === 'on_enter') && Math.random() * 100 < effect.chance) {
+                    card.atk += effect.atk;
+                    this.addLog(`${card.name} 觸發機率攻擊提升！ATK +${effect.atk}`, 'skill');
+                }
+                break;
+
+            // --- NEWLY ADDED PASSIVE HANDLERS ---
+
+            case 'death_chance': // 天才少年-原來是外掛
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    if (!card.resources.dodge_inited) {
+                        card.resources.dodge = effect.initial_dodge || 99;
+                        card.resources.dodge_inited = true;
+                    }
+                    if (Math.random() * 100 < (effect.chance || 50)) {
+                        card.hp = 0;
+                        this.addLog(`${card.name} 被動觸發：突然死亡！`, 'damage');
+                    }
+                }
+                break;
+
+            case 'hollow_purple': // 嗚條烏-虛式
+                if (trigger === 'on_skill' || trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    const fwRes = effect.forward_res || 'forward';
+                    const rvRes = effect.reverse_res || 'reverse';
+                    const fw = card.resources[fwRes] || 0;
+                    const rv = card.resources[rvRes] || 0;
+                    if (fw > 0 && rv > 0 && fw === rv) {
+                        card.resources[fwRes] = 0;
+                        card.resources[rvRes] = 0;
+                        const oppCard = this.getOpponent().battleCard;
+                        if (oppCard) {
+                            oppCard.hp -= (effect.damage || 200);
+                            this.addLog(`${card.name} 虛式「茈」！對 ${oppCard.name} 造成 ${effect.damage} 傷害！`, 'damage');
+                        }
+                    }
+                }
+                break;
+
+            case 'breakthrough_counter': // 受傷-突破
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    card.resources.breakthrough = (card.resources.breakthrough || 0) + 1;
+                    this.addLog(`${card.name} 突破值 +1 (${card.resources.breakthrough}/${effect.limit})`, 'skill');
+                    if (card.resources.breakthrough >= (effect.limit || 5)) {
+                        const ownerKey = this.player1.battleCard === card ? 'player1' : 'player2';
+                        const targetChar = getCharacterByName(effect.target);
+                        if (targetChar) {
+                            const inst = createCharacterInstance(targetChar);
+                            this[ownerKey].standbyCards.push(inst);
+                            this.addLog(`${card.name} 突破極限，召喚了 ${effect.target}！`, 'skill');
+                            Animations.drawCards([inst]);
+                        }
+                        card.hp = 0;
+                        this.addLog(`${card.name} 自我消耗殆盡！`, 'damage');
+                    }
+                }
+                break;
+
+            case 'atk_buff_vs_character': // 典獄長-典獄長
+                if (trigger === 'passive') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.name === effect.target) {
+                        if (!card.resources.vs_char_buff_active) {
+                            card.atk += (effect.atk || 0);
+                            card.resources.vs_char_buff_active = true;
+                            this.addLog(`${card.name} 對 ${effect.target} 觸發被動：ATK +${effect.atk}`, 'skill');
+                        }
+                    } else if (card.resources.vs_char_buff_active) {
+                        card.atk -= (effect.atk || 0);
+                        card.resources.vs_char_buff_active = false;
+                    }
+                }
+                break;
+
+            case 'stats_buff_vs_character': // 監獄王子-監獄王子
+                if (trigger === 'passive') {
+                    const opp = this.getOpponent().battleCard;
+                    if (opp && opp.name === effect.target) {
+                        if (!card.resources.vs_char_buff_active) {
+                            card.atk += (effect.atk || 0);
+                            card.maxHp += (effect.max_hp || 0);
+                            card.hp += (effect.max_hp || 0);
+                            card.resources.vs_char_buff_active = true;
+                            this.addLog(`${card.name} 對 ${effect.target} 觸發被動：ATK +${effect.atk}, HP +${effect.max_hp}`, 'skill');
+                        }
+                    } else if (card.resources.vs_char_buff_active) {
+                        card.atk -= (effect.atk || 0);
+                        card.maxHp -= (effect.max_hp || 0);
+                        if (card.hp > card.maxHp) card.hp = card.maxHp;
+                        card.resources.vs_char_buff_active = false;
+                    }
+                }
+                break;
+
+            case 'refresh_skills_cd': // 小資-很會抽
+                if (trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    const skName = args.skillName;
+                    if (!effect.skill || skName === effect.skill) {
+                        const ck = `skill_count_${effect.skill || 'all'}`;
+                        card.resources[ck] = (card.resources[ck] || 0) + 1;
+                        if (card.resources[ck] >= effect.count) {
+                            card.resources[ck] = 0;
+                            card.cooldowns = {};
+                            card.skills.forEach((_, i) => card.cooldowns[i] = 0);
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：所有技能冷卻重置！`, 'skill');
+                        }
+                    }
+                }
+                break;
+
+            case 'set_damage_reduction': // 盾哥、機槍哥
+                if (trigger === 'on_enter' || trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    if (!card.resources.dr_initialized) {
+                        card.resources.defense_stacks = (card.resources.defense_stacks || 0) + (effect.value || 0);
+                        card.resources.dr_initialized = true;
+                    }
+                }
+                break;
+
+            case 'shop_item': // 勇者-商店
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    const items = effect.items || ['劍', '盾', '鞋'];
+                    const item = items[Math.floor(Math.random() * items.length)];
+                    const itemChar = getCharacterByName(item);
+                    if (itemChar) {
+                        const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                        const inst = createCharacterInstance(itemChar);
+                        this[ownerKey].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：獲得了 ${item}`, 'skill');
+                        await Animations.drawCards([inst]);
+                    }
+                }
+                break;
+
+            case 'tower_shield_player_passive': // 塔盾玩家
+                if (trigger === 'on_skill' || trigger === 'on_skill_success') {
+                    if (args.skillName === '舉盾抵抗') {
+                        card.maxHp += (effect.hp_per_use || 50);
+                        card.hp += (effect.hp_per_use || 50);
+                        this.addLog(`${card.name} 舉盾抵抗！最大生命值 +${effect.hp_per_use || 50}`, 'skill');
+                    }
+                } else if (trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    const initialDodge = effect.initial_dodge || 10;
+                    if (!card.resources.ts_dodge_set) {
+                        card.resources.dodge = initialDodge;
+                        card.resources.ts_dodge_set = true;
+                    }
+                    if (card.maxHp >= (effect.dodge_lose_threshold || 1400)) {
+                        card.resources.dodge = 0;
+                    }
+                }
+                break;
+
+            case 'cheater_death_chance': // 作弊者-外掛售後服務
+                if (trigger === 'on_turn_start') {
+                    if (!card.resources) card.resources = {};
+                    const deathCh = card.resources.death_chance || effect.base_chance || 10;
+                    if (window.Animations && window.Animations.probabilityRoll) {
+                        window.Animations.probabilityRoll(deathCh, '死亡判定').then(success => {
+                            if (success) {
+                                card.hp = 0;
+                                this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
+                                if (window.BattleSystem) {
+                                    window.BattleSystem.checkDeath('player1');
+                                    window.BattleSystem.checkDeath('player2');
+                                }
+                            } else {
+                                card.resources.death_chance = deathCh + (effect.increment || 8);
+                            }
+                        });
+                    } else {
+                        if (Math.random() * 100 < deathCh) {
+                            card.hp = 0;
+                            this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
+                        } else {
+                            card.resources.death_chance = deathCh + (effect.increment || 8);
+                        }
+                    }
+                }
+                break;
+
+            case 'on_hp_threshold_once': // 重傷-殊死搏鬥
+                if (trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    if (!card.resources.hp_threshold_triggered && card.hp < effect.threshold) {
+                        const opp = this.getOpponent().battleCard;
+                        if (opp) {
+                            opp.hp -= (effect.value || 60);
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：殊死一搏！對 ${opp.name} 造成 ${effect.value} 傷害`, 'damage');
+                        }
+                        card.resources.hp_threshold_triggered = true;
+                    }
+                }
+                break;
+
+            case 'summon_and_buff_per_type': // 被信仰之人-被信仰
+                if (trigger === 'on_turn_start') {
+                    const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const summonChar = getCharacterByName(effect.summon_target);
+                    if (summonChar) {
+                        const inst = createCharacterInstance(summonChar);
+                        this[ownerKey].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：召喚了 ${effect.summon_target}`, 'skill');
+                        await Animations.drawCards([inst]);
+                    }
+                    const count = this[ownerKey].standbyCards.filter(c => c.name === (effect.buff_type_name || '信眾')).length;
+                    const atkBonus = count * (effect.atk_per || 5);
+                    const baseAtk = card.baseAtk || (card.passive.effect.base_atk || 30);
+                    if (!card.baseAtk) card.baseAtk = card.atk;
+                    card.atk = card.baseAtk + atkBonus;
+                }
+                break;
+
+            case 'revive_decaying_chance': // 骷髏王-對死亡的抗性
+                // Actual revive is handled in checkRevive. We just store state here.
+                break;
+
+            case 'buff_atk_per_missing_hp': // 黃蓋-苦肉
+                if (trigger === 'passive') {
+                    const missing = card.maxHp - card.hp;
+                    const stepBonus = Math.floor(missing / (effect.per_hp_loss || 10)) * (effect.atk_per || 1);
+                    const cappedBonus = Math.min(stepBonus, effect.limit || 30);
+                    const prevBonus = card.resources.huangai_atk_bonus || 0;
+                    if (cappedBonus !== prevBonus) {
+                        card.atk = card.atk - prevBonus + cappedBonus;
+                        card.resources.huangai_atk_bonus = cappedBonus;
+                    }
+                }
+                break;
+
+            case 'add_dodge': // 勾造的小麥, 函數
+                if (trigger === 'on_enter' || trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    if (!card.resources.dodge_inited) {
+                        card.resources.dodge = (card.resources.dodge || 0) + (effect.value || effect.chance || 10);
+                        card.resources.dodge_inited = true;
+                    }
+                }
+                break;
+
+            case 'dodge_chance': // 以柔克剛, 煌園, 周瑜-dodge_and_reduction
+                if (trigger === 'passive') {
+                    if (!card.resources) card.resources = {};
+                    card.resources.dodge = effect.value || effect.chance || 0;
+                }
+                break;
+
+            case 'summon_chance_category': // 勞賽-好長官
+                if (trigger === 'on_turn_start') {
+                    if (Math.random() * 100 < (effect.chance || 30)) {
+                        const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                        const catChar = getRandomFromCategory(effect.category);
+                        if (catChar) {
+                            const inst = createCharacterInstance(catChar);
+                            this[ownerKey].standbyCards.push(inst);
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                            await Animations.drawCards([inst]);
+                        }
+                    }
+                }
+                break;
+
+            case 'summon': // 魔王-魔王的號召
+                if (trigger === 'on_turn_start') {
+                    const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const smChar = getCharacterByName(effect.target);
+                    if (smChar) {
+                        const inst = createCharacterInstance(smChar);
+                        this[ownerKey].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        await Animations.drawCards([inst]);
+                    }
+                }
+                break;
+
+
+            // apple_passive handled below (de-duplicated)
+
+            case 'apple_bonus_revive':
+                if (trigger === 'on_enter' || (trigger === 'on_turn_start' && !card.resources.entered)) {
+                    const apples = card.resources.prev_apples || 0;
+                    const hpBonus = apples * 30;
+                    card.maxHp += hpBonus;
+                    card.hp += hpBonus;
+                    card.resources.entered = true;
+                    this.addLog(`${card.name} 繼承了 ${apples} 顆蘋果，血量上限 +${hpBonus}`, 'skill');
+                }
+                break;
+            case 'tribal_bonus':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const allyName = '莫那魯道';
+                    const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                    const hasAlly = this[ownerP].standbyCards.some(c => c.name === allyName);
+                    if (hasAlly && !card.resources.tribal_buff_active) {
+                        card.atk += 30;
+                        card.resources.tribal_buff_active = true;
+                        this.addLog(`${card.name} 因 ${allyName} 在場，攻擊力提升！`, 'status');
+                    } else if (!hasAlly && card.resources.tribal_buff_active) {
+                        card.atk -= 30;
+                        card.resources.tribal_buff_active = false;
+                        this.addLog(`${card.name} 失去羈絆，攻擊力下降`, 'status');
+                    }
+                }
+                break;
+            case 'debuff_vs_character':
+                if (trigger === 'on_turn_start' || trigger === 'passive') {
+                    const opponent = this.getOpponent().battleCard;
+                    if (opponent && opponent.name.includes(effect.target)) {
+                        if (opponent.maxHp > effect.set_max_hp) {
+                            opponent.maxHp = effect.set_max_hp;
+                            if (opponent.hp > opponent.maxHp) opponent.hp = opponent.maxHp;
+                            this.addLog(`${opponent.name} 受到 ${card.name} 壓制，血量上限變為 ${effect.set_max_hp}`, 'status');
+                        }
+                    }
+                }
+                break;
+            case 'stealth_shield':
+                if (trigger === 'on_turn_start') {
+                    card.shield = Math.max(card.shield, effect.shield);
+                    this.addLog(`${card.name} 進入隱蔽狀態 (護盾 ${effect.shield})`, 'status');
+                } else if (trigger === 'on_turn_end') {
+                    if (card.shield > 0) {
+                        card.shield = 0;
+                        this.addLog(`${card.name} 隱蔽結束`, 'status');
+                    }
+                }
+                break;
+            case 'self_kill_chance':
+                if (Math.random() * 100 < effect.chance) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 根據被動效果自我毀滅了！`, 'damage');
+                }
+                break;
+            case 'self_kill_scaling':
+                const drownC = card.resources.drown_chance || effect.base_chance;
+                if (Math.random() * 100 < drownC) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 溺水了！`, 'damage');
+                } else {
+                    card.resources.drown_chance = drownC + effect.increment;
+                }
+                break;
+
+            // On death: summon category (地球-適居帶, 土星-星球之力, 梅子綠茶-梅子給我擦)
+            case 'summon_category':
+                const catOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const catChar = getRandomFromCategory(effect.category);
+                if (catChar) {
+                    const inst = createCharacterInstance(catChar);
+                    this[catOwner].standbyCards.push(inst);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                    await Animations.drawCards([inst]);
+                }
+                break;
+
+            // On death: summon multiple (狗狗肉摩托車-環保)
+            case 'summon_multiple':
+                const multOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const summoned = [];
+                for (let i = 0; i < effect.count; i++) {
+                    const targetChar = getCharacterByName(effect.target);
+                    if (targetChar) {
+                        const inst = createCharacterInstance(targetChar);
+                        this[multOwner].standbyCards.push(inst);
+                        summoned.push(inst);
+                    }
+                }
+                if (summoned.length > 0) {
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${summoned.length} 隻 ${effect.target}`, 'skill');
+                    await Animations.drawCards(summoned);
+                }
+                break;
+
+            // On death: damage turn based (菸-擋一根)
+            case 'damage_turn_based':
+                const ownerOfDeadTurn = (this.player1.battleCard === card || this.player1.standbyCards?.includes(card) || this.player1.graveyard?.includes(card)) ? 'player1' : 'player2';
+                const oppTurnKey = ownerOfDeadTurn === 'player1' ? 'player2' : 'player1';
+                const oppTurnCard = this[oppTurnKey].battleCard;
+                if (oppTurnCard) {
+                    const dmg = effect.base + this.turnCount * (effect.mult || effect.turn_mult);
+                    oppTurnCard.hp -= Math.floor(dmg);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${oppTurnCard.name} 造成 ${dmg} 傷害`, 'damage');
+                }
+                break;
+
+            // On death / skill count: damage (伊魯帕恩-同歸於盡, 鼠鼠-跑刀)
+            case 'damage':
+                const ownerOfDeadDamage = (this.player1.battleCard === card || this.player1.standbyCards?.includes(card) || this.player1.graveyard?.includes(card)) ? 'player1' : 'player2';
+                const oppDamageKey = ownerOfDeadDamage === 'player1' ? 'player2' : 'player1';
+                const damageOppCard = this[oppDamageKey].battleCard;
+                if (damageOppCard) {
+                    damageOppCard.hp -= effect.value;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${damageOppCard.name} 造成 ${effect.value} 傷害`, 'damage');
+                }
+                break;
+
+            // HP loss trigger (E人-血怒)
+            case 'buff_atk_per_hp':
+                // This is handled in applyDamage by calculating ATK bonus from HP lost
+                break;
+
+            // Sacrifice HP for ATK (超凡-血祭)
+            case 'sacrifice_hp_buff_atk':
+                const totalSacrificed = card.resources.sacrificed_hp || 0;
+                if (totalSacrificed < effect.max_sacrifice) {
+                    card.maxHp -= effect.hp_loss;
+                    card.hp = Math.min(card.hp, card.maxHp);
+                    card.atk += effect.atk_gain;
+                    card.resources.sacrificed_hp = totalSacrificed + effect.hp_loss;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：血量上限 -${effect.hp_loss}, ATK +${effect.atk_gain}`, 'skill');
+                }
+                break;
+
+            // Dodge chance passive (很亮的魚-大跳, 籃球-滑, 球球-滑, 垃圾-猛攻, 黑筆-墨)
+            case 'dodge_chance':
+                // This adds a permanent dodge chance - should be stored in resources
+                if (!card.resources) card.resources = {};
+                if (!card.resources.dodge) {
+                    card.resources.dodge = effect.value;
+                }
+                break;
+
+            // Self kill chance (賦能哥-天才少年, 越野摩托車-翻車)
+            case 'self_kill_chance':
+                if (window.Animations && window.Animations.probabilityRoll) {
+                    window.Animations.probabilityRoll(effect.chance, '生存判定').then(success => {
+                        if (success) {
+                            card.hp = 0;
+                            this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
+                            if (window.BattleSystem) {
+                                window.BattleSystem.checkDeath('player1');
+                                window.BattleSystem.checkDeath('player2');
+                            }
+                        }
+                    });
+                } else if (Math.random() * 100 < effect.chance) {
+                    card.hp = 0;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
+                }
+                break;
+
+            // Apple passive (賈伯斯-天才)
+            case 'apple_passive':
+                if (trigger === 'on_turn_start') {
+                    card.resources.apple = (card.resources.apple || 0) + 1;
+                    const appleCount = card.resources.apple;
+                    const appleCap = effect.apple_cap || 8;
+                    const shieldPer = effect.shield_per || 50;
+
+                    if (appleCount >= appleCap) {
+                        card.resources.apple_reached_max = true;
+                    }
+
+                    if (!card.resources.apple_reached_max) {
+                        card.shield = appleCount * shieldPer;
+                        this.addLog(`${card.name} 蘋果 +1 (共${appleCount})，護盾設為 ${card.shield}`, 'skill');
+                    } else {
+                        this.addLog(`${card.name} 蘋果 +1 (共${appleCount})`, 'skill');
+                    }
+
+                    if (appleCount > appleCap || card.resources.apple_reached_max) {
+                        const regenAmount = effect.regen_per_turn || 10;
+                        card.hp = Math.min(card.maxHp, card.hp + regenAmount);
+                        this.addLog(`${card.name} 【生生不息】恢復 ${regenAmount} HP`, 'heal');
+                    }
+                }
+                break;
+
+            // Summon if no tea (台茶18號-名貴)
+            case 'summon_if_no_tea':
+                const teaOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                const hasTea = this[teaOwner].standbyCards.some(c => c.tags?.includes('tea'));
+                if (!hasTea) {
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[teaOwner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                }
+                break;
+
+            // Heal when low HP (美秀吉團-大老婆)
+            case 'heal_low_hp':
+                if (card.hp < card.maxHp * (effect.threshold / 100)) {
+                    // Fix: Data uses 'value' but code expected 'heal_percent'
+                    const percent = effect.heal_percent || effect.value || 0;
+                    const healAmount = Math.floor(card.maxHp * (percent / 100));
+                    card.hp = Math.min(card.maxHp, card.hp + healAmount);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：恢復 ${healAmount} HP`, 'heal');
+                }
+                break;
+
+            // Buff ATK when low HP (科比布萊恩特-曼巴精神 with action: low_hp_buff)
+            case 'buff_atk_low_hp':
+            case 'low_hp_buff':
+                if (!card.resources) card.resources = {};
+                if (card.hp < card.maxHp * ((effect.threshold || 30) / 100) && !card.resources.low_hp_buff_triggered) {
+                    card.atk += (effect.atk || 50);
+                    card.resources.low_hp_buff_triggered = true;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：ATK +${effect.atk || 50}`, 'skill');
+                } else if (card.hp >= card.maxHp * ((effect.threshold || 30) / 100) && card.resources.low_hp_buff_triggered) {
+                    // If HP recovered above threshold, remove bonus
+                    card.atk -= (effect.atk || 50);
+                    card.resources.low_hp_buff_triggered = false;
+                }
+                break;
+
+            // Dodge and scale (垃圾-猛攻)
+            case 'dodge_scale':
+                // Handled in applyDamage
+                break;
+
+            // Tea garden (採茶員-茶園)
+            case 'buff_per_standby_category':
+                const standbyTeas = this[this.player1.battleCard === card ? 'player1' : 'player2'].standbyCards.filter(c => c.tags?.includes(effect.category)).length;
+                card.maxHp += standbyTeas * effect.hp_per;
+                card.hp += standbyTeas * effect.hp_per;
+                card.atk += standbyTeas * effect.atk_per;
+                if (standbyTeas > 0) {
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：根據備戰區${effect.category}數量提升能力`, 'skill');
+                }
+                break;
+
+            // Summon chance and buff dodge (No Party For Cao Dong)
+            case 'summon_chance_buff_dodge':
+                if (window.Animations && window.Animations.probabilityRoll) {
+                    window.Animations.probabilityRoll(effect.chance, '招喚判定').then(success => {
+                        if (success) {
+                            const targetChar = getCharacterByName(effect.target);
+                            if (targetChar) {
+                                const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                                const inst = createCharacterInstance(targetChar);
+                                this[owner].standbyCards.push(inst);
+                                this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
+                                if (window.Animations.drawCards) window.Animations.drawCards([inst]);
+                            }
+                        }
+                        const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
+                        const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
+                        const newDodge = effect.base_dodge + (count * effect.dodge_per);
+                        card.resources.dodge = newDodge;
+                    });
+                } else {
+                    if (Math.random() * 100 < effect.chance) {
+                        const targetChar = getCharacterByName(effect.target);
+                        if (targetChar) {
+                            const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                            const inst = createCharacterInstance(targetChar);
+                            this[owner].standbyCards.push(inst);
+                            this.addLog(`${card.name} 被動：召喚了 ${inst.name}`, 'skill');
+                        }
+                    }
+                    const ownerP = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const count = this[ownerP].standbyCards.filter(c => c.name === effect.target).length;
+                    const newDodge = effect.base_dodge + (count * effect.dodge_per);
+                    card.resources.dodge = newDodge;
+                }
+                break;
+
+            // Money passive (Bill Gates) - On turn start logic
+            case 'money_passive':
+                if (trigger === 'on_turn_start') {
+                    card.resources[effect.resource || 'money'] = (card.resources[effect.resource || 'money'] || 0) + 1;
+                    this.addLog(`${card.name} 獲得錢錢 (共${card.resources[effect.resource || 'money']})`, 'skill');
+                }
+                break;
+
+            // Summon if enemy tea (Fruit Tea)
+            case 'summon_if_enemy_tea':
+                const opp = this.getOpponent().battleCard;
+                if (opp && opp.tags && opp.tags.includes('tea')) {
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：對手是茶，額外召喚了 ${inst.name}`, 'skill');
+                    }
+                }
+                break;
+
+            // Conditional summon tea (Lemon Tea) - Handled in on_skill normally, but here if needed
+            case 'conditional_summon_tea':
+                // Check if already handled in battleSystem or here.
+                // battleSystem calls processPassive with 'on_skill' or 'on_skill_success'.
+                // If args.success is true (cleared dodge)
+                if (trigger === 'on_skill_success' && args.success) {
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const teaChar = getRandomFromCategory('tea');
+                    if (teaChar) {
+                        const inst = createCharacterInstance(teaChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動：成功清除閃避，召喚了 ${inst.name}`, 'skill');
+                    }
+                }
+                break;
+
+            // Increment counter (Peter)
+            case 'increment_counter':
+                if (card.resources[effect.counter] !== undefined) {
+                    card.resources[effect.counter]++;
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：${effect.counter} +1 (${card.resources[effect.counter]})`, 'skill');
+                }
+                break;
+
+            case 'buff_resource':
+                card.resources[effect.resource] = (card.resources[effect.resource] || 0) + effect.value;
+                this.addLog(`${card.name} 被動 [${card.passive.name}]：${effect.resource} +${effect.value}`, 'skill');
+                break;
+
+            // On resource trigger passive (豬自清-背影: every 2 oranges hp+30 atk+5)
+            case 'buff_hp_atk': // Can be triggered by on_resource
+                if (trigger === 'on_resource') {
+                    const resName = effect.resource || args?.resource;
+                    const resCount = args?.count || (card.resources && card.resources[resName]) || 0;
+                    if (resName && resCount > 0 && resCount % (effect.count || 2) === 0) {
+                        const hpGain = effect.hp || 0;
+                        const atkGain = effect.atk || 0;
+                        card.hp = Math.min(card.maxHp, card.hp + hpGain);
+                        card.atk += atkGain;
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：HP +${hpGain}, ATK +${atkGain}！`, 'skill');
+                    }
+                }
+                break;
+
+
+            case 'summon_category': // on_skill_count trigger with summon_category
+                if (effect.trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    // Only match the specific skill if effect.skill is set
+                    if (!effect.skill || args.skillName === effect.skill) {
+                        card.resources.skill_count = (card.resources.skill_count || 0) + 1;
+                        if (card.resources.skill_count % effect.count === 0) {
+                            const catOwnerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
+                            const catChar = getRandomFromCategory(effect.category);
+                            if (catChar) {
+                                const inst = createCharacterInstance(catChar);
+                                this[catOwnerKey].standbyCards.push(inst);
+                                this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                                Animations.drawCards([inst]);
+                            }
+                        }
+                    }
+                }
+                break;
+
+            // Bonus damage by rarity passive (摳P-垃圾不分藍綠)
+            case 'bonus_damage_by_rarity': {
+                if (trigger === 'on_attack') {
+                    const oppBdr = this.getOpponent().battleCard;
+                    if (oppBdr) {
+                        const rarityOrder = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'SPECIAL'];
+                        const oppRarityIdx = rarityOrder.indexOf(oppBdr.rarity);
+                        const legendaryIdx = rarityOrder.indexOf('LEGENDARY');
+                        let bonusDmg = 0;
+                        if (oppRarityIdx < legendaryIdx) {
+                            bonusDmg = 30;
+                        } else {
+                            bonusDmg = 50;
+                        }
+                        oppBdr.hp -= bonusDmg;
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：對 ${oppBdr.name} 造成 ${bonusDmg} 額外傷害`, 'damage');
+                    }
+                }
+                break;
+            }
+
+            // Conditional stats (王世堅情-有出息)
+            case 'conditional_stats': {
+                if (!card.resources) card.resources = {};
+                const isLow = card.hp < card.maxHp * 0.5;
+                const bonusKey = 'conditional_stats_bonus';
+                const currentBonus = card.resources[bonusKey] || 0;
+
+                if (isLow) {
+                    // Bug fix: should use current atk (before bonus), not baseAtk
+                    // We track a 20% bonus of the "base" (atk before this bonus was applied)
+                    const atkWithoutBonus = card.atk - currentBonus;
+                    const targetBonus = Math.floor(atkWithoutBonus * 0.25); // *1.25 = +25%
+                    if (currentBonus !== targetBonus) {
+                        card.atk = card.atk - currentBonus + targetBonus;
+                        card.resources[bonusKey] = targetBonus;
+                        this.addLog(`${card.name} 被動：HP < 50%，ATK ×1.25`, 'status');
+                    }
+                } else {
+                    // Remove bonus when HP is back above 50%
+                    if (currentBonus > 0) {
+                        card.atk = Math.max(0, card.atk - currentBonus);
+                        card.resources[bonusKey] = 0;
+                        this.addLog(`${card.name} 被動：HP > 50%，ATK 恢復`, 'status');
+                    }
+                }
+                break;
+            }
+        }
+    },
+
+    // Process turn interval passives (called from processStartOfTurn)
+    processTurnIntervalPassives(card) {
+        if (!card || !card.passive) return;
+        const effect = card.passive.effect;
+        if (effect.trigger !== 'on_turn_interval') return;
+
+        if (this.turnCount > 0 && this.turnCount % effect.interval === 0) {
+            switch (effect.action) {
+                case 'summon': // 奧沙利文-147
+                    const owner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const targetChar = getCharacterByName(effect.target);
+                    if (targetChar) {
+                        const inst = createCharacterInstance(targetChar);
+                        this[owner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                    break;
+                case 'summon_category': // 伽利略-天文天才 (summon_category action)
+                case 'summon_buff': // alias for 伽利略-天文天才
+                    const catOwner = this.player1.battleCard === card ? 'player1' : 'player2';
+                    const catChar = getRandomFromCategory(effect.category);
+                    if (catChar) {
+                        const inst = createCharacterInstance(catChar);
+                        this[catOwner].standbyCards.push(inst);
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        Animations.drawCards([inst]);
+                    }
+                    // Buff ATK per standby planets (use atk_per or atk_per_standby)
+                    {
+                        const atk_per = effect.atk_per || effect.atk_per_standby || 0;
+                        if (atk_per > 0) {
+                            const planetCount = this[catOwner].standbyCards.filter(c => c.tags?.includes('planet')).length;
+                            card.atk = (card.baseAtk || card.atk) + planetCount * atk_per;
+                        }
+                    }
+                    break;
+                case 'buff_hp_atk': // 怕瘦團-大寶
+                    card.hp = Math.min(card.maxHp, card.hp + (effect.hp || 0));
+                    card.atk += (effect.atk || 0);
+                    this.addLog(`${card.name} 被動 [${card.passive.name}]：HP +${effect.hp}, ATK +${effect.atk}`, 'skill');
+                    break;
+            }
+        }
+    },
+
+    // Add battle log entry
+    addLog(message, type = 'normal') {
+        this.battleLog.unshift({ message, type, time: Date.now() });
+        if (this.battleLog.length > 50) this.battleLog.pop();
+    },
+
+    // Save state
+    save() {
+        localStorage.setItem('neonCardGameState', JSON.stringify({
+            mode: this.mode,
+            turnCount: this.turnCount,
+            currentPlayer: this.currentPlayer,
+            phase: this.phase,
+            firstPlayer: this.firstPlayer,
+            player1: this.player1,
+            player2: this.player2
+        }));
+    },
+
+    // Load state
+    load() {
+        const data = localStorage.getItem('neonCardGameState');
+        if (data) {
+            const state = JSON.parse(data);
+            Object.assign(this, state);
+            return true;
+        }
+        return false;
+    }
+};

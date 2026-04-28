@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹牌 - 個人檔案</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/userProfile.js"></script>
+    <script src="js/core/rankedSystem.js"></script>
+    <script src="js/core/friends.js"></script>
+    <script src="js/data/botProfiles.js"></script>
+    <script src="js/data/missionData.js"></script>
+    <script src="js/data/passData.js"></script>
+    <script src="js/data/trialData.js"></script>
+    <script src="js/data/gachaData.js"></script>
+    <script src="js/core/notificationManager.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes inviteSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .profile-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            margin-bottom: 30px;
+        }
+
+        .back-btn:hover {
+            
+            transform: translateX(-3px);
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 700px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel */
+        .profile-card {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .item-icon-inline {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            object-fit: contain;
+            );
+            margin-right: 4px;
+        }
+
+        .avatar-ring {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            margin: 0 auto 18px;
+            border: 3px solid var(--neon-cyan);
+            
+            overflow: hidden;
+            background: var(--glass-bg);
+        }
+
+        .avatar-ring img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .profile-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .profile-display-name {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .edit-icon:hover {
+            color: var(--neon-cyan);
+        }
+
+        .profile-edit-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            width: 100%;
+            text-align: center;
+            outline: none;
+        }
+
+        .fav-chars-title {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 18px 0 10px;
+        }
+
+        .fav-chars-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .fav-char-chip {
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fav-char-chip:hover {
+            background: rgba(0, 243, 255, 0.2);
+            
+        }
+
+        .fav-char-chip.empty {
+            border-style: dashed;
+            color: var(--text-muted);
+        }
+
+        .bio-area {
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .bio-label {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .bio-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            cursor: pointer;
+            min-height: 40px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .bio-text:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .bio-textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 70px;
+            outline: none;
+        }
+
+        .save-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-sm {
+            padding: 7px 16px;
+            font-size: 0.8rem;
+        }
+
+        .logout-btn {
+            margin-top: 20px;
+            width: 100%;
+            border-color: rgba(255, 100, 100, 0.5);
+            color: rgba(255, 100, 100, 0.8);
+        }
+
+        .logout-btn:hover:not(:disabled) {
+            background: rgba(255, 100, 100, 0.1);
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .meta-row {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--glass-border);
+            text-align: left;
+        }
+
+        /* Right Panel - Tabs */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn.active {
+            color: var(--neon-cyan);
+            border-bottom-color: var(--neon-cyan);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .friend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .friend-card {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .friend-card:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+        }
+
+        .friend-card-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .friend-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .friend-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .friend-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .friend-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .friend-bio {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .friend-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .friend-stats-bar {
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .search-input-sm {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input-sm:focus {
+            border-color: var(--neon-cyan);
+        }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .pending-request {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+        }
+
+        .badge-count {
+            background: var(--neon-pink);
+            color: white;
+            border-radius: 10px;
+            padding: 1px 7px;
+            font-size: 0.75rem;
+            margin-left: 6px;
+        }
+
+        /* Char Picker Modal */
+        .char-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .char-picker-item {
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .char-picker-item:hover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.08);
+        }
+
+        .char-picker-item.selected {
+            border-color: var(--neon-gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        /* QR & Scanner Modals */
+        #qrModal .modal,
+        #scannerModal .modal {
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .qr-container {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            margin: 15px 0;
+        }
+
+        .scan-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Path of Trials Button */
+        .btn-trials {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 18px;
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 255, 104, 0.05));
+            border: 2px solid var(--neon-gold);
+            color: var(--neon-gold);
+            border-radius: 14px;
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-trials .icon {
+            font-size: 1.4rem;
+            );
+        }
+
+        .btn-trials::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: 0.8s;
+        }
+
+        .btn-trials:hover::before {
+            left: 100%;
+        }
+
+        .btn-trials:hover {
+            transform: translateY(-3px);
+            , 0 0 50px rgba(0, 255, 104, 0.1);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-trials-subtitle {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* Match History Styles */
+        .match-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .match-item:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .match-result-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .match-result-badge.win {
+            background: rgba(0, 255, 104, 0.15);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            
+        }
+        .match-result-badge.loss {
+            background: rgba(255, 68, 102, 0.15);
+            color: var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+        }
+        .match-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .match-opponent {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .match-opponent a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .match-opponent a:hover {
+            color: var(--neon-cyan);
+            
+        }
+        .match-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .match-time {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading -->
+    <div id="pageLoading"
+        style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class=""
+            style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;letter-spacing:3px;animation:pulse 1.5s infinite;">
+            載入中...</div>
+    </div>
+
+    <div class="profile-page" id="profilePage" style="display:none;">
+        <a href="index.html" class="back-btn">← 返回主選單</a>
+
+        <div class="profile-grid">
+            <!-- Left: User Card -->
+            <div class="profile-card glass" id="userCard">
+                <div class="avatar-ring">
+                    <div class="avatar-placeholder" id="avatarEmoji">👤</div>
+                    <img id="avatarImg" style="display:none;" alt="Avatar">
+                </div>
+
+                <!-- Name edit -->
+                <div class="profile-name-row" id="nameDisplayRow">
+                    <span class="profile-display-name" id="nameDisplay">-</span>
+                    <span class="edit-icon" onclick="startEditName()" title="編輯名稱">✏️</span>
+                </div>
+                <div style="display:none;" id="nameEditRow">
+                    <input class="profile-edit-input" id="nameInput" maxlength="12" placeholder="輸入名稱（2-12字）">
+                    <p id="nameEditHint"
+                        style="color:var(--text-muted);font-size:0.8rem;min-height:18px;margin-top:4px;"></p>
+                    <div class="save-row" style="margin-top:8px;">
+                        <button class="btn btn-sm" id="saveNameBtn"
+                            style="flex:1;border-color:var(--neon-green);color:var(--neon-green);"
+                            onclick="saveName()">儲存</button>
+                        <button class="btn btn-sm" style="flex:1;opacity:0.6;" onclick="cancelEditName()">取消</button>
+                    </div>
+                </div>
+
+                <!-- Favorite chars -->
+                <div class="fav-chars-title">愛用角色</div>
+                <div class="fav-chars-row" id="favCharsRow"></div>
+
+                <!-- Bio -->
+                <div class="bio-area">
+                    <div class="bio-label">自我介紹</div>
+                    <div class="bio-text" id="bioDisplay" onclick="startEditBio()">點擊新增自我介紹...</div>
+                    <div style="display:none;" id="bioEditArea">
+                        <textarea class="bio-textarea" id="bioInput" maxlength="100"
+                            placeholder="寫點什麼...（最多100字）"></textarea>
+                        <div class="save-row">
+                            <button class="btn btn-sm"
+                                style="flex:1;border-color:var(--neon-green);color:var(--neon-green);"
+                                onclick="saveBio()">儲存</button>
+                            <button class="btn btn-sm" style="flex:1;opacity:0.6;" onclick="cancelEditBio()">取消</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UID -->
+                <div class="meta-row">
+                    <div class="bio-label">UID</div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div id="uidDisplay" style="color:var(--text-muted);font-size:0.85rem;font-family:monospace;">-
+                        </div>
+                        <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="font-size:0.8rem;">📋</span>
+                        <button class="btn btn-sm"
+                            style="margin-left:auto;font-size:0.75rem;padding:5px 10px;border-color:var(--neon-cyan);color:var(--neon-cyan);"
+                            onclick="showMyQr()">我的 QR Code</button>
+                    </div>
+                </div>
+
+                <!-- Join Date -->
+                <div class="meta-row">
+                    <div class="bio-label">加入日期</div>
+                    <div id="joinDateDisplay" style="color:var(--text-muted);font-size:0.85rem;">-</div>
+                </div>
+
+                <!-- Ranked Info Section -->
+                <div class="meta-row" id="rankedSection" style="display:none;">
+                    <div class="bio-label" style="margin-bottom:10px;">🏅 排位資訊</div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <img id="profileRankImg" src="" alt="rank"
+                            style="width:64px;height:64px;object-fit:contain;);">
+                        <div id="profileRankName"
+                            style="font-family:var(--font-heading);font-size:1.1rem;color:var(--neon-gold);"></div>
+                        <div id="profileRankStars" style="font-size:1.1rem;letter-spacing:3px;"></div>
+                    </div>
+                    <div
+                        style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--glass-border);">
+                        <div class="bio-label" style="margin-bottom:3px;">歷史最高</div>
+                        <div id="profilePeakRank" style="color:var(--text-secondary);font-size:0.85rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Title Selector Section -->
+                <div class="meta-row" id="titleSection" style="display:none;">
+                    <div class="bio-label" style="margin-bottom:8px;">🎖 當前稱號</div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <img id="profileTitleImg" src="" alt="title" style="height:32px;object-fit:contain;">
+                        <span id="profileTitleName"
+                            style="color:var(--neon-gold);font-family:var(--font-heading);font-size:0.95rem;"></span>
+                        <button class="btn btn-sm" style="margin-left:auto;font-size:0.75rem;padding:5px 10px;"
+                            onclick="openTitlePicker()">更換</button>
+                    </div>
+                </div>
+
+                <!-- Economy & Progression Section -->
+                <div class="meta-row" id="economySection">
+                    <div class="bio-label" style="margin-bottom:10px;"><img src="item_pic/錢錢.png" class="item-icon-inline" style="width:22px;height:22px;"> 資源與等級</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;">
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);">等級 Level</div>
+                            <div id="profileLevel" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;">✨ 經驗 EXP</div>
+                            <div id="profileExp" style="color:var(--neon-green);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;"><img src="item_pic/錢錢.png" class="item-icon-inline" style="width:14px;height:14px;"> 錢錢 Money</div>
+                            <div id="profileMoney" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:8px;padding:8px;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:4px;"><img src="item_pic/地契.png" class="item-icon-inline" style="width:14px;height:14px;"> 地契</div>
+                            <div id="profileDeeds" style="color:#ff6b35;font-family:var(--font-heading);font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Path of Trials (Rewards) -->
+                <div class="notify-wrapper" data-notification="trial" style="width:100%; margin-top:10px;">
+                    <button class="btn-trials" id="trialsBtn" onclick="location.href='trial.html'">
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span class="icon">🏔️</span>
+                                <span>試煉之路</span>
+                            </div>
+                            <div class="btn-trials-subtitle">查看 / 領取獎勵</div>
+                        </div>
+                    </button>
+                    <div class="notify-dot"></div>
+                </div>
+
+                <button class="btn" style="width:100%; margin-top:10px; border-color:var(--neon-gold); color:var(--neon-gold);" onclick="if(AuthManager.auth.currentUser) location.href='characters.html?uid=' + AuthManager.auth.currentUser.uid">檢視我的角色庫</button>
+
+                <button class="btn logout-btn btn-sm" style="margin-top:20px;" onclick="handleLogout()">登出</button>
+            </div>
+
+            <!-- Right: Tabs -->
+            <div class="right-panel glass" style="padding:0;overflow:hidden;">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('friends')" id="tab-friends">好友</button>
+                    <button class="tab-btn" onclick="switchTab('history')" id="tab-history">最近對戰</button>
+                    <button class="tab-btn" onclick="switchTab('search')" id="tab-search">搜尋玩家</button>
+                    <button class="tab-btn" onclick="switchTab('pending')" id="tab-pending">
+                        待確認 <span class="badge-count hidden" id="pendingBadge">0</span>
+                    </button>
+                </div>
+                <div style="padding: 20px;">
+                    <!-- Friends Tab -->
+                    <div class="tab-content active" id="tab-content-friends">
+                        <div class="friend-list" id="friendList">
+                            <div class="empty-state">
+                                <div class="icon">👥</div>載入好友中...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Tab -->
+                    <div class="tab-content" id="tab-content-history">
+                        <div id="historyList">
+                            <div class="empty-state">
+                                <div class="icon">⚔️</div>目前沒有對戰紀錄
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Tab -->
+                    <div class="tab-content" id="tab-content-search">
+                        <div class="search-bar">
+                            <input class="search-input-sm" id="searchInput" placeholder="輸入玩家名稱或掃描..."
+                                onkeyup="if(event.key==='Enter')doSearch()">
+                            <button class="btn btn-sm" onclick="doSearch()">搜尋</button>
+                            <button class="btn btn-sm btn-magenta scan-btn" onclick="startScanner()">📷 掃描</button>
+                        </div>
+                        <div class="search-results" id="searchResults">
+                            <div class="empty-state">
+                                <div class="icon">🔍</div>輸入名稱以搜尋玩家
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Tab -->
+                    <div class="tab-content" id="tab-content-pending">
+                        <div id="pendingList">
+                            <div class="empty-state">
+                                <div class="icon">📬</div>沒有待確認的好友邀請
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Picker Modal -->
+    <div class="modal-overlay" id="charPickerModal">
+        <div class="modal glass" style="max-width:600px;">
+            <h2 style="margin-bottom:16px;">選擇愛用角色（最多3個）</h2>
+            <input class="search-input-sm" id="charPickerSearch" placeholder="搜尋角色..."
+                oninput="filterCharPicker(this.value)" style="width:100%;margin-bottom:14px;">
+            <div class="char-picker-grid" id="charPickerGrid"></div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button class="btn" style="flex:1;" onclick="saveCharPicker()">確認</button>
+                <button class="btn" style="flex:1;opacity:0.6;" onclick="closeCharPicker()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Title Picker Modal -->
+    <div class="modal-overlay" id="titlePickerModal">
+        <div class="modal glass" style="max-width:460px;">
+            <h2 style="margin-bottom:16px;">🎖 選擇稱號</h2>
+            <div id="titlePickerList" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <button class="btn" style="width:100%;margin-top:16px;opacity:0.6;" onclick="closeTitlePicker()">取消</button>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal glass">
+            <h2 style="color:var(--neon-cyan);margin-bottom:10px;">我的 QR Code</h2>
+            <p style="color:var(--text-secondary);font-size:0.9rem;">讓朋友使用搜尋好友中的掃描來加好友</p>
+            <div class="qr-container" id="qrcode"></div>
+            <div style="color:var(--neon-gold);font-family:monospace;margin-bottom:20px;" id="qrUidText"></div>
+            <button class="btn" style="width:100%;opacity:0.7;" onclick="closeQrModal()">關閉</button>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div class="modal-overlay" id="scannerModal">
+        <div class="modal glass">
+            <h2 style="color:var(--neon-magenta);margin-bottom:10px;">掃描 QR Code</h2>
+            <p style="color:var(--text-secondary);font-size:0.9rem;">請將好友的 QR Code 對準鏡頭</p>
+            <div id="reader"></div>
+            <button class="btn" style="width:100%;opacity:0.7;" onclick="stopScanner()">取消掃描</button>
+        </div>
+    </div>
+
+    <!-- Char Picker data -->
+    <script src="js/data/characters_part1.js"></script>
+    <script src="js/data/characters_part2.js"></script>
+    <script src="js/data/characters_part3.js"></script>
+    <script src="js/data/characters_part4.js"></script>
+    <script src="js/data/characters_part5.js"></script>
+    <script src="js/data/characters_part6.js"></script>
+    <script src="js/data/characters.js"></script>
+
+    <script>
+        let myProfile = null;
+        let myFriends = [];
+        let allCharacters = [];
+        let tempFavChars = [];
+        let charPickerSlot = -1;
+
+        // Stat mode definitions (shared)
+        const STAT_MODES = [
+            { key: 'pve', label: '🤖 PvE', color: 'var(--neon-cyan)' },
+            { key: 'online', label: '🌐 線上', color: 'var(--neon-gold)' },
+            { key: 'competitive', label: '🏆 競賽', color: '#ff6b35' }
+        ];
+
+        function buildStatsBar(stats) {
+            const bits = STAT_MODES.map(m => {
+                const s = (stats || {})[m.key] || {};
+                const w = s.wins || 0, l = s.losses || 0, total = w + l;
+                if (total === 0) return '';
+                const pct = Math.round(w / total * 100);
+                return `<span style="color:${m.color};font-size:0.78rem;margin-right:10px;">${m.label} <b>${pct}%</b> <span style="color:var(--text-muted);">(${w}勝${l}敗)</span></span>`;
+            }).filter(Boolean).join('');
+            return bits ? `<div class="friend-stats-bar">${bits}</div>` : '';
+        }
+
+        function formatJoinDate(createdAt) {
+            if (!createdAt) return '';
+            const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+            return d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // ── Init ──────────────────────────────────────────────────────
+        let _profileInviteTimer = null;
+        let _inviteUnsubscribe = null;
+
+        AuthManager.init();
+        AuthManager.onAuthChanged(async (user) => {
+            if (!user) { location.href = 'index.html'; return; }
+            myProfile = await UserProfile.getProfile(user.uid);
+            if (!myProfile) { location.href = 'index.html'; return; }
+            
+            // Initialize notifications
+            if (typeof NotificationManager !== 'undefined') {
+                NotificationManager.init(myProfile);
+            }
+
+            renderProfile();
+            loadFriends();
+            loadPending();
+            // Listen for game invites even on profile page
+            _inviteUnsubscribe = FriendsManager.listenForGameInvites(showProfileGameInvite);
+            document.getElementById('pageLoading').style.display = 'none';
+            document.getElementById('profilePage').style.display = 'block';
+        });
+
+        function showProfileGameInvite(invite) {
+            const existing = document.getElementById('profileInviteOverlay');
+            if (existing) existing.remove();
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+
+            const modeLabel = invite.gameMode === 'quick' ? '快速模式 (3張牌)' : '經典模式 (7張牌)';
+            let secsLeft = 45;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'profileInviteOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(6px);animation:fadeIn 0.25s ease;';
+            overlay.innerHTML = `
+                <div style="
+                    background:linear-gradient(135deg,rgba(15,15,40,0.98),rgba(10,10,30,0.98));
+                    border:2px solid var(--neon-gold);border-radius:20px;
+                    padding:32px 36px;max-width:400px;width:90%;text-align:center;
+                    animation:inviteSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+                    
+                ">
+                    <div style="font-size:3.5rem;margin-bottom:12px;animation:pulse 1s infinite;">⚔️</div>
+                    <div style="color:var(--text-muted);font-size:0.82rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">收到對戰邀請</div>
+                    <div style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1.8rem;margin-bottom:6px;">${escHtml(invite.fromName)}</div>
+                    <div style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:24px;">${modeLabel}</div>
+                    <div style="display:flex;gap:12px;">
+                        <button class="btn btn-gold" style="flex:1;padding:14px;font-size:1rem;" onclick="acceptProfileInvite('${invite.id}','${invite.roomId}','${invite.gameMode}','${escHtml(invite.fromName)}')">✅ 接受對戰</button>
+                        <button class="btn" style="flex:1;padding:14px;font-size:1rem;opacity:0.6;" onclick="declineProfileInvite('${invite.id}')">❌ 拒絕</button>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:14px;">邀請將於 <span id="profileInviteCountdown" style="color:var(--neon-cyan);font-weight:700;">${secsLeft}</span> 秒後失效</div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) declineProfileInvite(invite.id); });
+
+            _profileInviteTimer = setInterval(() => {
+                secsLeft--;
+                const el = document.getElementById('profileInviteCountdown');
+                if (el) el.textContent = secsLeft;
+                if (secsLeft <= 0) {
+                    clearInterval(_profileInviteTimer);
+                    FriendsManager.clearGameInvite(invite.id).catch(() => { });
+                    const ov = document.getElementById('profileInviteOverlay');
+                    if (ov) ov.remove();
+                }
+            }, 1000);
+        }
+
+        async function acceptProfileInvite(fromUid, roomId, gameMode, fromName) {
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+            const ov = document.getElementById('profileInviteOverlay');
+            if (ov) ov.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', 'join');
+            localStorage.setItem('onlineSubMode', gameMode);
+            localStorage.setItem('roomId', roomId);
+            localStorage.setItem('onlineMyName', myProfile?.displayName || '玩家');
+            localStorage.setItem('onlineOpponentName', fromName);
+            localStorage.removeItem('fromCompetitiveMode');
+            location.href = 'game.html';
+        }
+
+        async function declineProfileInvite(fromUid) {
+            if (_profileInviteTimer) clearInterval(_profileInviteTimer);
+            const ov = document.getElementById('profileInviteOverlay');
+            if (ov) ov.remove();
+            await FriendsManager.clearGameInvite(fromUid);
+        }
+
+
+
+        function renderProfile() {
+            const p = myProfile;
+            // Avatar
+            if (p.googlePhotoURL) {
+                document.getElementById('avatarEmoji').style.display = 'none';
+                const img = document.getElementById('avatarImg');
+                img.src = p.googlePhotoURL;
+                img.style.display = 'block';
+            }
+            document.getElementById('nameDisplay').textContent = p.displayName || '-';
+            document.getElementById('bioDisplay').textContent = p.bio || '點擊新增自我介紹...';
+            // UID
+            document.getElementById('uidDisplay').textContent = p.uid || '-';
+            // Join date
+            const joinEl = document.getElementById('joinDateDisplay');
+            const dateStr = formatJoinDate(p.createdAt);
+            joinEl.textContent = dateStr || '未知';
+            
+            // Economy & Progression
+            document.getElementById('profileLevel').textContent = p.level || '0';
+            document.getElementById('profileExp').textContent = p.exp || '0';
+            document.getElementById('profileMoney').textContent = (p.inventory && p.inventory.money) || '0';
+            document.getElementById('profileDeeds').textContent = (p.inventory && p.inventory.landDeed) || '0';
+
+            renderFavChars();
+            renderRanked();
+            renderTitle();
+        }
+
+        function renderRanked() {
+            const p = myProfile;
+            if (!p.ranked || typeof RankedSystem === 'undefined') return;
+            const ranked = p.ranked;
+            document.getElementById('profileRankImg').src = RankedSystem.getImgPath(ranked);
+            document.getElementById('profileRankName').textContent = RankedSystem.getDisplayName(ranked);
+            document.getElementById('profileRankStars').innerHTML = RankedSystem.getStarsHtml(ranked);
+            document.getElementById('profilePeakRank').textContent = RankedSystem.getPeakDisplay(ranked);
+            document.getElementById('rankedSection').style.display = 'block';
+        }
+
+        function renderTitle() {
+            const p = myProfile;
+            if (!p.titles || !p.titles.length || typeof RankedSystem === 'undefined') return;
+            const active = p.activeTitle || p.titles[0];
+            const tInfo = RankedSystem.getTitleInfo(active);
+            if (tInfo) {
+                document.getElementById('profileTitleImg').src = tInfo.img;
+                document.getElementById('profileTitleName').textContent = active;
+            } else {
+                document.getElementById('profileTitleName').textContent = active;
+                document.getElementById('profileTitleImg').style.display = 'none';
+            }
+            document.getElementById('titleSection').style.display = 'block';
+        }
+
+        // ── Title Picker ────────────────────────────────────────────────
+        function openTitlePicker() {
+            const p = myProfile;
+            const myTitles = p.titles || ['初到新星'];
+            const active = p.activeTitle || myTitles[0];
+            const allTitles = typeof RankedSystem !== 'undefined' ? RankedSystem.getAllTitles() : [];
+            const list = document.getElementById('titlePickerList');
+
+            list.innerHTML = allTitles.map(tInfo => {
+                const key = tInfo.key;
+                const isOwned = myTitles.includes(key);
+                const isActive = key === active;
+
+                const clickHandler = isOwned ? `onclick="selectTitle('${key}')"` : '';
+                const opacity = isOwned ? '1' : '0.5';
+                const cursor = isOwned ? 'cursor:pointer;' : 'cursor:not-allowed;';
+                const borderHover = isOwned ? `onmouseover="this.style.borderColor='var(--neon-gold)'" onmouseout="this.style.borderColor='${isActive ? 'var(--neon-gold)' : 'var(--glass-border)'}'"` : '';
+
+                return `
+                    <div ${clickHandler} style="
+                        display:flex;align-items:center;gap:14px;padding:12px 16px;
+                        border-radius:12px;border:1px solid ${isActive ? 'var(--neon-gold)' : 'var(--glass-border)'};
+                        background:${isActive ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)'};
+                        ${cursor} transition:all 0.2s; opacity:${opacity};
+                    " ${borderHover}>
+                        <img src="${tInfo.img}" style="height:36px;object-fit:contain;${!isOwned ? 'filter:grayscale(100%);' : ''}">
+                        <div style="flex:1;">
+                            <div style="font-family:var(--font-heading);color:${isActive ? 'var(--neon-gold)' : 'var(--text-primary)'};font-size:1rem;display:flex;align-items:center;gap:8px;">
+                                ${key} ${!isOwned ? '<span style="font-size:0.7rem;color:var(--neon-pink);border:1px solid var(--neon-pink);border-radius:4px;padding:1px 4px;line-height:1;">未解鎖</span>' : ''}
+                            </div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${tInfo.desc}</div>
+                        </div>
+                        ${isActive ? '<span style="color:var(--neon-gold);font-size:1rem;">✓</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('titlePickerModal').classList.add('active');
+        }
+
+        async function selectTitle(key) {
+            const user = AuthManager.getCurrentUser();
+            if (!user) return;
+            await UserProfile.setActiveTitle(user.uid, key);
+            myProfile.activeTitle = key;
+            renderTitle();
+            closeTitlePicker();
+        }
+
+        function closeTitlePicker() {
+            document.getElementById('titlePickerModal').classList.remove('active');
+        }
+
+        function renderFavChars() {
+            const row = document.getElementById('favCharsRow');
+            row.innerHTML = '';
+            const favs = myProfile.favoriteChars || [];
+            for (let i = 0; i < 3; i++) {
+                const chip = document.createElement('div');
+                chip.className = 'fav-char-chip' + (favs[i] ? '' : ' empty');
+                chip.textContent = favs[i] || '+ 新增';
+                const slot = i;
+                chip.onclick = () => openCharPicker(slot);
+                row.appendChild(chip);
+            }
+        }
+
+        // ── Name Edit ──────────────────────────────────────────────────
+        function startEditName() {
+            document.getElementById('nameDisplayRow').style.display = 'none';
+            document.getElementById('nameEditRow').style.display = 'block';
+            document.getElementById('nameInput').value = myProfile.displayName || '';
+            document.getElementById('nameEditHint').textContent = '';
+            document.getElementById('nameInput').focus();
+        }
+        function cancelEditName() {
+            document.getElementById('nameDisplayRow').style.display = 'flex';
+            document.getElementById('nameEditRow').style.display = 'none';
+        }
+        async function saveName() {
+            const val = document.getElementById('nameInput').value.trim();
+            const hint = document.getElementById('nameEditHint');
+            const btn = document.getElementById('saveNameBtn');
+            if (val.length < 2) { hint.textContent = '名稱至少需要2個字'; hint.style.color = 'var(--neon-pink)'; return; }
+            if (val === myProfile.displayName) { cancelEditName(); return; }
+            btn.disabled = true; btn.textContent = '檢查中...';
+            hint.textContent = '';
+            const taken = await UserProfile.isNameTaken(val, myProfile.uid);
+            if (taken) {
+                hint.textContent = '❌ 此名稱已被其他玩家使用';
+                hint.style.color = 'var(--neon-pink)';
+                btn.disabled = false; btn.textContent = '儲存';
+                return;
+            }
+            btn.textContent = '儲存中...';
+            await UserProfile.updateProfile(myProfile.uid, { displayName: val });
+            myProfile.displayName = val;
+            document.getElementById('nameDisplay').textContent = val;
+            btn.disabled = false; btn.textContent = '儲存';
+            cancelEditName();
+        }
+
+        // ── Bio Edit ──────────────────────────────────────────────────
+        function startEditBio() {
+            document.getElementById('bioDisplay').style.display = 'none';
+            document.getElementById('bioEditArea').style.display = 'block';
+            document.getElementById('bioInput').value = myProfile.bio || '';
+            document.getElementById('bioInput').focus();
+        }
+        function cancelEditBio() {
+            document.getElementById('bioDisplay').style.display = 'block';
+            document.getElementById('bioEditArea').style.display = 'none';
+        }
+        async function saveBio() {
+            const val = document.getElementById('bioInput').value.trim();
+            await UserProfile.updateProfile(myProfile.uid, { bio: val });
+            myProfile.bio = val;
+            document.getElementById('bioDisplay').textContent = val || '點擊新增自我介紹...';
+            cancelEditBio();
+        }
+
+        // ── Fav Chars Picker ──────────────────────────────────────────
+        function openCharPicker(slot) {
+            charPickerSlot = slot;
+            tempFavChars = [...(myProfile.favoriteChars || [])];
+            if (allCharacters.length === 0) {
+                if (typeof ALL_CHARACTERS !== 'undefined') allCharacters = ALL_CHARACTERS;
+                else if (typeof window.characters !== 'undefined') allCharacters = window.characters;
+            }
+            filterCharPicker('');
+            document.getElementById('charPickerModal').classList.add('active');
+        }
+        function closeCharPicker() {
+            document.getElementById('charPickerModal').classList.remove('active');
+        }
+        function filterCharPicker(query) {
+            const grid = document.getElementById('charPickerGrid');
+            grid.innerHTML = '';
+            const chars = (allCharacters || []).filter(c => !query || c.name.includes(query));
+            chars.slice(0, 80).forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'char-picker-item' + (tempFavChars.includes(c.name) ? ' selected' : '');
+                div.textContent = c.name;
+                div.onclick = () => toggleCharPick(c.name, div);
+                grid.appendChild(div);
+            });
+        }
+        function toggleCharPick(name, el) {
+            const idx = tempFavChars.indexOf(name);
+            if (idx >= 0) {
+                tempFavChars.splice(idx, 1);
+                el.classList.remove('selected');
+            } else {
+                if (tempFavChars.length >= 3) { alert('最多選3個角色'); return; }
+                tempFavChars.push(name);
+                el.classList.add('selected');
+            }
+        }
+        async function saveCharPicker() {
+            await UserProfile.updateProfile(myProfile.uid, { favoriteChars: tempFavChars });
+            myProfile.favoriteChars = tempFavChars;
+            renderFavChars();
+            closeCharPicker();
+        }
+
+        // ── Friends ───────────────────────────────────────────────────
+        async function loadFriends() {
+            myFriends = await FriendsManager.getFriendList();
+            const list = document.getElementById('friendList');
+            if (myFriends.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">👥</div>還沒有好友，快去搜尋吧！</div>';
+                return;
+            }
+            list.innerHTML = myFriends.map(f => {
+                const statsBar = buildStatsBar(f.stats);
+                const joinStr = f.createdAt ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:3px;">📅 ${formatJoinDate(f.createdAt)} 加入</div>` : '';
+                return `<div class="friend-card">
+                    <div class="friend-card-row">
+                        <a href="player.html?uid=${f.uid}" style="text-decoration:none;">
+                            <div class="friend-avatar">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" alt="">` : '👤'}</div>
+                        </a>
+                        <div class="friend-info">
+                            <a href="player.html?uid=${f.uid}" style="text-decoration:none;">
+                                <div class="friend-name" style="cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''">${escHtml(f.displayName)}</div>
+                            </a>
+                            <div class="friend-bio">${escHtml(f.bio || '沒有自我介紹')}</div>
+                            ${joinStr}
+                        </div>
+                        <div class="friend-actions">
+                            <button class="btn btn-sm btn-gold" onclick="inviteFriend('${f.uid}','${escHtml(f.displayName)}')">邀請對戰</button>
+                            <button class="btn btn-sm" style="opacity:0.5;" onclick="removeFriendConfirm('${f.uid}','${escHtml(f.displayName)}')">刪除</button>
+                        </div>
+                    </div>
+                    ${statsBar}
+                </div>`;
+            }).join('');
+        }
+
+        // Invite mode select modal
+        let _pendingInvite = null;
+        function inviteFriend(targetUid, targetName) {
+            _pendingInvite = { targetUid, targetName };
+            showInviteModeModal();
+        }
+
+        function showInviteModeModal() {
+            const old = document.getElementById('inviteModeModal');
+            if (old) old.remove();
+            const modal = document.createElement('div');
+            modal.id = 'inviteModeModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(6px);';
+            modal.innerHTML = `<div class="glass" style="padding:28px 32px;border-radius:18px;text-align:center;max-width:360px;width:90%;">
+                <div style="font-family:var(--font-heading);color:var(--neon-cyan);font-size:1.2rem;margin-bottom:8px;">📨 邀請對戰</div>
+                <div style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:22px;">邀請 <strong style="color:var(--text-primary);">${escHtml(_pendingInvite?.targetName || '')}</strong> 進行：</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button class="btn btn-gold" onclick="sendFriendInvite('quick')">⚡ 快速模式 (3張牌)</button>
+                    <button class="btn btn-cyan"  onclick="sendFriendInvite('classic')">🎴 經典模式 (7張牌)</button>
+                    <button class="btn" style="opacity:0.5;margin-top:4px;" onclick="document.getElementById('inviteModeModal').remove()">取消</button>
+                </div>
+            </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function sendFriendInvite(mode) {
+            const modal = document.getElementById('inviteModeModal');
+            if (modal) modal.remove();
+            if (!_pendingInvite || !myProfile) return;
+            const { targetUid, targetName } = _pendingInvite;
+            const roomCode = Array.from({ length: 4 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join('');
+            sessionStorage.setItem('last_host_room_id', roomCode);
+            await FriendsManager.sendGameInvite(targetUid, roomCode, mode, myProfile.displayName);
+            localStorage.setItem('gameMode', 'online');
+            localStorage.setItem('gameType', 'pvp');
+            localStorage.setItem('onlineRole', 'host');
+            localStorage.setItem('onlineSubMode', mode);
+            localStorage.setItem('onlineMyName', myProfile.displayName);
+            localStorage.setItem('onlineOpponentName', targetName);
+            localStorage.removeItem('fromCompetitiveMode');
+            location.href = 'game.html';
+        }
+
+
+        async function removeFriendConfirm(uid, name) {
+            if (!confirm(`確定要刪除好友 ${name} 嗎？`)) return;
+            await FriendsManager.removeFriend(uid);
+            loadFriends();
+        }
+
+        // ── Search ────────────────────────────────────────────────────
+        async function doSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            if (!q) return;
+            const results = await UserProfile.searchByDisplayName(q);
+            const container = document.getElementById('searchResults');
+            const me = AuthManager.getCurrentUser();
+            if (results.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">😶</div>找不到玩家</div>';
+                return;
+            }
+            const rows = await Promise.all(results.map(async (u) => {
+                if (u.uid === me?.uid) return '';
+                const alreadyFriend = await FriendsManager.isFriend(u.uid);
+                const hasPending = await FriendsManager.hasOutgoingRequest(u.uid);
+                const btnHtml = alreadyFriend
+                    ? `<span style="color:var(--neon-green);font-size:0.8rem;">✓ 好友</span>`
+                    : hasPending
+                        ? `<span style="color:var(--text-muted);font-size:0.8rem;">已送出</span>`
+                        : `<button class="btn btn-sm" onclick="addFriend('${u.uid}',this)">加好友</button>`;
+                const statsBar = buildStatsBar(u.stats);
+                const joinStr = u.createdAt ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:3px;">📅 ${formatJoinDate(u.createdAt)} 加入</div>` : '';
+                return `<div class="friend-card">
+                    <div class="friend-card-row">
+                        <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                            <div class="friend-avatar">${u.googlePhotoURL ? `<img src="${u.googlePhotoURL}" alt="">` : '👤'}</div>
+                        </a>
+                        <div class="friend-info">
+                            <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                                <div class="friend-name" style="cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''">${escHtml(u.displayName)}</div>
+                            </a>
+                            <div class="friend-bio">${escHtml(u.bio || '沒有自我介紹')}</div>
+                            ${joinStr}
+                        </div>
+                        <div class="friend-actions">${btnHtml}</div>
+                    </div>
+                    ${statsBar}
+                </div>`;
+
+            }));
+            container.innerHTML = rows.filter(Boolean).join('') || '<div class="empty-state"><div class="icon">😶</div>找不到其他玩家</div>';
+        }
+
+        async function addFriend(targetUid, btn) {
+            btn.disabled = true;
+            btn.textContent = '送出中...';
+            await FriendsManager.sendFriendRequest(targetUid);
+            btn.textContent = '已送出';
+        }
+
+        // ── Pending Requests ──────────────────────────────────────────
+        async function loadPending() {
+            const pending = await FriendsManager.getPendingRequests();
+            const badge = document.getElementById('pendingBadge');
+            const list = document.getElementById('pendingList');
+            if (pending.length === 0) {
+                badge.classList.add('hidden');
+                list.innerHTML = '<div class="empty-state"><div class="icon">📬</div>沒有待確認的好友邀請</div>';
+                return;
+            }
+            badge.classList.remove('hidden');
+            badge.textContent = pending.length;
+            list.innerHTML = pending.map(p => `
+                <div class="pending-request">
+                    <div class="friend-avatar">${p.googlePhotoURL ? `<img src="${p.googlePhotoURL}" alt="">` : '👤'}</div>
+                    <div class="friend-info" style="flex:1;">
+                        <div class="friend-name">${escHtml(p.displayName)}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="btn btn-sm btn-gold" onclick="acceptReq('${p.uid}')">接受</button>
+                        <button class="btn btn-sm" style="opacity:0.5;" onclick="declineReq('${p.uid}')">拒絕</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        async function acceptReq(uid) {
+            await FriendsManager.acceptFriendRequest(uid);
+            loadFriends();
+            loadPending();
+        }
+        async function declineReq(uid) {
+            await FriendsManager.declineFriendRequest(uid);
+            loadPending();
+        }
+
+        // ── Tabs ──────────────────────────────────────────────────────
+        function switchTab(tab) {
+            ['friends', 'history', 'search', 'pending'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`tab-content-${t}`).classList.toggle('active', t === tab);
+            });
+            // Update UI
+            if (typeof renderProfileUI === 'function') renderProfileUI();
+
+            // Init notification dots
+            if (typeof NotificationManager !== 'undefined') NotificationManager.init(myProfile);
+            if (tab === 'history') renderRecentMatches();
+        }
+
+        // ── Match History ──────────────────────────────────────────────
+        function renderRecentMatches() {
+            const list = document.getElementById('historyList');
+            const matches = myProfile.recentMatches || [];
+            if (matches.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">⚔️</div>目前沒有對戰紀錄</div>';
+                return;
+            }
+
+            list.innerHTML = matches.map(m => {
+                const isWin = m.result === 'win';
+                const timeStr = formatTime(m.timestamp);
+                const modeLabel = getModeLabel(m.mode);
+                const opponentUrl = `player.html?uid=${m.opponentUid}`;
+
+                return `
+                    <div class="match-item">
+                        <div class="match-result-badge ${m.result}">
+                            ${isWin ? '勝' : '敗'}
+                        </div>
+                        <div class="match-info">
+                            <div class="match-opponent">
+                                <a href="${opponentUrl}">${escHtml(m.opponentName)}</a>
+                            </div>
+                            <div class="match-meta">
+                                <span>${modeLabel}</span>
+                                <span style="opacity:0.5;">|</span>
+                                <span style="color:${isWin ? 'var(--neon-green)' : 'var(--neon-pink)'}">${isWin ? '勝利' : '敗北'}</span>
+                            </div>
+                        </div>
+                        <div class="match-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getModeLabel(mode) {
+            const modes = {
+                'ranked': '🏆 排位賽',
+                'online': '🌐 線上對戰',
+                'pve': '🤖 PVE 模式',
+                'story': '📖 劇情模式'
+            };
+            return modes[mode] || '⚔️ 自由對戰';
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            const date = ts.toDate ? ts.toDate() : new Date(ts);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffMin < 1) return '剛剛';
+            if (diffMin < 60) return `${diffMin}分鐘前`;
+            if (diffHour < 24) return `${diffHour}小時前`;
+            if (diffDay < 7) return `${diffDay}天前`;
+            return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+        }
+
+        // ── Logout ────────────────────────────────────────────────────
+        async function handleLogout() {
+            if (!confirm('確定要登出嗎？')) return;
+            await AuthManager.signOut();
+            location.href = 'index.html';
+        }
+
+        function escHtml(str) {
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function copyUid() {
+            const uid = document.getElementById('uidDisplay').textContent;
+            if (!uid || uid === '-') return;
+            navigator.clipboard.writeText(uid).then(() => {
+                const btn = event.currentTarget;
+                const oldText = btn.textContent;
+                btn.textContent = '✅';
+                setTimeout(() => btn.textContent = oldText, 2000);
+            }).catch(err => {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動選取複製');
+            });
+        }
+
+        // ── QR Code & Scanner ─────────────────────────────────────────
+        let qrInstance = null;
+        let html5QrCode = null;
+
+        function showMyQr() {
+            const uid = myProfile?.uid;
+            if (!uid) return;
+
+            document.getElementById('qrUidText').textContent = uid;
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+
+            new QRCode(qrContainer, {
+                text: uid,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('qrModal').classList.add('active');
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        async function startScanner() {
+            const scannerModal = document.getElementById('scannerModal');
+            scannerModal.classList.add('active');
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    onScanSuccess
+                );
+            } catch (err) {
+                console.error("Scanner failed to start:", err);
+                alert("無法啟動相機，請確認已授權權限。");
+                stopScanner();
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+            document.getElementById('scannerModal').classList.remove('active');
+        }
+
+        async function onScanSuccess(decodedText) {
+            console.log("Scan Result:", decodedText);
+            await stopScanner();
+
+            // Assume the decoded text is the UID
+            const targetUid = decodedText.trim();
+            if (targetUid.length < 10) { // Typical UID length
+                alert("無效的 QR Code");
+                return;
+            }
+
+            // Search by UID
+            searchByScannedUid(targetUid);
+        }
+
+        async function searchByScannedUid(uid) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div>正在查詢玩家...</div>';
+            switchTab('search');
+
+            try {
+                const u = await UserProfile.getProfile(uid);
+                if (!u) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">😶</div>找不到該玩家 (UID: ' + uid + ')</div>';
+                    return;
+                }
+
+                const me = AuthManager.getCurrentUser();
+                if (u.uid === me?.uid) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">😊</div>這是你自己哦！</div>';
+                    return;
+                }
+
+                const alreadyFriend = await FriendsManager.isFriend(u.uid);
+                const hasPending = await FriendsManager.hasOutgoingRequest(u.uid);
+                const btnHtml = alreadyFriend
+                    ? `<span style="color:var(--neon-green);font-size:0.8rem;">✓ 好友</span>`
+                    : hasPending
+                        ? `<span style="color:var(--text-muted);font-size:0.8rem;">已送出</span>`
+                        : `<button class="btn btn-sm" onclick="addFriend('${u.uid}',this)">加好友</button>`;
+
+                const statsBar = buildStatsBar(u.stats);
+                const joinStr = u.createdAt ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:3px;">📅 ${formatJoinDate(u.createdAt)} 加入</div>` : '';
+
+                container.innerHTML = `
+                    <div style="color:var(--neon-cyan);font-size:0.8rem;margin-bottom:10px;letter-spacing:1px;">✨ 掃描成功！已找到玩家：</div>
+                    <div class="friend-card">
+                        <div class="friend-card-row">
+                            <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                                <div class="friend-avatar">${u.googlePhotoURL ? `<img src="${u.googlePhotoURL}" alt="">` : '👤'}</div>
+                            </a>
+                            <div class="friend-info">
+                                <a href="player.html?uid=${u.uid}" style="text-decoration:none;">
+                                    <div class="friend-name" style="cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''">${escHtml(u.displayName)}</div>
+                                </a>
+                                <div class="friend-bio">${escHtml(u.bio || '沒有自我介紹')}</div>
+                                ${joinStr}
+                            </div>
+                            <div class="friend-actions">${btnHtml}</div>
+                        </div>
+                        ${statsBar}
+                    </div>`;
+
+            } catch (err) {
+                console.error("Search by UID failed:", err);
+                container.innerHTML = '<div class="empty-state"><div class="icon">❌</div>查詢出錯，請稍後再試</div>';
+            }
+        }
+    </script>
+</body>
+
+</html>
