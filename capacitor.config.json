@@ -2,6 +2,9 @@
   "appId": "app.netlify.uptocard.twa",
   "appName": "NeonCard",
   "webDir": "www",
+  "server": {
+    "hostname": "neoncard.local"
+  },
   "plugins": {
     "FirebaseAuthentication": {
       "skipNativeAuth": false,
