@@ -29,9 +29,113 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="js/core/version_v3.js"></script>
+    <script>
+        window.APP_VERSION = "1.7.0";
+    </script>
     <script src="capacitor.js"></script>
-    <script src="js/core/updater_v3.js"></script>
+    <script>
+        const Updater = (() => {
+            const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
+            let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases";
+
+            async function checkVersion() {
+                try {
+                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now());
+                    const data = await response.json();
+                    const serverVersion = data.version;
+                    const localVersion = window.APP_VERSION || "0.0.0";
+                    if (data.apk_url) _apkDownloadUrl = data.apk_url;
+                    console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
+                    if (isVersionOlder(localVersion, serverVersion)) {
+                        forceUpdate(data.notes || []);
+                    }
+                } catch (error) {
+                    console.warn("[Updater] Version check failed", error);
+                }
+            }
+
+            function isVersionOlder(local, server) {
+                const lp = local.split('.').map(Number);
+                const sp = server.split('.').map(Number);
+                for (let i = 0; i < Math.max(lp.length, sp.length); i++) {
+                    const l = lp[i] || 0;
+                    const s = sp[i] || 0;
+                    if (s > l) return true;
+                    if (l > s) return false;
+                }
+                return false;
+            }
+
+            function forceUpdate(notes) {
+                const modal = document.getElementById('updateModal');
+                const list = document.getElementById('updateNotesList');
+                if (modal) {
+                    if (list && notes.length > 0) {
+                        list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
+                    }
+                    modal.classList.add('active');
+                }
+            }
+
+            async function startDownloadFlow() {
+                const btn = document.getElementById('mainUpdateBtn');
+                const progressContainer = document.getElementById('updateProgressContainer');
+                const progressBar = document.getElementById('updateProgressBar');
+                const progressPercent = document.getElementById('updateProgressPercent');
+                const progressStatus = document.getElementById('updateProgressStatus');
+
+                try {
+                    const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+                    if (!isNative) {
+                        window.location.href = _apkDownloadUrl;
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    btn.textContent = "正在下載...";
+                    progressContainer.classList.remove('hidden');
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', _apkDownloadUrl, true);
+                    xhr.responseType = 'blob';
+                    xhr.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const p = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = p + "%";
+                            progressPercent.textContent = p + "%";
+                            progressStatus.textContent = `已下載: ${(e.loaded/1024/1024).toFixed(1)}MB / ${(e.total/1024/1024).toFixed(1)}MB`;
+                        } else {
+                            progressStatus.textContent = "下載中...";
+                        }
+                    };
+                    xhr.onload = async () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            progressStatus.textContent = "下載完成，安裝中...";
+                            const blob = xhr.response;
+                            const { Filesystem, FileOpener } = window.Capacitor.Plugins;
+                            const fileName = "update.apk";
+                            const reader = new FileReader();
+                            const base64 = await new Promise(r => {
+                                reader.onloadend = () => r(reader.result.split(',')[1]);
+                                reader.readAsDataURL(blob);
+                            });
+                            const save = await Filesystem.writeFile({ path: fileName, data: base64, directory: 'CACHE' });
+                            await FileOpener.open({ filePath: save.uri, contentType: 'application/vnd.android.package-archive' });
+                        } else {
+                            alert("伺服器錯誤: " + xhr.status);
+                        }
+                    };
+                    xhr.onerror = () => alert("網路錯誤，請手動更新");
+                    xhr.send();
+                } catch (err) {
+                    alert("發生錯誤: " + err.message);
+                    btn.disabled = false;
+                }
+            }
+            return { checkVersion, startDownloadFlow };
+        })();
+        window.addEventListener('load', () => setTimeout(Updater.checkVersion, 2000));
+    </script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>
