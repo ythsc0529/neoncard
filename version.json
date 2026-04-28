@@ -1,12 +1,9 @@
 {
-  "version": "1.6.4",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.4/app-debug.apk",
+  "version": "1.6.5",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.5/app-debug.apk",
   "notes": [
-    "優化更新體驗：新增實時下載進度條",
-    "支援後台下載通知與自動安裝功能",
-    "新增原生通知權限請求",
-    "新增原生相機權限請求 (好友掃描)",
-    "修正重複的 Modal ID 導致功能異常的問題",
-    "優化 Android 15 (SDK 36) 的相容性"
+    "v1.6.5 測試更新功能",
+    "驗證進度條顯示是否正常",
+    "驗證下載完成後是否自動啟動安裝程式"
   ]
 }
