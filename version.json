@@ -1,9 +1,8 @@
 {
-  "version": "1.8.4",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.4/app-debug.apk",
+  "version": "1.8.5",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.5/app-debug.apk",
   "notes": [
-    "新增 App 更新檔自動清除功能，優化儲存空間管理",
-    "同步更新內部與原生版本號至 v1.8.4",
-    "優化資源快取機制"
+    "試煉之路自動捲動優化",
+    "同步更新內部與原生版本號至 v1.8.5"
   ]
 }

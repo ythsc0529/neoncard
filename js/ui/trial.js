@@ -9,6 +9,7 @@
 
 let myProfile = null;
 let allCharacters = [];
+let hasAutoScrolled = false;
 
 // Data and Logic are now imported from js/data/trialData.js
 
@@ -87,12 +88,25 @@ function renderTrial() {
 
         const card = document.createElement('div');
         card.className = `milestone-card ${isUnlocked&&!isClaimed?'unlocked':''} ${isClaimed?'claimed':''}`;
+        if (lv === curLvl) card.id = 'current-level-card';
         card.innerHTML = `
             <div class="milestone-level">Lv.${lv}</div>
             <div class="milestone-rewards">${rewardsHtml}</div>
             <div>${btnHtml}</div>`;
         list.appendChild(card);
     });
+
+    // Auto-scroll to current level on first render
+    if (!hasAutoScrolled) {
+        const target = document.getElementById('current-level-card');
+        if (target) {
+            // Using setTimeout to ensure DOM is ready and styled
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                hasAutoScrolled = true;
+            }, 100);
+        }
+    }
 }
 
 // ── Claim ─────────────────────────────────────────────────────────────────────
