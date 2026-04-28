@@ -35,7 +35,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script>
         // 強制內嵌版本號，確保永遠不會被 Service Worker 快取舊版
-        window.APP_VERSION = "1.8.1";
+        window.APP_VERSION = "1.8.2";
     </script>
     <script src="capacitor.js"></script>
     <script src="js/core/updater.js"></script>
@@ -552,7 +552,7 @@
             </div>
 
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay">Current Version: 1.8.1</div>
+            <div class="update-footer" id="versionDisplay">Current Version: 1.8.2</div>
         </div>
     </div>
 
@@ -638,7 +638,7 @@
             <button class="btn menu-btn" onclick="location.href='team.html'">隊伍配置</button>
             <button class="btn menu-btn" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" onclick="location.href='strategy.html'">攻略專區</button>
-            <button class="btn menu-btn" onclick="showUpdateModal()">版本更新</button>
+            <button class="btn menu-btn" onclick="Updater.checkVersion(true)">版本更新</button>
             <button class="btn menu-btn hidden" id="profileMenuBtn" onclick="location.href='profile.html'">個人檔案</button>
         </div>
         <!-- Stats Card (shown when logged in) -->
@@ -1019,32 +1019,8 @@
             const preloader = document.getElementById('resourcePreloader');
             if (preloader) preloader.classList.add('hidden');
 
-            // 1. 版本檢查 (加上逾時機制，避免網路延遲導致按鈕沒反應)
-            try {
-                const checkVersion = async () => {
-                    const configRef = AuthManager.getRtdb().ref('game_config');
-                    const snapshot = await configRef.once('value');
-                    return snapshot.val() || {};
-                };
-
-                // 逾時設定為 3 秒
-                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
-                const config = await Promise.race([checkVersion(), timeout]).catch(e => {
-                    console.warn('[VersionControl] 檢查逾時或失敗，跳過檢查:', e);
-                    return {}; 
-                });
-
-                const latestVersion = config.latest_version || APP_VERSION;
-                const updateNotes = config.update_notes || [];
-
-                if (latestVersion !== APP_VERSION) {
-                    console.warn(`[VersionControl] 需要更新！本地: ${APP_VERSION}, 雲端: ${latestVersion}`);
-                    showUpdateModal(latestVersion, updateNotes);
-                    return; 
-                }
-            } catch (e) {
-                console.error('[VersionControl] 初始化異常:', e);
-            }
+            if (preloader) preloader.classList.add('hidden');
+            // 舊版 Firebase 版本檢查已移除，統一由 js/core/updater.js 處理
 
             AuthManager.init();
             AuthManager.onAuthChanged(async (user) => {
@@ -1117,31 +1093,7 @@
             }
         }
 
-        function showUpdateModal(latestVersion, notes) {
-            const modal = document.getElementById('updateModal');
-            const notesList = document.getElementById('updateNotesList');
-            const versionDisplay = document.getElementById('versionDisplay');
 
-            versionDisplay.textContent = `Current: ${APP_VERSION} | Latest: ${latestVersion}`;
-            
-            // Clear and fill notes
-            notesList.innerHTML = '';
-            if (Array.isArray(notes)) {
-                notes.forEach(note => {
-                    const li = document.createElement('li');
-                    li.textContent = note;
-                    notesList.appendChild(li);
-                });
-            } else if (typeof notes === 'string' && notes) {
-                const li = document.createElement('li');
-                li.textContent = notes;
-                notesList.appendChild(li);
-            } else {
-                notesList.innerHTML = '<li>優化多項遊戲體驗</li><li>穩定性提升</li>';
-            }
-
-            modal.classList.add('active');
-        }
 
         // --- Title Achievement Checks ---
         async function checkPendingTitles() {
@@ -1769,11 +1721,6 @@
         function cancelLobby() {
             document.getElementById('lobbyModal').classList.remove('active');
         }
-
-        // ── Update Modal ───────────────────────────────────────────────
-
-        function showUpdateModal() { document.getElementById('updateModal').classList.add('active'); }
-        function closeUpdateModal() { document.getElementById('updateModal').classList.remove('active'); }
 
         // ── Utilities ──────────────────────────────────────────────────
         function escHtml(str) {

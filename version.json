@@ -1,9 +1,8 @@
 {
-  "version": "1.8.1",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.1/app-debug.apk",
+  "version": "1.8.2",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.2/app-debug.apk",
   "notes": [
-    "修正強制更新會重複跳出的問題",
-    "修正點擊空白處可跳過更新的問題",
-    "優化版本號快取機制"
+    "移除重複的舊版更新系統，徹底解決錯誤的更新通知",
+    "優化手動版本檢查體驗"
   ]
 }

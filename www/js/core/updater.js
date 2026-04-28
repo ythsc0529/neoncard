@@ -8,9 +8,9 @@ const Updater = (() => {
     let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
     let _isDownloading = false;
 
-    async function checkVersion() {
+    async function checkVersion(forceShow = false) {
         // 防呆：同一 session 已觸發過更新，不重複彈出
-        if (sessionStorage.getItem('update_shown')) return;
+        if (!forceShow && sessionStorage.getItem('update_shown')) return;
 
         // 防呆：APP_VERSION 必須是有效版號
         const localVersion = window.APP_VERSION;
@@ -34,9 +34,12 @@ const Updater = (() => {
             if (isVersionOlder(localVersion, serverVersion)) {
                 sessionStorage.setItem('update_shown', '1');
                 forceUpdate(data.notes || []);
+            } else if (forceShow) {
+                alert("目前已是最新版本 (" + localVersion + ")！");
             }
         } catch (error) {
             console.warn('[Updater] Version check failed:', error);
+            if (forceShow) alert("版本檢查失敗，請檢查網路連線。");
         }
     }
 
