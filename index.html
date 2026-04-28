@@ -621,7 +621,7 @@
             <button class="btn menu-btn" onclick="location.href='team.html'">隊伍配置</button>
             <button class="btn menu-btn" onclick="location.href='characters.html'">角色列表</button>
             <button class="btn menu-btn" onclick="location.href='strategy.html'">攻略專區</button>
-            <button class="btn menu-btn" onclick="showUpdateModal()">版本更新</button>
+            <button class="btn menu-btn" onclick="showUpdateLog()">版本更新</button>
             <button class="btn menu-btn hidden" id="profileMenuBtn" onclick="location.href='profile.html'">個人檔案</button>
         </div>
         <!-- Stats Card (shown when logged in) -->
@@ -917,8 +917,8 @@
     </div>
 
 
-    <!-- ── Update Modal ── -->
-    <div class="modal-overlay" id="updateModal">
+    <!-- ── Version Log Modal (Renamed to avoid conflict) ── -->
+    <div class="modal-overlay" id="versionLogModal">
         <div class="modal glass"
             style="max-width:800px;max-height:80vh;text-align:left;display:flex;flex-direction:column;">
             <h2 style="text-align:center;margin-bottom:20px;">v3.0.0 社群功能正式上線</h2>
@@ -1219,11 +1219,11 @@
             // Check for new titles!
             checkPendingTitles();
 
-            // Auto-show update modal on new version
-            const APP_VERSION = '3.0.0';
-            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
-                showUpdateModal();
-                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            // Auto-show update log on new version
+            const LOG_VERSION = '1.6.3';
+            if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
+                showUpdateLog();
+                localStorage.setItem('lastSeenVersion', LOG_VERSION);
             }
             
             // Refresh recent matches for profile card
@@ -1279,10 +1279,10 @@
             document.getElementById('topLeftActions').classList.remove('hidden');
             document.getElementById('tournamentBtn').disabled = true;
             document.getElementById('tournamentBtn').title = '需要登入才能使用競賽模式';
-            const APP_VERSION = '3.0.0';
-            if (localStorage.getItem('lastSeenVersion') !== APP_VERSION) {
-                showUpdateModal();
-                localStorage.setItem('lastSeenVersion', APP_VERSION);
+            const LOG_VERSION = '1.6.3';
+            if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
+                showUpdateLog();
+                localStorage.setItem('lastSeenVersion', LOG_VERSION);
             }
         }
 
