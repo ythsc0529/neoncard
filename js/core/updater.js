@@ -8,7 +8,28 @@ const Updater = (() => {
     let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
     let _isDownloading = false;
 
+    async function cleanupOldApk() {
+        try {
+            const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            if (!isNative) return;
+
+            const { Filesystem } = window.Capacitor.Plugins;
+            if (!Filesystem) return;
+
+            await Filesystem.deleteFile({
+                path: 'neoncard_update.apk',
+                directory: 'CACHE'
+            });
+            console.log('[Updater] Old update APK cleared.');
+        } catch (e) {
+            // 檔案不存在或無法刪除時忽略
+        }
+    }
+
     async function checkVersion(forceShow = false) {
+        // 每次啟動檢查更新前，先清理可能殘留的舊更新檔
+        await cleanupOldApk();
+
         // 防呆：同一 session 已觸發過更新，不重複彈出
         if (!forceShow && sessionStorage.getItem('update_shown')) return;
 

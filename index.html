@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "1.8.3";
+        window.APP_VERSION = "1.8.4";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -39,7 +39,28 @@
             let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
             let _isDownloading = false;
 
+            async function cleanupOldApk() {
+                try {
+                    const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+                    if (!isNative) return;
+
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    if (!Filesystem) return;
+
+                    await Filesystem.deleteFile({
+                        path: 'neoncard_update.apk',
+                        directory: 'CACHE'
+                    });
+                    console.log('[Updater] Old update APK cleared.');
+                } catch (e) {
+                    // 檔案不存在或無法刪除時忽略，這是正常的（例如第一次啟動或已清理過）
+                }
+            }
+
             async function checkVersion() {
+                // 每次啟動檢查更新前，先清理可能殘留的舊更新檔
+                await cleanupOldApk();
+
                 // 防呆：若本 session 已觸發過更新，不重複觸發
                 if (sessionStorage.getItem('update_shown')) return;
 
