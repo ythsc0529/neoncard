@@ -8,18 +8,18 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="manifest" href="manifest.json">
     <script>
+        // 【核彈級清理】強制註銷所有舊版 Service Worker
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker registration failed', err));
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for(let registration of registrations) {
+                    registration.unregister().then(() => console.log('SW unregistered'));
+                }
             });
         }
-        // 請求持久化儲存，防止手機系統自動清理資料
-        if (navigator.storage && navigator.storage.persist) {
-            navigator.storage.persist().then(persistent => {
-                if (persistent) console.log("Storage will not be cleared by the system.");
-                else console.log("Storage may be cleared by the system under disk pressure.");
+        // 清除所有舊的快取儲存
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                for (let name of names) caches.delete(name);
             });
         }
     </script>
@@ -29,9 +29,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="js/core/version.js"></script>
+    <script src="js/core/version_v3.js"></script>
     <script src="capacitor.js"></script>
-    <script src="js/core/updater.js"></script>
+    <script src="js/core/updater_v3.js"></script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>

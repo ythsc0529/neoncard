@@ -1,9 +1,9 @@
 {
-  "version": "1.6.8",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.8/app-debug.apk",
+  "version": "1.6.9",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.6.9/app-debug.apk",
   "notes": [
-    "v1.6.8 最終更新測試版",
-    "驗證穩定版下的進度條下載流程",
-    "驗證下載完成後的自動安裝"
+    "v1.6.9 終極穩定更新版",
+    "修正快取殘留問題",
+    "加強更新進度條顯示穩定性"
   ]
 }
