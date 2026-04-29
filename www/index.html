@@ -679,6 +679,205 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+
+        /* ── Top-Right Action Buttons (Settings / Music) ── */
+        .top-right-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 7px 14px;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+            letter-spacing: 0.5px;
+        }
+        .top-right-action-btn:hover {
+            border-color: rgba(0, 243, 255, 0.4);
+            color: var(--neon-cyan);
+            transform: translateY(-1px);
+        }
+        .top-right-action-btn.music-btn {
+            border-color: rgba(180, 120, 255, 0.4);
+        }
+        .top-right-action-btn.music-btn:hover {
+            border-color: rgba(180, 120, 255, 0.8);
+            color: #b478ff;
+        }
+        .action-btn-icon {
+            font-size: 1rem;
+        }
+        .action-btn-label {
+            font-size: 0.78rem;
+        }
+        @keyframes musicSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .music-spin.playing {
+            display: inline-block;
+            animation: musicSpin 3s linear infinite;
+        }
+
+        /* ── Settings Styles ── */
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .settings-row:last-of-type {
+            border-bottom: none;
+        }
+        .settings-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .settings-label-icon {
+            font-size: 1.1rem;
+        }
+        .settings-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .settings-value {
+            color: var(--neon-cyan);
+            font-size: 0.85rem;
+            min-width: 38px;
+            text-align: right;
+        }
+        .settings-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 130px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.15);
+            outline: none;
+            cursor: pointer;
+        }
+        .settings-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 6px var(--neon-cyan);
+            transition: box-shadow 0.2s;
+        }
+        .settings-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 12px var(--neon-cyan);
+        }
+
+        /* ── Toggle Switch ── */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+            cursor: pointer;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.15);
+            border-radius: 26px;
+            transition: background 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            top: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--neon-cyan);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+        }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(22px);
+        }
+
+        /* ── Daily Reset Toast ── */
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastSlideOut {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(10px); }
+        }
+        .daily-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 24px;
+            background: rgba(10, 10, 30, 0.96);
+            border: 1px solid var(--neon-gold);
+            border-radius: 14px;
+            padding: 14px 18px;
+            max-width: 300px;
+            z-index: 3500;
+            animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            backdrop-filter: blur(12px);
+        }
+        .daily-toast.hiding {
+            animation: toastSlideOut 0.35s ease forwards;
+        }
+        .daily-toast-title {
+            color: var(--neon-gold);
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .daily-toast-body {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+
+        /* ── Now Playing Toast (bottom-left) ── */
+        .now-playing-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 24px;
+            background: rgba(10, 10, 30, 0.96);
+            border: 1px solid rgba(180, 120, 255, 0.5);
+            border-radius: 12px;
+            padding: 10px 16px;
+            z-index: 3400;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 280px;
+            animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            backdrop-filter: blur(12px);
+        }
+        .now-playing-toast.hiding {
+            animation: toastSlideOut 0.35s ease forwards;
+        }
     </style>
 </head>
 
@@ -792,13 +991,26 @@
         </button>
     </div>
 
-    <!-- ⑥ User Badge (Top-Right) -->
-    <div class="notify-wrapper hidden" id="userBadgeContainer" data-notification="trial" style="position:fixed; top:18px; right:20px; z-index:100;">
-        <div class="user-badge" id="userBadge" onclick="location.href='profile.html'">
-            <div class="user-badge-avatar" id="badgeAvatar"><span>👤</span></div>
-            <span class="user-badge-name" id="badgeName">-</span>
+    <!-- ⑥ Top-Right Panel (User Badge + Settings + Music) -->
+    <div id="topRightPanel" class="hidden" style="position:fixed; top:18px; right:20px; z-index:100; display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+        <!-- User Badge -->
+        <div class="notify-wrapper" id="userBadgeContainer" data-notification="trial">
+            <div class="user-badge" id="userBadge" onclick="location.href='profile.html'">
+                <div class="user-badge-avatar" id="badgeAvatar"><span>👤</span></div>
+                <span class="user-badge-name" id="badgeName">-</span>
+            </div>
+            <div class="notify-dot"></div>
         </div>
-        <div class="notify-dot"></div>
+        <!-- Settings Gear Button -->
+        <button class="top-right-action-btn" id="settingsBtn" onclick="openSettings()" title="設定">
+            <span class="action-btn-icon">⚙️</span>
+            <span class="action-btn-label">設定</span>
+        </button>
+        <!-- Music Disk Button -->
+        <button class="top-right-action-btn music-btn" id="musicBtn" onclick="openMusicModal()" title="正在播放">
+            <span class="action-btn-icon music-spin" id="musicBtnIcon">🎵</span>
+            <span class="action-btn-label" id="musicBtnLabel">音樂</span>
+        </button>
     </div>
 
     <!-- ⑥ Main Menu -->
@@ -1177,6 +1389,107 @@
         </div>
     </div>
 
+    <!-- ── Settings Modal ── -->
+    <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+        <div class="modal glass" style="max-width:420px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <h2 style="margin:0;color:var(--neon-cyan);">⚙️ 遊戲設定</h2>
+                <button onclick="closeSettings()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+            </div>
+
+            <!-- 音樂音量 -->
+            <div class="settings-row">
+                <div class="settings-label">
+                    <span class="settings-label-icon">🎵</span>
+                    <span>音樂音量</span>
+                </div>
+                <div class="settings-control">
+                    <span class="settings-value" id="musicVolumeVal">70%</span>
+                    <input type="range" class="settings-slider" id="musicVolumeSlider" min="0" max="100" value="70"
+                        oninput="onMusicVolumeChange(this.value)">
+                </div>
+            </div>
+
+            <!-- 音效音量 -->
+            <div class="settings-row">
+                <div class="settings-label">
+                    <span class="settings-label-icon">🔊</span>
+                    <span>音效音量</span>
+                </div>
+                <div class="settings-control">
+                    <span class="settings-value" id="sfxVolumeVal">80%</span>
+                    <input type="range" class="settings-slider" id="sfxVolumeSlider" min="0" max="100" value="80"
+                        oninput="onSfxVolumeChange(this.value)">
+                </div>
+            </div>
+
+            <!-- 震動開關 -->
+            <div class="settings-row">
+                <div class="settings-label">
+                    <span class="settings-label-icon">📳</span>
+                    <span>戰鬥震動</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px;">受傷/死亡時</span>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="vibrationToggle" onchange="onVibrationChange(this.checked)" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--glass-border);text-align:center;">
+                <button class="btn" style="width:100%;border-color:var(--neon-green);color:var(--neon-green);" onclick="closeSettings()">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Music Modal ── -->
+    <div class="modal-overlay" id="musicModal" onclick="if(event.target===this)closeMusicModal()">
+        <div class="modal glass" style="max-width:380px;text-align:center;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <h2 style="margin:0;color:var(--neon-cyan);">🎵 正在播放</h2>
+                <button onclick="closeMusicModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+            </div>
+
+            <!-- Album Art -->
+            <div id="musicCoverContainer" style="width:160px;height:160px;margin:0 auto 16px;border-radius:50%;overflow:hidden;border:3px solid var(--neon-cyan);background:rgba(0,243,255,0.05);display:flex;align-items:center;justify-content:center;font-size:4rem;">
+                <img id="musicCoverImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                <span id="musicCoverEmoji">🎵</span>
+            </div>
+
+            <!-- Song info -->
+            <div id="musicTitle" style="font-family:var(--font-heading);font-size:1.2rem;color:var(--text-primary);margin-bottom:4px;">Neon Shuffle</div>
+            <div id="musicSubtitle" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;">霓虹牌原聲帶</div>
+
+            <!-- Progress bar -->
+            <div style="margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">
+                    <span id="musicCurrentTime">0:00</span>
+                    <span id="musicDuration">0:00</span>
+                </div>
+                <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;cursor:pointer;" id="musicProgressBar" onclick="seekMusic(event)">
+                    <div id="musicProgressFill" style="width:0%;height:100%;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-green));border-radius:2px;transition:width 0.5s linear;"></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:20px;">
+                <button onclick="MusicManager.prev()" style="background:none;border:none;color:var(--text-secondary);font-size:1.6rem;cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color='var(--text-secondary)'">⏮</button>
+                <button id="musicPlayPauseBtn" onclick="MusicManager.togglePlay()" style="width:52px;height:52px;border-radius:50%;border:2px solid var(--neon-cyan);background:rgba(0,243,255,0.1);color:var(--neon-cyan);font-size:1.5rem;cursor:pointer;transition:all 0.2s;">▶</button>
+                <button onclick="MusicManager.next()" style="background:none;border:none;color:var(--text-secondary);font-size:1.6rem;cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color='var(--text-secondary)'">⏭</button>
+            </div>
+
+            <!-- Volume in modal -->
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="color:var(--text-muted);font-size:1rem;">🔈</span>
+                <input type="range" class="settings-slider" id="musicModalVolume" min="0" max="100" value="70"
+                    oninput="onMusicVolumeChange(this.value)" style="flex:1;">
+                <span style="color:var(--text-muted);font-size:1rem;">🔊</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/core/rng.js"></script>
@@ -1330,8 +1643,8 @@
                 localStorage.removeItem('myUnlockedChars');
             }
 
-            // User badge
-            document.getElementById('userBadgeContainer').classList.remove('hidden');
+            // Show top-right panel (user badge + settings + music)
+            document.getElementById('topRightPanel').classList.remove('hidden');
             document.getElementById('badgeName').textContent = profile.displayName;
             if (profile.googlePhotoURL) {
                 document.getElementById('badgeAvatar').innerHTML = `<img src="${profile.googlePhotoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
@@ -1340,11 +1653,21 @@
             document.getElementById('topLeftActions').classList.remove('hidden');
             document.getElementById('tournamentBtn').disabled = false;
             
+            // Load saved settings
+            loadSettings();
+
+            // Start music (attempt autoplay; App autoplay works, web falls back to first interaction)
+            MusicManager.init();
+            
             // Standardized daily reset (5:00 AM)
             // Ensures daily missions and stats are reset even if user only stays in lobby
             (async () => {
                 const lastReset = profile.dailyResetTime?.dailyMissions || 0;
-                if (typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastReset)) {
+                const lastFreeGachaReset = profile.dailyResetTime?.freeGacha || 0;
+                const missionWasReset = typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastReset);
+                const freeGachaWasReset = typeof GachaLogic !== 'undefined' && !GachaLogic.isToday(lastFreeGachaReset);
+
+                if (missionWasReset) {
                     await UserProfile.updateProfile(user.uid, { 
                         "dailyResetTime.dailyMissions": Date.now(),
                         "dailyStats": { onlineMatches: 0, onlineWins: 0, gachaPulls: 0, shopPurchases: 0 }
@@ -1352,6 +1675,26 @@
                     // Refresh profile local reference
                     currentUserProfile = await UserProfile.getProfile(user.uid);
                     if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(currentUserProfile);
+
+                    // Daily mission reset toast
+                    setTimeout(() => showDailyResetToast(
+                        '🎯 每日任務已刷新！',
+                        '今天的任務正在等你，完成後可領取豐厚獎勵！'
+                    ), 1200);
+
+                    // Free gacha reset toast (staggered by 3.5s)
+                    if (freeGachaWasReset) {
+                        setTimeout(() => showDailyResetToast(
+                            '🎰 免費抽獎已刷新！',
+                            '今天的免費抽獎機會等你去用，前往商店抽一次吧！'
+                        ), 4800);
+                    }
+                } else if (freeGachaWasReset) {
+                    // Only free gacha reset (edge case)
+                    setTimeout(() => showDailyResetToast(
+                        '🎰 免費抽獎已刷新！',
+                        '今天的免費抽獎機會等你去用，前往商店抽一次吧！'
+                    ), 1200);
                 }
             })();
 
@@ -1992,6 +2335,292 @@
                 console.warn('[CloudSave] Save failed:', e.message);
             }
         };
+    </script>
+
+    <!-- ── New Features: Settings, MusicManager, Toasts ── -->
+    <script>
+        // ── Daily Reset Toast ─────────────────────────────────────────────
+        var _dailyToastQueue = [];
+        var _dailyToastShowing = false;
+
+        function showDailyResetToast(title, body) {
+            _dailyToastQueue.push({ title: title, body: body });
+            if (!_dailyToastShowing) _showNextDailyToast();
+        }
+
+        function _showNextDailyToast() {
+            if (_dailyToastQueue.length === 0) { _dailyToastShowing = false; return; }
+            _dailyToastShowing = true;
+            var item = _dailyToastQueue.shift();
+            var title = item.title, body = item.body;
+
+            var old = document.getElementById('dailyResetToast');
+            if (old) old.remove();
+
+            var toast = document.createElement('div');
+            toast.id = 'dailyResetToast';
+            toast.className = 'daily-toast';
+            toast.innerHTML = '<div class="daily-toast-title">' + title + '</div><div class="daily-toast-body">' + body + '</div>';
+            document.body.appendChild(toast);
+
+            var hideTimer = setTimeout(function() {
+                toast.classList.add('hiding');
+                setTimeout(function() { toast.remove(); _showNextDailyToast(); }, 350);
+            }, 4500);
+
+            toast.addEventListener('click', function() {
+                clearTimeout(hideTimer);
+                toast.classList.add('hiding');
+                setTimeout(function() { toast.remove(); _showNextDailyToast(); }, 350);
+            });
+        }
+
+        // ── Settings System ────────────────────────────────────────────────
+        var DEFAULT_SETTINGS = { musicVolume: 70, sfxVolume: 80, vibration: true };
+
+        function loadSettings() {
+            var saved = {};
+            try { saved = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+            var s = Object.assign({}, DEFAULT_SETTINGS, saved);
+
+            var mvSlider  = document.getElementById('musicVolumeSlider');
+            var mvVal     = document.getElementById('musicVolumeVal');
+            var sfxSlider = document.getElementById('sfxVolumeSlider');
+            var sfxVal    = document.getElementById('sfxVolumeVal');
+            var vibToggle = document.getElementById('vibrationToggle');
+            var mmVol     = document.getElementById('musicModalVolume');
+
+            if (mvSlider)  mvSlider.value    = s.musicVolume;
+            if (mvVal)     mvVal.textContent  = s.musicVolume + '%';
+            if (sfxSlider) sfxSlider.value   = s.sfxVolume;
+            if (sfxVal)    sfxVal.textContent = s.sfxVolume + '%';
+            if (vibToggle) vibToggle.checked  = s.vibration;
+            if (mmVol)     mmVol.value        = s.musicVolume;
+
+            if (MusicManager.audio) MusicManager.audio.volume = s.musicVolume / 100;
+        }
+
+        function saveSettings() {
+            var mvSlider  = document.getElementById('musicVolumeSlider');
+            var sfxSlider = document.getElementById('sfxVolumeSlider');
+            var vibToggle = document.getElementById('vibrationToggle');
+            var s = {
+                musicVolume: mvSlider  ? parseInt(mvSlider.value)  : DEFAULT_SETTINGS.musicVolume,
+                sfxVolume:   sfxSlider ? parseInt(sfxSlider.value) : DEFAULT_SETTINGS.sfxVolume,
+                vibration:   vibToggle ? vibToggle.checked         : DEFAULT_SETTINGS.vibration
+            };
+            localStorage.setItem('neonCardSettings', JSON.stringify(s));
+            return s;
+        }
+
+        function openSettings()  { loadSettings(); document.getElementById('settingsModal').classList.add('active'); }
+        function closeSettings() { saveSettings(); document.getElementById('settingsModal').classList.remove('active'); }
+
+        function onMusicVolumeChange(val) {
+            var n = parseInt(val);
+            var mvVal    = document.getElementById('musicVolumeVal');
+            var mvSlider = document.getElementById('musicVolumeSlider');
+            var mmVol    = document.getElementById('musicModalVolume');
+            if (mvVal)    mvVal.textContent = n + '%';
+            if (mvSlider) mvSlider.value = n;
+            if (mmVol)    mmVol.value    = n;
+            if (MusicManager.audio) MusicManager.audio.volume = n / 100;
+            saveSettings();
+        }
+
+        function onSfxVolumeChange(val) {
+            var sfxVal = document.getElementById('sfxVolumeVal');
+            if (sfxVal) sfxVal.textContent = parseInt(val) + '%';
+            saveSettings();
+        }
+
+        function onVibrationChange(checked) { saveSettings(); }
+
+        // ── Music Manager ──────────────────────────────────────────────────
+        var MusicManager = {
+            songs: [
+                { title: 'Neon Shuffle', file: 'audio/Music/Neon Shuffle.mp3', cover: 'audio/Music/Neon Shuffle.png' }
+            ],
+            currentIndex: -1,
+            audio: null,
+            isPlaying: false,
+            _progressTimer: null,
+
+            init: function() {
+                if (this.audio) return;
+                this.audio = new Audio();
+                var s = {};
+                try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+                this.audio.volume = ((s.musicVolume !== undefined ? s.musicVolume : 70)) / 100;
+                var self = this;
+                this.audio.addEventListener('ended', function() { self.next(); });
+                this.audio.addEventListener('timeupdate', function() { self._updateProgress(); });
+                this.audio.addEventListener('loadedmetadata', function() { self._updateProgress(); });
+                // Save music state before leaving page so game.html can continue playing
+                window.addEventListener('pagehide', function() {
+                    var song = self.songs[self.currentIndex];
+                    if (song && self.audio) {
+                        sessionStorage.setItem('nc_currentMusicFile', song.file);
+                        sessionStorage.setItem('nc_currentMusicTime', self.audio.currentTime || 0);
+                    }
+                });
+                this.currentIndex = Math.floor(Math.random() * this.songs.length);
+                this._loadAndPlay(true);
+            },
+
+            _loadAndPlay: function(isFirst) {
+                var song = this.songs[this.currentIndex];
+                if (!song) return;
+                this.audio.src = song.file;
+                this.audio.load();
+                var self = this;
+                var songTitle = song.title;
+                var playP = this.audio.play();
+                if (playP !== undefined) {
+                    playP.then(function() {
+                        self.isPlaying = true;
+                        self._updateUI();
+                        self._startProgressTimer();
+                        if (!isFirst) { self._showNowPlayingToast(songTitle); }
+                        else { setTimeout(function() { self._showNowPlayingToast(songTitle); }, 2000); }
+                    }).catch(function() {
+                        self.isPlaying = false;
+                        self._updateUI();
+                        document.addEventListener('click', function() {
+                            if (!self.isPlaying && self.audio) {
+                                self.audio.play().then(function() {
+                                    self.isPlaying = true;
+                                    self._updateUI();
+                                    self._showNowPlayingToast(songTitle);
+                                    self._startProgressTimer();
+                                }).catch(function() {});
+                            }
+                        }, { once: true });
+                    });
+                }
+            },
+
+            togglePlay: function() {
+                if (!this.audio) return;
+                var self = this;
+                if (this.isPlaying) {
+                    this.audio.pause(); this.isPlaying = false; this._stopProgressTimer();
+                } else {
+                    this.audio.play().then(function() {
+                        self.isPlaying = true; self._startProgressTimer();
+                    }).catch(function() {});
+                }
+                this._updateUI();
+            },
+
+            next: function() {
+                this.currentIndex = (this.currentIndex + 1) % this.songs.length;
+                this._loadAndPlay(false);
+            },
+
+            prev: function() {
+                this.currentIndex = (this.currentIndex - 1 + this.songs.length) % this.songs.length;
+                this._loadAndPlay(false);
+            },
+
+            _updateUI: function() {
+                var song = this.songs[this.currentIndex];
+                if (!song) return;
+                var icon  = document.getElementById('musicBtnIcon');
+                var label = document.getElementById('musicBtnLabel');
+                if (icon)  { if (this.isPlaying) icon.classList.add('playing'); else icon.classList.remove('playing'); }
+                if (label) label.textContent = this.isPlaying
+                    ? (song.title.length > 10 ? song.title.substring(0, 10) + '\u2026' : song.title)
+                    : '\u97f3\u6a02';
+
+                var titleEl    = document.getElementById('musicTitle');
+                var coverImg   = document.getElementById('musicCoverImg');
+                var coverEmoji = document.getElementById('musicCoverEmoji');
+                var playBtn    = document.getElementById('musicPlayPauseBtn');
+
+                if (titleEl) titleEl.textContent = song.title;
+                if (playBtn) playBtn.textContent = this.isPlaying ? '\u23f8' : '\u25b6';
+                if (song.cover) {
+                    if (coverImg) { coverImg.src = song.cover; coverImg.style.display = 'block'; }
+                    if (coverEmoji) coverEmoji.style.display = 'none';
+                } else {
+                    if (coverImg) coverImg.style.display = 'none';
+                    if (coverEmoji) coverEmoji.style.display = 'block';
+                }
+            },
+
+            _updateProgress: function() {
+                if (!this.audio) return;
+                var cur = this.audio.currentTime;
+                var dur = this.audio.duration || 0;
+                var pct = dur > 0 ? (cur / dur * 100) : 0;
+                var fill  = document.getElementById('musicProgressFill');
+                var curEl = document.getElementById('musicCurrentTime');
+                var durEl = document.getElementById('musicDuration');
+                if (fill)  fill.style.width  = pct + '%';
+                if (curEl) curEl.textContent = _formatMusicTime(cur);
+                if (durEl) durEl.textContent = _formatMusicTime(dur);
+            },
+
+            _startProgressTimer: function() {
+                this._stopProgressTimer();
+                var self = this;
+                this._progressTimer = setInterval(function() { self._updateProgress(); }, 1000);
+            },
+
+            _stopProgressTimer: function() {
+                if (this._progressTimer) { clearInterval(this._progressTimer); this._progressTimer = null; }
+            },
+
+            _showNowPlayingToast: function(title) {
+                var old = document.getElementById('nowPlayingToast');
+                if (old) { old.classList.add('hiding'); setTimeout(function() { old.remove(); }, 350); }
+                var delay = old ? 400 : 0;
+                setTimeout(function() {
+                    var toast = document.createElement('div');
+                    toast.id = 'nowPlayingToast';
+                    toast.className = 'now-playing-toast';
+                    toast.innerHTML = '<span style="font-size:1.3rem">\ud83c\udfb5</span><div><div style="color:#b478ff;font-size:0.78rem;margin-bottom:2px;">\u6b63\u5728\u64ad\u653e</div><div style="color:var(--text-primary);font-size:0.9rem;font-weight:600;">' + title + '</div></div>';
+                    document.body.appendChild(toast);
+                    var hideTimer = setTimeout(function() {
+                        toast.classList.add('hiding');
+                        setTimeout(function() { toast.remove(); }, 350);
+                    }, 4000);
+                    toast.addEventListener('click', function() {
+                        clearTimeout(hideTimer);
+                        toast.classList.add('hiding');
+                        setTimeout(function() { toast.remove(); }, 350);
+                    });
+                }, delay);
+            }
+        };
+
+        function _formatMusicTime(secs) {
+            if (!secs || isNaN(secs)) return '0:00';
+            var m = Math.floor(secs / 60);
+            var s = Math.floor(secs % 60);
+            return m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function openMusicModal() {
+            MusicManager._updateUI();
+            MusicManager._updateProgress();
+            var s = {}; try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+            var mmVol = document.getElementById('musicModalVolume');
+            if (mmVol) mmVol.value = s.musicVolume !== undefined ? s.musicVolume : 70;
+            document.getElementById('musicModal').classList.add('active');
+        }
+
+        function closeMusicModal() { document.getElementById('musicModal').classList.remove('active'); }
+
+        function seekMusic(event) {
+            var bar = document.getElementById('musicProgressBar');
+            if (!bar || !MusicManager.audio || !MusicManager.audio.duration) return;
+            var rect = bar.getBoundingClientRect();
+            var pct  = (event.clientX - rect.left) / rect.width;
+            MusicManager.audio.currentTime = pct * MusicManager.audio.duration;
+            MusicManager._updateProgress();
+        }
     </script>
 
 </body>

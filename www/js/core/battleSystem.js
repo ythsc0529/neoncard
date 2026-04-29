@@ -327,10 +327,22 @@ const BattleSystem = {
         // Apply damage to HP
         defender.hp -= damage;
 
+        // Vibration feedback: trigger when player1's card takes damage (mobile)
+        if (damage > 0) {
+            try {
+                const isP1Defender = (GameState.player1.battleCard === defender) ||
+                                     (GameState.player1.standbyCards && GameState.player1.standbyCards.includes(defender));
+                if (isP1Defender && typeof window.triggerVibration === 'function') {
+                    window.triggerVibration(damage);
+                }
+            } catch(e) {}
+        }
+
         // Show floating damage number
         if (damage > 0) {
             Animations.showDamage(Animations.getCardEl(defender), damage, false);
         }
+
 
         // E-Ren passive: Update ATK based on HP loss
         if (defender.passive?.effect?.action === 'buff_atk_per_hp') {

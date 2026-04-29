@@ -1,8 +1,10 @@
 {
-  "version": "1.8.5",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.5/app-debug.apk",
+  "version": "1.8.6",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.6/app-debug.apk",
   "notes": [
-    "試煉之路自動捲動優化",
-    "同步更新內部與原生版本號至 v1.8.5"
+    "新增每日任務 & 免費抽獎刷新通知",
+    "新增設定面板：音樂音量、音效音量、震動開關",
+    "新增背景音樂播放器：自動播放、歌曲切換提示",
+    "新增戰鬥震動反饋（受傷/死亡時觸動馬達）"
   ]
 }
