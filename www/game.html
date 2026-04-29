@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/theme.js"></script>
+    <script src="js/ui/musicManager.js"></script>
     <style>
         /* Rank & Title badges in battle headers */
         .rank-badge-text {
@@ -144,6 +145,49 @@
         </div>
     </div>
 
+    <!-- Music Modal -->
+    <div class="modal-overlay" id="musicModal">
+        <div class="modal glass" style="max-width:380px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid var(--glass-border);padding-bottom:12px;">
+                <h2 style="color:var(--neon-cyan);font-family:var(--font-heading);margin:0;font-size:1.2rem;letter-spacing:2px;">正在播放</h2>
+                <button class="modal-close" onclick="closeMusicModal()">✕</button>
+            </div>
+            
+            <div class="music-modal-content">
+                <div class="music-cover-wrapper">
+                    <img id="musicCoverImg" src="" style="display:none;">
+                    <div id="musicCoverEmoji" class="emoji">🎵</div>
+                </div>
+                
+                <div id="musicTitle" style="font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:5px;">曲目名稱</div>
+                <div style="color:var(--neon-cyan);font-size:0.8rem;letter-spacing:1px;opacity:0.8;">NEON CARD BGM</div>
+
+                <div class="music-progress-container" id="musicProgressBar" onclick="seekMusic(event)">
+                    <div class="music-progress-fill" id="musicProgressFill"></div>
+                </div>
+                <div class="music-time-row">
+                    <span id="musicCurrentTime">0:00</span>
+                    <span id="musicDuration">0:00</span>
+                </div>
+
+                <div class="music-controls">
+                    <button class="music-control-btn" onclick="MusicManager.prev()">⏮</button>
+                    <button class="music-control-btn play-pause" id="musicPlayPauseBtn" onclick="MusicManager.togglePlay()">▶</button>
+                    <button class="music-control-btn" onclick="MusicManager.next()">⏭</button>
+                </div>
+
+                <div style="margin-top:25px;padding-top:20px;border-top:1px solid var(--glass-border);">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="font-size:0.9rem;opacity:0.7;">音量</span>
+                        <input type="range" id="musicModalVolume" min="0" max="100" value="70" 
+                               oninput="onMusicVolumeChange(this.value)"
+                               style="flex:1;accent-color:var(--neon-cyan);height:4px;cursor:pointer;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Card Selection Phase -->
     <div class="selection-phase hidden" id="selectionPhase">
         <h2 class="selection-title" id="selectionTitle">玩家1 抽牌階段</h2>
@@ -165,6 +209,14 @@
                     </div>
                     <span id="p1TitleBadge" class="title-badge-text" style="display:none;"></span>
                 </div>
+
+                <!-- Music Button -->
+                <button class="music-btn" id="musicBtn" onclick="openMusicModal()" title="正在播放" style="background:none;border:none;padding:0;margin-right:15px;cursor:pointer;">
+                    <div class="music-btn-disk music-spin" id="musicBtnIcon">
+                        <img id="musicBtnDiskImg" src="" style="display:none;">
+                        <span id="musicBtnEmoji">🎵</span>
+                    </div>
+                </button>
                 <span class="thinking-indicator hidden" id="p1Thinking"
                     style="margin-left: 10px; color: var(--neon-cyan); font-size: 0.9rem;">
                     思考中<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
@@ -2503,7 +2555,39 @@
         }
 
         // Initialize game
-        document.addEventListener('DOMContentLoaded', initGame);
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            MusicManager.init();
+        });
+
+        // Music Helpers
+        function onMusicVolumeChange(val) {
+            var n = parseInt(val);
+            if (MusicManager.audio) MusicManager.audio.volume = n / 100;
+            var s = {}; try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+            s.musicVolume = n;
+            localStorage.setItem('neonCardSettings', JSON.stringify(s));
+        }
+
+        function openMusicModal() {
+            MusicManager._updateUI();
+            MusicManager._updateProgress();
+            var s = {}; try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+            var mmVol = document.getElementById('musicModalVolume');
+            if (mmVol) mmVol.value = s.musicVolume !== undefined ? s.musicVolume : 70;
+            document.getElementById('musicModal').classList.add('active');
+        }
+
+        function closeMusicModal() { document.getElementById('musicModal').classList.remove('active'); }
+
+        function seekMusic(event) {
+            var bar = document.getElementById('musicProgressBar');
+            if (!bar || !MusicManager.audio || !MusicManager.audio.duration) return;
+            var rect = bar.getBoundingClientRect();
+            var pct = (event.clientX - rect.left) / rect.width;
+            MusicManager.audio.currentTime = pct * MusicManager.audio.duration;
+            MusicManager._updateProgress();
+        }
     </script>
 </body>
 

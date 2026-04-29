@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "1.8.6";
+        window.APP_VERSION = "1.8.7";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -1008,7 +1008,10 @@
         </button>
         <!-- Music Disk Button -->
         <button class="top-right-action-btn music-btn" id="musicBtn" onclick="openMusicModal()" title="正在播放">
-            <span class="action-btn-icon music-spin" id="musicBtnIcon">🎵</span>
+            <div class="music-btn-disk music-spin" id="musicBtnIcon">
+                <img id="musicBtnDiskImg" src="audio/Music/Neon Shuffle.png" style="display:none;">
+                <span id="musicBtnEmoji">🎵</span>
+            </div>
             <span class="action-btn-label" id="musicBtnLabel">音樂</span>
         </button>
     </div>
@@ -2189,7 +2192,6 @@
                 btn.textContent = '✅';
                 setTimeout(() => { btn.textContent = '📋'; el.textContent = ''; }, 2500);
             }).catch(() => {
-                // Fallback
                 const range = document.createRange();
                 range.selectNode(document.getElementById('lobbyRoomCode'));
                 window.getSelection().removeAllRanges();
@@ -2228,7 +2230,6 @@
             if (!currentUserProfile) return;
             try {
                 await FriendsManager.sendGameInvite(friendUid, roomCode, selectedOnlineSubMode || 'classic', currentUserProfile.displayName);
-                // Find the invite button and show feedback
                 const btns = document.querySelectorAll('#lobbyFriendsList .btn-gold');
                 btns.forEach(btn => {
                     if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(friendUid)) {
@@ -2242,14 +2243,14 @@
             }
         }
 
-        // ── Lobby ─────────────────────────────────────────────────────
         function cancelLobby() {
             document.getElementById('lobbyModal').classList.remove('active');
         }
 
-        // ── Update Modal ───────────────────────────────────────────────
-
-        // 移除重複定義
+        function skipLoading() {
+            const preloader = document.getElementById('resourcePreloader');
+            if (preloader) preloader.style.display = 'none';
+        }
 
         // ── Utilities ──────────────────────────────────────────────────
         function escHtml(str) {
@@ -2258,7 +2259,6 @@
 
         // Close modals on outside click
         document.getElementById('modeModal').addEventListener('click', e => { if (e.target === document.getElementById('modeModal')) closeModeModal(); });
-        // document.getElementById('updateModal').removeEventListener... (Forced update, no closing)
         document.getElementById('tournamentModal').addEventListener('click', e => { if (e.target === document.getElementById('tournamentModal')) closeTournamentModal(); });
         document.getElementById('entertainmentModal').addEventListener('click', e => { if (e.target === document.getElementById('entertainmentModal')) closeEntertainmentModal(); });
 
@@ -2297,24 +2297,19 @@
             try {
                 const profile = await UserProfile.getProfile(uid);
                 if (profile?.storyProgress) {
-                    // Cloud has data → overwrite local if cloud is newer or local is missing
                     const local = localStorage.getItem('neonCardStoryProgress');
                     if (!local) {
                         localStorage.setItem('neonCardStoryProgress', JSON.stringify(profile.storyProgress));
-                        console.log('[CloudSave] Story progress loaded from cloud');
                     } else {
-                        // Merge: union of unlocked/completed nodes
                         const localData = JSON.parse(local);
                         const merged = {
                             unlockedNodes: { ...profile.storyProgress.unlockedNodes, ...localData.unlockedNodes },
                             completedNodes: { ...profile.storyProgress.completedNodes, ...localData.completedNodes }
                         };
                         localStorage.setItem('neonCardStoryProgress', JSON.stringify(merged));
-                        // Also save merged back to cloud
                         await UserProfile.updateProfile(uid, { storyProgress: merged });
                     }
                 } else {
-                    // No cloud data → push local to cloud
                     const local = localStorage.getItem('neonCardStoryProgress');
                     if (local) {
                         await UserProfile.updateProfile(uid, { storyProgress: JSON.parse(local) });
@@ -2325,7 +2320,6 @@
             }
         }
 
-        // Call this whenever story progress is saved (used by story.js patch)
         window._saveStoryProgressToCloud = async function (progressData) {
             const user = AuthManager.getCurrentUser();
             if (!user) return;
@@ -2337,37 +2331,31 @@
         };
     </script>
 
-    <!-- ── New Features: Settings, MusicManager, Toasts ── -->
+    <script src="js/ui/musicManager.js"></script>
     <script>
         // ── Daily Reset Toast ─────────────────────────────────────────────
         var _dailyToastQueue = [];
         var _dailyToastShowing = false;
-
         function showDailyResetToast(title, body) {
             _dailyToastQueue.push({ title: title, body: body });
             if (!_dailyToastShowing) _showNextDailyToast();
         }
-
         function _showNextDailyToast() {
             if (_dailyToastQueue.length === 0) { _dailyToastShowing = false; return; }
             _dailyToastShowing = true;
             var item = _dailyToastQueue.shift();
             var title = item.title, body = item.body;
-
             var old = document.getElementById('dailyResetToast');
             if (old) old.remove();
-
             var toast = document.createElement('div');
             toast.id = 'dailyResetToast';
             toast.className = 'daily-toast';
             toast.innerHTML = '<div class="daily-toast-title">' + title + '</div><div class="daily-toast-body">' + body + '</div>';
             document.body.appendChild(toast);
-
             var hideTimer = setTimeout(function() {
                 toast.classList.add('hiding');
                 setTimeout(function() { toast.remove(); _showNextDailyToast(); }, 350);
             }, 4500);
-
             toast.addEventListener('click', function() {
                 clearTimeout(hideTimer);
                 toast.classList.add('hiding');
@@ -2375,251 +2363,82 @@
             });
         }
 
+        // ── Vibration Feedback ─────────────────────────────────────────────
+        window.triggerVibration = function(damage) {
+            try {
+                var s = {};
+                try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+                if (s.vibration === false) return;
+                var duration = Math.round(Math.min(200, 30 + (parseInt(damage) || 50) / 2));
+                if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Haptics) {
+                    window.Capacitor.Plugins.Haptics.vibrate({ duration: duration });
+                } else if (navigator.vibrate) {
+                    navigator.vibrate(duration);
+                }
+            } catch(e) {}
+        };
+
         // ── Settings System ────────────────────────────────────────────────
         var DEFAULT_SETTINGS = { musicVolume: 70, sfxVolume: 80, vibration: true };
-
         function loadSettings() {
-            var saved = {};
-            try { saved = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
+            var saved = {}; try { saved = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
             var s = Object.assign({}, DEFAULT_SETTINGS, saved);
-
-            var mvSlider  = document.getElementById('musicVolumeSlider');
-            var mvVal     = document.getElementById('musicVolumeVal');
-            var sfxSlider = document.getElementById('sfxVolumeSlider');
-            var sfxVal    = document.getElementById('sfxVolumeVal');
-            var vibToggle = document.getElementById('vibrationToggle');
-            var mmVol     = document.getElementById('musicModalVolume');
-
-            if (mvSlider)  mvSlider.value    = s.musicVolume;
-            if (mvVal)     mvVal.textContent  = s.musicVolume + '%';
-            if (sfxSlider) sfxSlider.value   = s.sfxVolume;
-            if (sfxVal)    sfxVal.textContent = s.sfxVolume + '%';
-            if (vibToggle) vibToggle.checked  = s.vibration;
-            if (mmVol)     mmVol.value        = s.musicVolume;
-
+            var mvSlider = document.getElementById('musicVolumeSlider'), mvVal = document.getElementById('musicVolumeVal');
+            var sfxSlider = document.getElementById('sfxVolumeSlider'), sfxVal = document.getElementById('sfxVolumeVal');
+            var vibToggle = document.getElementById('vibrationToggle'), mmVol = document.getElementById('musicModalVolume');
+            if (mvSlider) mvSlider.value = s.musicVolume; if (mvVal) mvVal.textContent = s.musicVolume + '%';
+            if (sfxSlider) sfxSlider.value = s.sfxVolume; if (sfxVal) sfxVal.textContent = s.sfxVolume + '%';
+            if (vibToggle) vibToggle.checked = s.vibration; if (mmVol) mmVol.value = s.musicVolume;
             if (MusicManager.audio) MusicManager.audio.volume = s.musicVolume / 100;
         }
-
         function saveSettings() {
-            var mvSlider  = document.getElementById('musicVolumeSlider');
-            var sfxSlider = document.getElementById('sfxVolumeSlider');
-            var vibToggle = document.getElementById('vibrationToggle');
+            var mvSlider = document.getElementById('musicVolumeSlider'), sfxSlider = document.getElementById('sfxVolumeSlider'), vibToggle = document.getElementById('vibrationToggle');
             var s = {
-                musicVolume: mvSlider  ? parseInt(mvSlider.value)  : DEFAULT_SETTINGS.musicVolume,
-                sfxVolume:   sfxSlider ? parseInt(sfxSlider.value) : DEFAULT_SETTINGS.sfxVolume,
-                vibration:   vibToggle ? vibToggle.checked         : DEFAULT_SETTINGS.vibration
+                musicVolume: mvSlider ? parseInt(mvSlider.value) : DEFAULT_SETTINGS.musicVolume,
+                sfxVolume: sfxSlider ? parseInt(sfxSlider.value) : DEFAULT_SETTINGS.sfxVolume,
+                vibration: vibToggle ? vibToggle.checked : DEFAULT_SETTINGS.vibration
             };
             localStorage.setItem('neonCardSettings', JSON.stringify(s));
             return s;
         }
-
-        function openSettings()  { loadSettings(); document.getElementById('settingsModal').classList.add('active'); }
+        function openSettings() { loadSettings(); document.getElementById('settingsModal').classList.add('active'); }
         function closeSettings() { saveSettings(); document.getElementById('settingsModal').classList.remove('active'); }
-
         function onMusicVolumeChange(val) {
             var n = parseInt(val);
-            var mvVal    = document.getElementById('musicVolumeVal');
-            var mvSlider = document.getElementById('musicVolumeSlider');
-            var mmVol    = document.getElementById('musicModalVolume');
-            if (mvVal)    mvVal.textContent = n + '%';
-            if (mvSlider) mvSlider.value = n;
-            if (mmVol)    mmVol.value    = n;
+            var mvVal = document.getElementById('musicVolumeVal'), mvSlider = document.getElementById('musicVolumeSlider'), mmVol = document.getElementById('musicModalVolume');
+            if (mvVal) mvVal.textContent = n + '%'; if (mvSlider) mvSlider.value = n; if (mmVol) mmVol.value = n;
             if (MusicManager.audio) MusicManager.audio.volume = n / 100;
             saveSettings();
         }
-
         function onSfxVolumeChange(val) {
             var sfxVal = document.getElementById('sfxVolumeVal');
             if (sfxVal) sfxVal.textContent = parseInt(val) + '%';
             saveSettings();
         }
-
         function onVibrationChange(checked) { saveSettings(); }
 
-        // ── Music Manager ──────────────────────────────────────────────────
-        var MusicManager = {
-            songs: [
-                { title: 'Neon Shuffle', file: 'audio/Music/Neon Shuffle.mp3', cover: 'audio/Music/Neon Shuffle.png' }
-            ],
-            currentIndex: -1,
-            audio: null,
-            isPlaying: false,
-            _progressTimer: null,
-
-            init: function() {
-                if (this.audio) return;
-                this.audio = new Audio();
-                var s = {};
-                try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
-                this.audio.volume = ((s.musicVolume !== undefined ? s.musicVolume : 70)) / 100;
-                var self = this;
-                this.audio.addEventListener('ended', function() { self.next(); });
-                this.audio.addEventListener('timeupdate', function() { self._updateProgress(); });
-                this.audio.addEventListener('loadedmetadata', function() { self._updateProgress(); });
-                // Save music state before leaving page so game.html can continue playing
-                window.addEventListener('pagehide', function() {
-                    var song = self.songs[self.currentIndex];
-                    if (song && self.audio) {
-                        sessionStorage.setItem('nc_currentMusicFile', song.file);
-                        sessionStorage.setItem('nc_currentMusicTime', self.audio.currentTime || 0);
-                    }
-                });
-                this.currentIndex = Math.floor(Math.random() * this.songs.length);
-                this._loadAndPlay(true);
-            },
-
-            _loadAndPlay: function(isFirst) {
-                var song = this.songs[this.currentIndex];
-                if (!song) return;
-                this.audio.src = song.file;
-                this.audio.load();
-                var self = this;
-                var songTitle = song.title;
-                var playP = this.audio.play();
-                if (playP !== undefined) {
-                    playP.then(function() {
-                        self.isPlaying = true;
-                        self._updateUI();
-                        self._startProgressTimer();
-                        if (!isFirst) { self._showNowPlayingToast(songTitle); }
-                        else { setTimeout(function() { self._showNowPlayingToast(songTitle); }, 2000); }
-                    }).catch(function() {
-                        self.isPlaying = false;
-                        self._updateUI();
-                        document.addEventListener('click', function() {
-                            if (!self.isPlaying && self.audio) {
-                                self.audio.play().then(function() {
-                                    self.isPlaying = true;
-                                    self._updateUI();
-                                    self._showNowPlayingToast(songTitle);
-                                    self._startProgressTimer();
-                                }).catch(function() {});
-                            }
-                        }, { once: true });
-                    });
-                }
-            },
-
-            togglePlay: function() {
-                if (!this.audio) return;
-                var self = this;
-                if (this.isPlaying) {
-                    this.audio.pause(); this.isPlaying = false; this._stopProgressTimer();
-                } else {
-                    this.audio.play().then(function() {
-                        self.isPlaying = true; self._startProgressTimer();
-                    }).catch(function() {});
-                }
-                this._updateUI();
-            },
-
-            next: function() {
-                this.currentIndex = (this.currentIndex + 1) % this.songs.length;
-                this._loadAndPlay(false);
-            },
-
-            prev: function() {
-                this.currentIndex = (this.currentIndex - 1 + this.songs.length) % this.songs.length;
-                this._loadAndPlay(false);
-            },
-
-            _updateUI: function() {
-                var song = this.songs[this.currentIndex];
-                if (!song) return;
-                var icon  = document.getElementById('musicBtnIcon');
-                var label = document.getElementById('musicBtnLabel');
-                if (icon)  { if (this.isPlaying) icon.classList.add('playing'); else icon.classList.remove('playing'); }
-                if (label) label.textContent = this.isPlaying
-                    ? (song.title.length > 10 ? song.title.substring(0, 10) + '\u2026' : song.title)
-                    : '\u97f3\u6a02';
-
-                var titleEl    = document.getElementById('musicTitle');
-                var coverImg   = document.getElementById('musicCoverImg');
-                var coverEmoji = document.getElementById('musicCoverEmoji');
-                var playBtn    = document.getElementById('musicPlayPauseBtn');
-
-                if (titleEl) titleEl.textContent = song.title;
-                if (playBtn) playBtn.textContent = this.isPlaying ? '\u23f8' : '\u25b6';
-                if (song.cover) {
-                    if (coverImg) { coverImg.src = song.cover; coverImg.style.display = 'block'; }
-                    if (coverEmoji) coverEmoji.style.display = 'none';
-                } else {
-                    if (coverImg) coverImg.style.display = 'none';
-                    if (coverEmoji) coverEmoji.style.display = 'block';
-                }
-            },
-
-            _updateProgress: function() {
-                if (!this.audio) return;
-                var cur = this.audio.currentTime;
-                var dur = this.audio.duration || 0;
-                var pct = dur > 0 ? (cur / dur * 100) : 0;
-                var fill  = document.getElementById('musicProgressFill');
-                var curEl = document.getElementById('musicCurrentTime');
-                var durEl = document.getElementById('musicDuration');
-                if (fill)  fill.style.width  = pct + '%';
-                if (curEl) curEl.textContent = _formatMusicTime(cur);
-                if (durEl) durEl.textContent = _formatMusicTime(dur);
-            },
-
-            _startProgressTimer: function() {
-                this._stopProgressTimer();
-                var self = this;
-                this._progressTimer = setInterval(function() { self._updateProgress(); }, 1000);
-            },
-
-            _stopProgressTimer: function() {
-                if (this._progressTimer) { clearInterval(this._progressTimer); this._progressTimer = null; }
-            },
-
-            _showNowPlayingToast: function(title) {
-                var old = document.getElementById('nowPlayingToast');
-                if (old) { old.classList.add('hiding'); setTimeout(function() { old.remove(); }, 350); }
-                var delay = old ? 400 : 0;
-                setTimeout(function() {
-                    var toast = document.createElement('div');
-                    toast.id = 'nowPlayingToast';
-                    toast.className = 'now-playing-toast';
-                    toast.innerHTML = '<span style="font-size:1.3rem">\ud83c\udfb5</span><div><div style="color:#b478ff;font-size:0.78rem;margin-bottom:2px;">\u6b63\u5728\u64ad\u653e</div><div style="color:var(--text-primary);font-size:0.9rem;font-weight:600;">' + title + '</div></div>';
-                    document.body.appendChild(toast);
-                    var hideTimer = setTimeout(function() {
-                        toast.classList.add('hiding');
-                        setTimeout(function() { toast.remove(); }, 350);
-                    }, 4000);
-                    toast.addEventListener('click', function() {
-                        clearTimeout(hideTimer);
-                        toast.classList.add('hiding');
-                        setTimeout(function() { toast.remove(); }, 350);
-                    });
-                }, delay);
-            }
-        };
-
-        function _formatMusicTime(secs) {
-            if (!secs || isNaN(secs)) return '0:00';
-            var m = Math.floor(secs / 60);
-            var s = Math.floor(secs % 60);
-            return m + ':' + (s < 10 ? '0' : '') + s;
-        }
-
+        // ── Music Manager Helpers ──────────────────────────────────────────
+        MusicManager.init();
         function openMusicModal() {
-            MusicManager._updateUI();
-            MusicManager._updateProgress();
+            MusicManager._updateUI(); MusicManager._updateProgress();
             var s = {}; try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
             var mmVol = document.getElementById('musicModalVolume');
             if (mmVol) mmVol.value = s.musicVolume !== undefined ? s.musicVolume : 70;
             document.getElementById('musicModal').classList.add('active');
         }
-
         function closeMusicModal() { document.getElementById('musicModal').classList.remove('active'); }
-
         function seekMusic(event) {
             var bar = document.getElementById('musicProgressBar');
             if (!bar || !MusicManager.audio || !MusicManager.audio.duration) return;
             var rect = bar.getBoundingClientRect();
-            var pct  = (event.clientX - rect.left) / rect.width;
+            var pct = (event.clientX - rect.left) / rect.width;
             MusicManager.audio.currentTime = pct * MusicManager.audio.duration;
             MusicManager._updateProgress();
+        }
+
+        function skipLoading() {
+            const preloader = document.getElementById('resourcePreloader');
+            if (preloader) preloader.style.display = 'none';
         }
     </script>
 
