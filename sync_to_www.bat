@@ -11,6 +11,7 @@ xcopy hao_pic www\hao_pic /E /I /Y
 xcopy item_pic www\item_pic /E /I /Y
 xcopy race_pic www\race_pic /E /I /Y
 xcopy logo www\logo /E /I /Y
+xcopy audio www\audio /E /I /Y
 xcopy *.html www /Y
 copy sw.js www\sw.js /Y
 copy manifest.json www\manifest.json /Y
