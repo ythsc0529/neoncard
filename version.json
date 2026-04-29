@@ -1,9 +1,10 @@
 {
-  "version": "1.8.9",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.9/app-debug.apk",
+  "version": "1.9.0",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.9.0/app-debug.apk",
   "notes": [
-    "修復音樂播放器在 App 版本中異常擴張至全螢幕的問題",
-    "優化 CSS 相容性以支援舊版 Android WebView",
-    "修復 index.html 中的樣式語法錯誤"
+    "新增歌曲：Card Pulse 與 Lucky Draw Rush",
+    "音樂播放器新增播放列表選曲功能",
+    "音樂播放器預設開啟隨機播放模式",
+    "優化音樂播放器 UI 介面"
   ]
 }

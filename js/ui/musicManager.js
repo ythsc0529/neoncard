@@ -5,11 +5,14 @@
 
 var MusicManager = {
     songs: [
-        { title: 'Neon Shuffle', file: 'audio/Music/Neon Shuffle.mp3', cover: 'audio/Music/Neon Shuffle.png' }
+        { title: 'Neon Shuffle', file: 'audio/Music/Neon Shuffle.mp3', cover: 'audio/Music/Neon Shuffle.png' },
+        { title: 'Card Pulse', file: 'audio/Music/Card Pulse.mp3', cover: 'audio/Music/Card Pulse.png' },
+        { title: 'Lucky Draw Rush', file: 'audio/Music/Lucky Draw Rush.mp3', cover: 'audio/Music/Lucky Draw Rush.png' }
     ],
     currentIndex: -1,
     audio: null,
     isPlaying: false,
+    isShuffle: true,
     _progressTimer: null,
 
     init: function() {
@@ -87,15 +90,17 @@ var MusicManager = {
                 self.isPlaying = false;
                 self._updateUI();
                 // Add one-time click listener to resume
-                document.addEventListener('click', function() {
+                var resumeHandler = function() {
                     if (!self.isPlaying && self.audio) {
                         self.audio.play().then(function() {
                             self.isPlaying = true;
                             self._updateUI();
                             self._startProgressTimer();
+                            document.removeEventListener('click', resumeHandler);
                         }).catch(function() {});
                     }
-                }, { once: true });
+                };
+                document.addEventListener('click', resumeHandler);
             });
         } else {
             // Just update UI if we're not playing yet
@@ -120,15 +125,44 @@ var MusicManager = {
         this._updateUI();
     },
 
+    toggleShuffle: function() {
+        this.isShuffle = !this.isShuffle;
+        this._updateUI();
+    },
+
     next: function() {
-        this.currentIndex = (this.currentIndex + 1) % this.songs.length;
+        if (this.isShuffle && this.songs.length > 1) {
+            var nextIdx;
+            do {
+                nextIdx = Math.floor(Math.random() * this.songs.length);
+            } while (nextIdx === this.currentIndex);
+            this.currentIndex = nextIdx;
+        } else {
+            this.currentIndex = (this.currentIndex + 1) % this.songs.length;
+        }
         this._loadAndPlay(false);
     },
 
     prev: function() {
-        this.currentIndex = (this.currentIndex - 1 + this.songs.length) % this.songs.length;
+        if (this.isShuffle && this.songs.length > 1) {
+            var nextIdx;
+            do {
+                nextIdx = Math.floor(Math.random() * this.songs.length);
+            } while (nextIdx === this.currentIndex);
+            this.currentIndex = nextIdx;
+        } else {
+            this.currentIndex = (this.currentIndex - 1 + this.songs.length) % this.songs.length;
+        }
         this._loadAndPlay(false);
     },
+
+    playSong: function(index) {
+        if (index >= 0 && index < this.songs.length) {
+            this.currentIndex = index;
+            this._loadAndPlay(false);
+        }
+    },
+
 
     _updateUI: function() {
         var song = this.songs[this.currentIndex];
@@ -180,6 +214,26 @@ var MusicManager = {
             if (coverImg) coverImg.style.display = 'none';
             if (coverEmoji) coverEmoji.style.display = 'block';
         }
+
+        this._renderPlaylist();
+    },
+
+    _renderPlaylist: function() {
+        var playlistEl = document.getElementById('musicPlaylist');
+        if (!playlistEl) return;
+        
+        var html = '';
+        for (var i = 0; i < this.songs.length; i++) {
+            var s = this.songs[i];
+            var active = (i === this.currentIndex);
+            html += '<div onclick="MusicManager.playSong(' + i + ')" class="music-list-item' + (active ? ' active' : '') + '">' +
+                    '<div class="music-list-item-info">' +
+                    '<span class="music-list-item-title">' + s.title + '</span>' +
+                    '</div>' +
+                    (active && this.isPlaying ? '<span class="music-playing-bars"><span></span><span></span><span></span></span>' : '') +
+                    '</div>';
+        }
+        playlistEl.innerHTML = html;
     },
 
     _updateProgress: function() {
