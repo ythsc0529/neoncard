@@ -1,10 +1,9 @@
 {
-  "version": "1.8.8",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.8/app-debug.apk",
+  "version": "1.8.9",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.9/app-debug.apk",
   "notes": [
-    "新增 App 更新下載進度條與預估剩餘時間顯示",
-    "實作背景下載系統通知進度顯示功能",
-    "支援點擊通知後自動彈出安裝畫面",
-    "優化強制更新流程的穩定性與使用者體驗"
+    "修復音樂播放器在 App 版本中異常擴張至全螢幕的問題",
+    "優化 CSS 相容性以支援舊版 Android WebView",
+    "修復 index.html 中的樣式語法錯誤"
   ]
 }
