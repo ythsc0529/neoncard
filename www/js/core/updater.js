@@ -7,6 +7,9 @@ const Updater = (() => {
     const VERSION_CHECK_URL = "https://raw.githubusercontent.com/ythsc0529/neoncard/main/version.json";
     let _apkDownloadUrl = "https://github.com/ythsc0529/neoncard/releases/latest";
     let _isDownloading = false;
+    let _startTime = 0;
+    let _lastNotifTime = 0;
+    let _lastNotifPct = -1;
 
     async function cleanupOldApk() {
         try {
@@ -118,17 +121,22 @@ const Updater = (() => {
         if (progressStatus) progressStatus.textContent = '連接中...';
 
         try {
-            const { Filesystem } = window.Capacitor.Plugins;
+            const { Filesystem, LocalNotifications } = window.Capacitor.Plugins;
             const FileOpener = window.Capacitor.Plugins.FileOpener;
 
             if (!Filesystem) throw new Error('Filesystem plugin 未載入');
             if (!FileOpener) throw new Error('FileOpener plugin 未載入');
 
+            // 請求通知權限
+            if (LocalNotifications) {
+                await LocalNotifications.requestPermissions();
+            }
+
             if (progressStatus) progressStatus.textContent = '下載中（原生下載器）...';
             btn.textContent = '下載中...';
+            _startTime = Date.now();
 
             // ✅ 核心修正：使用 Capacitor 原生 downloadFile
-            // 在 Java/OkHttp 層執行，完全繞開 Webview 的 302 重定向攔截與 CORS 限制
             const downloadResult = await Filesystem.downloadFile({
                 url: _apkDownloadUrl,
                 path: 'neoncard_update.apk',
@@ -147,6 +155,20 @@ const Updater = (() => {
             const filePath = downloadResult.path;
             if (!filePath) throw new Error('下載完成但未取得檔案路徑');
 
+            // 發送下載完成通知
+            if (LocalNotifications) {
+                await LocalNotifications.schedule({
+                    notifications: [{
+                        id: 1001,
+                        title: '霓虹牌更新下載完成',
+                        body: '點擊此處立即安裝新版本',
+                        ongoing: false,
+                        autoCancel: true,
+                        extra: { action: 'install', filePath: filePath }
+                    }]
+                });
+            }
+
             await FileOpener.open({
                 filePath: filePath,
                 contentType: 'application/vnd.android.package-archive'
@@ -158,19 +180,58 @@ const Updater = (() => {
             btn.disabled = false;
             btn.textContent = '重試下載';
             _isDownloading = false;
+
+            // 清除進度通知
+            const { LocalNotifications } = window.Capacitor.Plugins;
+            if (LocalNotifications) {
+                LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+            }
         }
+    }
+
+    function formatTime(seconds) {
+        if (seconds < 60) return `約 ${seconds} 秒`;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `約 ${m} 分 ${s} 秒`;
+    }
+
+    function getProgressString(pct) {
+        const totalBars = 10;
+        const filledBars = Math.round(pct / (100 / totalBars));
+        let str = '[';
+        for (let i = 0; i < totalBars; i++) {
+            str += i < filledBars ? '█' : '░';
+        }
+        return str + ']';
     }
 
     // 監聽原生 downloadFile 進度事件
     function initProgressListener() {
         if (!window.Capacitor) return;
-        const { Filesystem } = window.Capacitor.Plugins;
+        const { Filesystem, LocalNotifications, FileOpener } = window.Capacitor.Plugins;
         if (!Filesystem || !Filesystem.addListener) return;
+
+        // 註冊通知點擊監聽
+        if (LocalNotifications) {
+            LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+                if (action.notification.id === 1001 && action.notification.extra?.action === 'install') {
+                    const filePath = action.notification.extra.filePath;
+                    if (FileOpener) {
+                        FileOpener.open({
+                            filePath: filePath,
+                            contentType: 'application/vnd.android.package-archive'
+                        });
+                    }
+                }
+            });
+        }
 
         Filesystem.addListener('progress', (progress) => {
             const progressBar = document.getElementById('updateProgressBar');
             const progressPercent = document.getElementById('updateProgressPercent');
             const progressStatus = document.getElementById('updateProgressStatus');
+            const progressRemaining = document.getElementById('updateProgressRemaining');
             if (!progressBar) return;
 
             if (progress.contentLength > 0) {
@@ -180,6 +241,32 @@ const Updater = (() => {
                 const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
                 const totalMB = (progress.contentLength / 1024 / 1024).toFixed(1);
                 if (progressStatus) progressStatus.textContent = `已下載: ${dlMB}MB / ${totalMB}MB`;
+
+                // 計算剩餘時間
+                const now = Date.now();
+                const elapsed = (now - _startTime) / 1000;
+                if (elapsed > 0 && progress.bytes > 0) {
+                    const speed = progress.bytes / elapsed;
+                    const remainingBytes = progress.contentLength - progress.bytes;
+                    const remainingSeconds = Math.ceil(remainingBytes / speed);
+                    if (progressRemaining) progressRemaining.textContent = formatTime(remainingSeconds);
+
+                    // 更新系統通知
+                    if (LocalNotifications && (now - _lastNotifTime > 2000 || Math.abs(pct - _lastNotifPct) >= 5)) {
+                        _lastNotifTime = now;
+                        _lastNotifPct = pct;
+                        LocalNotifications.schedule({
+                            notifications: [{
+                                id: 1001,
+                                title: '正在下載霓虹牌更新...',
+                                body: `${getProgressString(pct)} ${pct}% (剩餘${formatTime(remainingSeconds)})`,
+                                ongoing: true,
+                                autoCancel: false,
+                                schedule: { at: new Date(Date.now() + 100) }
+                            }]
+                        });
+                    }
+                }
             } else {
                 const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
                 if (progressStatus) progressStatus.textContent = `已下載: ${dlMB}MB...`;
@@ -194,3 +281,4 @@ window.addEventListener('load', () => {
     Updater.initProgressListener();
     setTimeout(Updater.checkVersion, 2000);
 });
+

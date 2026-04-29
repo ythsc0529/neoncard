@@ -1,10 +1,10 @@
 {
-  "version": "1.8.7",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.7/app-debug.apk",
+  "version": "1.8.8",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.8.8/app-debug.apk",
   "notes": [
-    "新增背景音樂跨頁面播放功能",
-    "新增主畫面旋轉專輯封面 UI",
-    "修正受到傷害時的震動反饋邏輯",
-    "修正載入畫面卡住與大廳功能遺失問題"
+    "新增 App 更新下載進度條與預估剩餘時間顯示",
+    "實作背景下載系統通知進度顯示功能",
+    "支援點擊通知後自動彈出安裝畫面",
+    "優化強制更新流程的穩定性與使用者體驗"
   ]
 }
