@@ -166,6 +166,7 @@ const Animations = {
 
     // Probability roll animation — arc-gauge redesign
     async probabilityRoll(chance, description = '') {
+        if (window.SoundManager) SoundManager.play('pos');
         return new Promise(resolve => {
             try {
                 this.show();
@@ -360,6 +361,7 @@ const Animations = {
 
     // Random Number Roll
     async showRandomNumber(min, max, description = '') {
+        if (window.SoundManager) SoundManager.play('random');
         return new Promise(resolve => {
             try {
                 this.show();
@@ -646,6 +648,20 @@ const Animations = {
 
     // Victory animation
     async victory(winner) {
+        if (window.SoundManager) {
+            let iWon = false;
+            if (typeof GameState !== 'undefined') {
+                if (GameState.mode === 'online') {
+                    const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+                    const myPlayerName = role === 'host' ? GameState.player1.name : GameState.player2.name;
+                    iWon = (winner === myPlayerName);
+                } else {
+                    iWon = (winner === GameState.player1.name);
+                }
+            }
+            SoundManager.play(iWon ? 'win' : 'fail');
+        }
+
         // Clear ranked ongoing flag so we don't get penalized since game ended naturally
         localStorage.removeItem('inRankedMatchOngoing');
 

@@ -1,10 +1,11 @@
 {
-  "version": "1.9.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v1.9.0/app-debug.apk",
+  "version": "2.0.0",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.0/app-debug.apk",
   "notes": [
-    "新增歌曲：Card Pulse 與 Lucky Draw Rush",
-    "音樂播放器新增播放列表選曲功能",
-    "音樂播放器預設開啟隨機播放模式",
-    "優化音樂播放器 UI 介面"
+    "🔥 重大更新：NeonCard 2.0.0 音效與沉浸感全面升級！",
+    "全新音效系統：包含戰鬥、商店、抽獎、隨機判定等 12 種專屬音效",
+    "音效閃避功能 (Audio Ducking)：音效播放時自動降低背景音樂，提升聽覺層次感",
+    "修正 Android 平台上的路徑大小寫相容性問題",
+    "優化戰鬥回饋音效：包含連續抽牌、多次召喚的節奏音效"
   ]
 }

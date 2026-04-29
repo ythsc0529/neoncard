@@ -200,6 +200,7 @@ async function buyItem(id) {
     toggleUIButtons(true);
 
     try {
+        if (window.SoundManager) SoundManager.play('purchase');
         await UserProfile.updateInventory(myProfile.uid, item.currency, -item.price);
 
         if (item.id === 't_normal')       await UserProfile.updateInventory(myProfile.uid, 'drawNormal', 1);
@@ -369,10 +370,8 @@ async function performPull(times) {
     const btnElem = document.getElementById(btnId);
     const originalContent = btnElem.innerHTML;
     
-    // 不要徹底取代，只是在前面加個轉圈圈，並讓文字變灰
-    btnElem.style.opacity = "0.7";
-
     try {
+        if (window.SoundManager) SoundManager.play('purchase');
         // ── 1. Deduct tickets FIRST and sync to Firestore ──────────────────
         if (!isFree) {
             myProfile.inventory[pool.costType] = (myProfile.inventory[pool.costType] || 0) - (pool.costAmount * times);

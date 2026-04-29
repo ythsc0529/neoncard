@@ -129,6 +129,7 @@ const GameState = {
 
     // Draw cards for a player
     drawCards(playerKey, count) {
+        if (window.SoundManager) SoundManager.playNTimes('draw', count);
         const cards = [];
         for (let i = 0; i < count; i++) {
             // If fair rarity distribution is set, use it
@@ -383,6 +384,7 @@ const GameState = {
         card.statusEffects = card.statusEffects.filter(effect => {
             // 1. Process special turn-start/end behaviors
             if (['poison', 'burn', 'dot'].includes(effect.type)) {
+                if (window.SoundManager) SoundManager.play('burn');
                 const dmg = effect.damage || 0;
                 card.hp -= dmg;
                 this.addLog(`${card.name} 受到 ${effect.name || effect.type} ${dmg} 傷害`, 'damage');

@@ -21,7 +21,10 @@ var MusicManager = {
         
         var s = {};
         try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
-        this.audio.volume = ((s.musicVolume !== undefined ? s.musicVolume : 70)) / 100;
+        this._baseVolume = (s.musicVolume !== undefined ? s.musicVolume : 70) / 100;
+        this.audio.volume = this._baseVolume;
+        this._activeSFXCount = 0;
+        this._isDucked = false;
 
         var self = this;
         this.audio.addEventListener('ended', function() { self.next(); });
@@ -291,5 +294,33 @@ var MusicManager = {
                 setTimeout(function() { toast.remove(); }, 350);
             });
         }, delay);
+    },
+    
+    onSFXStart: function() {
+        this._activeSFXCount++;
+        if (!this._isDucked && this._activeSFXCount > 0) {
+            this._isDucked = true;
+            this._applyVolume();
+        }
+    },
+
+    onSFXEnd: function() {
+        this._activeSFXCount = Math.max(0, this._activeSFXCount - 1);
+        if (this._isDucked && this._activeSFXCount === 0) {
+            this._isDucked = false;
+            this._applyVolume();
+        }
+    },
+
+    setBaseVolume: function(val) {
+        this._baseVolume = val / 100;
+        this._applyVolume();
+    },
+
+    _applyVolume: function() {
+        if (!this.audio) return;
+        // Duck to 30% of base volume
+        var target = this._isDucked ? (this._baseVolume * 0.3) : this._baseVolume;
+        this.audio.volume = target;
     }
 };

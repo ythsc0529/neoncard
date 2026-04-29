@@ -144,6 +144,7 @@ async function claimLevel(lv, btnElem) {
         if (data.title) await UserProfile.unlockTitle(myProfile.uid, data.title);
 
         // Mark claimed
+        if (window.SoundManager) SoundManager.play('money');
         claimed.push(lv);
         await UserProfile.updateProfile(myProfile.uid, { trialClaims: claimed });
         myProfile.trialClaims = claimed;

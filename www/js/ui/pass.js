@@ -141,6 +141,7 @@ async function claimPassReward(lv, trackType) {
             }
         }
         
+        if (window.SoundManager) SoundManager.play('money');
         pass.claimed[trackType].push(lv);
         await UserProfile.updateProfile(myProfile.uid, { "battlePass.claimed": pass.claimed });
         

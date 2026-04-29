@@ -561,9 +561,13 @@
     <script src="js/core/gameState.js?v=3"></script>
     <script src="js/core/battleSystem.js?v=3"></script>
     <script src="js/ui/animations.js?v=3"></script>
-    <script src="js/ui/audioManager.js"></script>
+    <script src="js/ui/musicManager.js"></script>
+    <script src="js/ui/soundManager.js"></script>
     <script>
-        // ── Vibration Feedback (reads settings from localStorage) ──────────
+        // ── Music & Vibration initialization ──────────
+        MusicManager.init();
+        if (window.SoundManager) SoundManager.init();
+
         window.triggerVibration = function(damage) {
             try {
                 var s = {};
@@ -571,47 +575,16 @@
                 var vibrationOn = s.vibration !== undefined ? s.vibration : true;
                 if (!vibrationOn) return;
 
-                // Duration: base 40ms, heavier hits up to 180ms
                 var duration = Math.min(40 + Math.floor(Math.min(damage, 200) * 0.7), 180);
-
-                // Web Vibration API (works on Android Chrome / Capacitor WebView)
                 if (navigator.vibrate) {
                     navigator.vibrate(duration);
                 }
-
-                // Capacitor Haptics (native Android / iOS)
                 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
                     var style = damage >= 100 ? 'HEAVY' : damage >= 50 ? 'MEDIUM' : 'LIGHT';
                     window.Capacitor.Plugins.Haptics.impact({ style: style });
                 }
             } catch(e) {}
         };
-
-        // ── Continue Music from index.html (if MusicManager is defined there) ──
-        // Music is managed globally in index.html; game.html simply starts music
-        // via first user interaction on web, or immediately on Capacitor (app).
-        window.addEventListener('DOMContentLoaded', function() {
-            // Attempt to start music on game load (works on Capacitor, blocked on web until interaction)
-            var musicFile = sessionStorage.getItem('nc_currentMusicFile');
-            var musicTime = parseFloat(sessionStorage.getItem('nc_currentMusicTime') || '0');
-            if (musicFile) {
-                var gameAudio = new Audio(musicFile);
-                var s = {};
-                try { s = JSON.parse(localStorage.getItem('neonCardSettings') || '{}'); } catch(e) {}
-                gameAudio.volume = ((s.musicVolume !== undefined ? s.musicVolume : 70)) / 100;
-                gameAudio.currentTime = musicTime;
-                window._gameAudio = gameAudio;
-                var pGame = gameAudio.play();
-                if (pGame !== undefined) {
-                    pGame.catch(function() {
-                        // Web autoplay blocked: start on first click
-                        document.addEventListener('click', function() {
-                            if (window._gameAudio) window._gameAudio.play().catch(function() {});
-                        }, { once: true });
-                    });
-                }
-            }
-        });
     </script>
     <script>
         // Game initialization

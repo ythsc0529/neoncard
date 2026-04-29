@@ -16,6 +16,7 @@
     <script src="js/core/userProfile.js"></script>
     <script src="js/data/gachaData.js"></script>
     <script src="js/data/missionData.js"></script>
+    <script src="js/ui/soundManager.js"></script>
     <script src="js/core/notificationManager.js"></script>
     <style>
         body {
@@ -294,6 +295,7 @@
                 await UserProfile.updateProfile(myProfile.uid, { missionProgress });
                 
                 myProfile = await UserProfile.getProfile(myProfile.uid);
+                if (window.SoundManager) SoundManager.play('money');
                 alert("領取成功！");
                 // Refresh UI
                 renderMissions();

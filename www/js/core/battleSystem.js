@@ -9,6 +9,7 @@ const BattleSystem = {
             return false;
         }
 
+        if (window.SoundManager) SoundManager.play('atk');
         let damage = attacker.atk;
 
         // Check miss_chance flag
@@ -595,6 +596,7 @@ const BattleSystem = {
             switch (effect.type) {
                 // --- DAMAGE EFFECTS ---
                 case 'damage':
+                    if (window.SoundManager) SoundManager.play('atk');
                     await this.applyDamage(attacker, defender, effect.value);
                     break;
                 case 'damage_random':
@@ -715,6 +717,7 @@ const BattleSystem = {
 
                 // --- HEAL EFFECTS ---
                 case 'heal':
+                    if (window.SoundManager) SoundManager.play('heal');
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + effect.value);
                     GameState.addLog(`${attacker.name} 恢復 ${effect.value} HP`, 'heal');
                     Animations.showHeal(Animations.getCardEl(attacker), effect.value);
@@ -752,6 +755,7 @@ const BattleSystem = {
 
                 // --- SHIELD EFFECTS ---
                 case 'shield':
+                    if (window.SoundManager) SoundManager.play('shield');
                     attacker.shield += effect.value;
                     GameState.addLog(`${attacker.name} 獲得 ${effect.value} 護盾`, 'skill');
                     Animations.showShield(Animations.getCardEl(attacker), effect.value);
@@ -958,7 +962,10 @@ const BattleSystem = {
                     const drawOwnerKey = GameState.currentPlayer === 1 ? 'player1' : 'player2';
                     const drawPool = this.getDrawPool(drawOwnerKey);
                     
-                    for (let i = 0; i < (effect.count || 1); i++) {
+                    const drawCount = effect.count || 1;
+                    if (window.SoundManager) SoundManager.playNTimes('draw', drawCount);
+                    
+                    for (let i = 0; i < drawCount; i++) {
                         const drChar = drawRandomCharacter(null, drawPool);
                         if (drChar) {
                             const inst = createCharacterInstance(drChar);
@@ -979,6 +986,7 @@ const BattleSystem = {
                     }
                     const ch = getCharacterByName(effect.target);
                     if (ch) {
+                        if (window.SoundManager) SoundManager.playNTimes('draw', 1);
                         const inst = createCharacterInstance(ch);
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
                         GameState.addLog(`召喚了 ${inst.name}！`, 'skill');
