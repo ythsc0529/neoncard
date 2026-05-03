@@ -1,11 +1,10 @@
 {
-  "version": "2.0.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.0/app-debug.apk",
+  "version": "2.0.1",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.1/app-debug.apk",
   "notes": [
-    "🔥 重大更新：NeonCard 2.0.0 音效與沉浸感全面升級！",
-    "全新音效系統：包含戰鬥、商店、抽獎、隨機判定等 12 種專屬音效",
-    "音效閃避功能 (Audio Ducking)：音效播放時自動降低背景音樂，提升聽覺層次感",
-    "修正 Android 平台上的路徑大小寫相容性問題",
-    "優化戰鬥回饋音效：包含連續抽牌、多次召喚的節奏音效"
+    "修正 App 版 Google 登入時偶發把舊帳戶誤判為新帳戶的問題。",
+    "雲端玩家資料讀取失敗時會阻止新帳號建立，避免覆蓋等級、教學、任務、背包與通行證進度。",
+    "建立玩家資料前會再次檢查既有雲端文件，已存在的帳戶只補必要欄位，不重置進度。",
+    "同步 Android 版本號與更新快取，確保 2.0.1 APK 可被強制更新系統正確辨識。"
   ]
 }

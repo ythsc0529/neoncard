@@ -23,8 +23,10 @@ function getItemIconHtml(key, className = 'item-icon-inline') {
 
 const UserProfile = (() => {
     const db = () => AuthManager.getDb();
+    let _lastProfileError = null;
 
     async function getProfile(uid) {
+        _lastProfileError = null;
         // ── NPC Bot Profile Fallback ─────────────────────────────────────────
         if (uid && uid.startsWith('NPC_')) {
             const botName = uid.split('NPC_')[1];
@@ -97,11 +99,31 @@ const UserProfile = (() => {
             
             return { uid: doc.id, ...data };
         } catch (e) {
+            _lastProfileError = e;
             console.error('[UserProfile] getProfile:', e);
             return null;
         }
     }
+
+    function getLastProfileError() {
+        return _lastProfileError;
+    }
+
     async function createProfile(uid, displayName, googlePhotoURL) {
+        const docRef = db().collection('users').doc(uid);
+        const existingDoc = await docRef.get();
+        if (existingDoc.exists) {
+            const existing = existingDoc.data() || {};
+            const setupUpdate = {
+                uid,
+                displayName: existing.displayName || displayName.trim(),
+                googlePhotoURL: googlePhotoURL || existing.googlePhotoURL || '',
+                isProfileSetup: true
+            };
+            await docRef.set(setupUpdate, { merge: true });
+            return { uid, ...existing, ...setupUpdate };
+        }
+
         const def = typeof RankedSystem !== 'undefined'
             ? RankedSystem.defaultRanked()
             : { tierIdx: 0, stars: 1, points: 0, peakTierIdx: 0, peakSeason: 'S1' };
@@ -125,7 +147,7 @@ const UserProfile = (() => {
             dailyResetTime: { dailyMissions: 0, freeGacha: 0 },
             redeemedCodes: []
         };
-        await db().collection('users').doc(uid).set(profile, { merge: true });
+        await docRef.set(profile, { merge: true });
         return profile;
     }
 
@@ -355,7 +377,7 @@ const UserProfile = (() => {
     }
 
     return {
-        getProfile, createProfile, updateProfile,
+        getProfile, getLastProfileError, createProfile, updateProfile,
         searchByDisplayName, isNameTaken,
         incrementStat, isProfileSetup,
         updateRanked, recordMatch, ensureTitles, addTitle, setActiveTitle,

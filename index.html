@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.0.0";
+        window.APP_VERSION = "2.0.1";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -1075,7 +1075,7 @@
             </div>
 
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay">Current Version: 2.0.0</div>
+            <div class="update-footer" id="versionDisplay">Current Version: 2.0.1</div>
         </div>
     </div>
 
@@ -1473,6 +1473,58 @@
     </div>
 
 
+    <!-- ── Privacy Policy Modal ── -->
+    <div class="modal-overlay" id="privacyModal">
+        <div class="modal glass"
+            style="max-width:600px;max-height:80vh;text-align:left;display:flex;flex-direction:column;">
+            <h2 style="text-align:center;margin-bottom:20px;color:var(--neon-cyan);">隨便你工作室 隱私權政策</h2>
+            <div class="privacy-content" id="privacyContent" onscroll="handlePrivacyScroll(this)"
+                style="color:var(--text-primary);line-height:1.8;overflow-y:auto;padding-right:15px;font-size:0.95rem;">
+                <p style="margin-bottom:15px;color:var(--text-secondary);font-weight:bold;">最後更新日期：2026年5月1日</p>
+                <p style="margin-bottom:15px;">本隱私權政策旨在說明「隨便你工作室」（以下簡稱「本工作室」）如何處理您在使用「霓虹牌」電子遊戲（以下簡稱「本服務」）時所產生的個人資訊。本工作室致力於保護使用者的隱私，並確保資料處理過程符合相關法律規範。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">一、資訊蒐集之類別</h3>
+                <p style="margin-bottom:15px;">當您使用本服務時，我們可能會蒐集以下資訊：<br>
+                    1. 帳戶識別資訊：若您選擇使用第三方帳號（如 Google）登入，我們將取得您的唯一識別碼、顯示名稱及公開個人圖片網址。<br>
+                    2. 遊戲數據資訊：包含但不限於遊戲進度、等級、卡牌收藏狀態、勝負紀錄、成就解鎖及遊戲內虛擬物品之持有狀況。<br>
+                    3. 設備與技術資訊：為了優化遊戲效能與維護系統穩定，我們會紀錄您的設備型號、作業系統版本、網路連線狀態及應用程式執行紀錄。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">二、資訊使用之目的</h3>
+                <p style="margin-bottom:15px;">所蒐集之資訊將用於下列用途：<br>
+                    1. 維護並提供本服務之各項功能，確保遊戲進度得以正確儲存。<br>
+                    2. 進行遊戲平衡性分析、系統優化及錯誤修復。<br>
+                    3. 提供客戶支援並解決使用者回報之技術問題。<br>
+                    4. 防範違規行為，維護遊戲公平競爭環境。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">三、資訊之分享與揭露</h3>
+                <p style="margin-bottom:15px;">除下列情形外，本工作室不會將您的個人資訊提供給任何第三方：<br>
+                    1. 事先取得您的明確同意。<br>
+                    2. 配合法院、政府機關或執法單位之合法調查要求。<br>
+                    3. 為保護本工作室之合法權利、財產或人身安全。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">四、數據儲存與安全防護</h3>
+                <p style="margin-bottom:15px;">本服務使用 Google Firebase 等雲端服務進行數據儲存。我們將採取符合業界標準的技術手段保護您的資訊安全，防止資料遭未經授權之存取、修改或洩漏。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">五、使用者權利</h3>
+                <p style="margin-bottom:15px;">您對於自己的個人資訊享有查詢、閱覽、補充或更正之權利。若您希望刪除帳戶及其相關數據，可透過遊戲內設定或官方聯絡管道提出申請。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">六、隱私權政策之修訂</h3>
+                <p style="margin-bottom:15px;">本工作室保留隨時修訂本隱私權政策之權利。修訂後之條款將於發布時立即生效。若您在政策更新後繼續使用本服務，即視為您已同意更新後之內容。</p>
+
+                <h3 style="color:var(--neon-gold);margin-bottom:10px;">七、聯絡資訊</h3>
+                <p style="margin-bottom:15px;">若對於本隱私權政策有任何疑問，請透過本服務官方管道與隨便你工作室聯繫。</p>
+
+                <hr style="border-color:rgba(255,255,255,0.1);margin:20px 0;">
+                <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;">點擊「同意」即表示您已充分閱讀、理解並同意遵守本隱私權政策之所有內容。</p>
+            </div>
+            <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;">
+                <button class="btn" style="flex:1;opacity:0.6;" onclick="handlePrivacyDisagree()">不同意並退出</button>
+                <button id="privacyAgreeBtn" class="btn" style="flex:2;border-color:var(--neon-green);color:var(--neon-green);"
+                    onclick="handlePrivacyAgree()" disabled>同意並開始</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ── Version Log Modal (Renamed to avoid conflict) ── -->
     <div class="modal-overlay" id="versionLogModal">
         <div class="modal glass"
@@ -1652,10 +1704,26 @@
         let gameInviteUnsubscribe = null;
         let friendRequestUnsubscribe = null;
         let isAppStarted = false;
+        const PRIVACY_POLICY_VERSION = "2026-05-01";
 
         // ── App Init ──────────────────────────────────────────────────
         async function startAppAfterLoading() {
             if (isAppStarted) return;
+
+            // 檢查隱私權政策同意狀態
+            const agreedVersion = localStorage.getItem('neoncard_privacy_version');
+            if (agreedVersion !== PRIVACY_POLICY_VERSION) {
+                document.getElementById('privacyModal').classList.add('active');
+                // 初始化檢查：若內容過短不需要捲動，直接啟用按鈕
+                setTimeout(() => {
+                    const el = document.getElementById('privacyContent');
+                    if (el && el.scrollHeight <= el.clientHeight) {
+                        document.getElementById('privacyAgreeBtn').disabled = false;
+                    }
+                }, 500);
+                return; // 停止初始化，等待同意
+            }
+
             isAppStarted = true;
 
             // 立即隱藏載入畫面，提供即時回饋
@@ -1669,6 +1737,17 @@
                 if (isGuest) return; // Guest already set up
                 if (user) {
                     let profile = await UserProfile.getProfile(user.uid);
+                    if (!profile && typeof UserProfile.getLastProfileError === 'function' && UserProfile.getLastProfileError()) {
+                        await new Promise(resolve => setTimeout(resolve, 800));
+                        profile = await UserProfile.getProfile(user.uid);
+                    }
+
+                    if (!profile && typeof UserProfile.getLastProfileError === 'function' && UserProfile.getLastProfileError()) {
+                        console.error('[Auth] Profile load failed; blocking first-time setup to protect existing progress.', UserProfile.getLastProfileError());
+                        alert('無法讀取雲端帳戶資料，為了避免覆蓋既有進度，暫時不會建立新帳號。請確認網路連線後重新開啟 App 或再試一次 Google 登入。');
+                        showScreen('login');
+                        return;
+                    }
 
                     // 檢查是否有排位中離標記
                     if (localStorage.getItem('inRankedMatchOngoing') === 'true' && profile && profile.ranked) {
@@ -1736,6 +1815,38 @@
         }
 
         // showUpdateModal 已經移除，由 Updater.js 直接處理 UI
+
+        // --- Privacy Policy Handlers ---
+        function handlePrivacyScroll(el) {
+            // 判斷是否滑到底部 (容錯值 20px)
+            const isBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 20;
+            if (isBottom) {
+                document.getElementById('privacyAgreeBtn').disabled = false;
+            }
+        }
+
+        function handlePrivacyAgree() {
+            localStorage.setItem('neoncard_privacy_version', PRIVACY_POLICY_VERSION);
+            document.getElementById('privacyModal').classList.remove('active');
+            startAppAfterLoading();
+        }
+
+        function handlePrivacyDisagree() {
+            const msg = '若不同意隱私權政策，將無法進入遊戲並使用相關功能。\n\n確定要拒絕並退出嗎？';
+            if (confirm(msg)) {
+                if (window.Capacitor && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.exitApp();
+                } else {
+                    document.body.innerHTML = `
+                        <div style="background:radial-gradient(circle at center, #11131A 0%, #07070A 100%);color:#fff;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;font-family:'Noto Sans TC', sans-serif;">
+                            <h1 style="color:var(--neon-pink);margin-bottom:20px;">已拒絕隱私權政策</h1>
+                            <p style="color:var(--text-secondary);line-height:1.6;max-width:400px;">您必須同意條款才能繼續遊玩霓虹牌。這有助於我們保護您的帳戶數據與遊戲進度。</p>
+                            <button class="btn" style="margin-top:30px;border-color:var(--neon-cyan);color:var(--neon-cyan);" onclick="location.reload()">重新讀取</button>
+                        </div>
+                    `;
+                }
+            }
+        }
 
         // --- Title Achievement Checks ---
         async function checkPendingTitles() {
@@ -1861,7 +1972,7 @@
             checkPendingTitles();
 
             // Auto-show update log on new version
-            const LOG_VERSION = '2.0.0';
+            const LOG_VERSION = '2.0.1';
             if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
                 showUpdateLog();
                 localStorage.setItem('lastSeenVersion', LOG_VERSION);
