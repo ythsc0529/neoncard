@@ -640,6 +640,9 @@
         }
 
         async function initGame() {
+            if (typeof FriendsManager !== 'undefined' && typeof FriendsManager.setInGame === 'function') {
+                FriendsManager.setInGame(true);
+            }
             // Ensure Auth is ready for all modes (especially ranked bot matches)
             if (typeof AuthManager !== 'undefined') {
                 AuthManager.init();
@@ -889,6 +892,11 @@
                     
                     if (isCompetitive) {
                         document.getElementById('networkWaitingText').textContent = '正在加入...';
+                    } else if (sessionStorage.getItem('isRematching') === 'true') {
+                        document.getElementById('networkWaitingText').textContent = '正在等待對手重新連接...';
+                        document.getElementById('lobbyHostSection').classList.add('hidden');
+                        document.getElementById('lobbyFriendsSection').classList.add('hidden');
+                        sessionStorage.removeItem('isRematching');
                     } else {
                         document.getElementById('networkWaitingText').textContent = '等待對手加入...';
                         document.getElementById('lobbyHostSection').classList.remove('hidden');
@@ -2447,11 +2455,47 @@
                             <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--glass-bg);flex-shrink:0;">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}</div>
                             <div style="flex:1;min-width:0;">
                                 <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.displayName)}</div>
+                                <div id="status-${f.uid}" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">離線</div>
                             </div>
-                            <button class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
+                            <button id="invite-btn-${f.uid}" class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
                         </div>`).join('');
                 }
                 section.classList.remove('hidden');
+
+                if (typeof FriendsManager.listenForFriendStatus === 'function' && friends && friends.length > 0) {
+                    if (window.lobbyFriendStatusUnsubscribe) window.lobbyFriendStatusUnsubscribe();
+                    window.lobbyFriendStatusUnsubscribe = FriendsManager.listenForFriendStatus(friends.map(f => f.uid), (fUid, status) => {
+                        const statusEl = document.getElementById(`status-${fUid}`);
+                        const btnEl = document.getElementById(`invite-btn-${fUid}`);
+                        if (!statusEl) return;
+                        if (!status) {
+                            statusEl.textContent = '離線';
+                            statusEl.style.color = 'var(--text-muted)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                            return;
+                        }
+                        if (status.state === 'online') {
+                            statusEl.innerHTML = '<span style="color:var(--neon-green)">●</span> 在線';
+                            statusEl.style.color = 'var(--neon-green)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = false;
+                        } else if (status.state === 'in_game') {
+                            statusEl.innerHTML = '<span style="color:var(--neon-magenta)">●</span> 遊戲中';
+                            statusEl.style.color = 'var(--neon-magenta)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                        } else {
+                            let timeStr = '離線';
+                            if (status.lastChanged) {
+                                const diff = Date.now() - status.lastChanged;
+                                if (diff < 3600000) timeStr = Math.floor(diff/60000) + '分鐘前';
+                                else if (diff < 86400000) timeStr = Math.floor(diff/3600000) + '小時前';
+                                else timeStr = Math.floor(diff/86400000) + '天前';
+                            }
+                            statusEl.textContent = timeStr;
+                            statusEl.style.color = 'var(--text-muted)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                        }
+                    });
+                }
             } catch (e) {
                 list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">無法載入好友</div>';
                 section.classList.remove('hidden');

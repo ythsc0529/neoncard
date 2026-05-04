@@ -1,10 +1,10 @@
 {
-  "version": "2.0.1",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.1/app-debug.apk",
+  "version": "2.0.2",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.2/app-debug.apk",
   "notes": [
-    "修正 App 版 Google 登入時偶發把舊帳戶誤判為新帳戶的問題。",
-    "雲端玩家資料讀取失敗時會阻止新帳號建立，避免覆蓋等級、教學、任務、背包與通行證進度。",
-    "建立玩家資料前會再次檢查既有雲端文件，已存在的帳戶只補必要欄位，不重置進度。",
-    "同步 Android 版本號與更新快取，確保 2.0.1 APK 可被強制更新系統正確辨識。"
+    "新增：遊戲邀請拒絕提示與好友在線/遊戲中狀態即時更新。",
+    "新增：任務列表分頁動態紅點提示功能。",
+    "修復：Android 裝置受擊時的震動回饋機制。",
+    "優化：對戰結束後房主重新開局的流程畫面。"
   ]
 }

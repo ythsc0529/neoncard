@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.0.1";
+        window.APP_VERSION = "2.0.2";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -1990,19 +1990,32 @@
 
         function checkRedDots(profile) {
             if (!profile) return;
-            // E.g. unread missions, trial levels, battle pass
-            // We evaluate specific conditions and toggle a '.red-dot' class or innerHTML
             
-            // Basic example logic to be expanded when stages are built:
-            let missionUnread = false; // TODO: scan profile.missions
-            let passUnread = false;    // TODO: scan profile.battlePass for claimable levels
-            
-            if (missionUnread) {
-                document.getElementById('missionBtn').innerHTML += '<div class="red-dot"></div>';
+            let missionUnread = false;
+            if (typeof MISSIONS_DATA !== 'undefined' && typeof MissionLogic !== 'undefined') {
+                missionUnread = MISSIONS_DATA.some(m => {
+                    const isClaimed = MissionLogic.isClaimed(m, profile);
+                    const condMet = MissionLogic.checkCondition(m, profile);
+                    return condMet && !isClaimed;
+                });
+            }
+
+            const missionBtn = document.getElementById('missionBtn');
+            if (missionBtn) {
+                const existing = missionBtn.querySelector('.red-dot');
+                if (existing) existing.remove();
+                if (missionUnread) {
+                    missionBtn.innerHTML += '<div class="red-dot"></div>';
+                }
             }
         }
 
         function setupListeners(uid) {
+            localStorage.removeItem('is_in_game');
+            if (typeof FriendsManager.setInGame === 'function') FriendsManager.setInGame(false);
+            if (typeof FriendsManager.initPresence === 'function') {
+                FriendsManager.initPresence();
+            }
             // Game invite listener
             gameInviteUnsubscribe = FriendsManager.listenForGameInvites((invite) => {
                 showGameInviteToast(invite);
@@ -2011,6 +2024,24 @@
             friendRequestUnsubscribe = FriendsManager.listenForRequests((profile) => {
                 showFriendRequestToast(profile);
             });
+            // Game invite rejection listener
+            if (typeof FriendsManager.listenForInviteRejections === 'function') {
+                FriendsManager.listenForInviteRejections((info) => {
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(255,50,50,0.9);border:1px solid #ff4444;border-radius:14px;padding:12px 20px;color:white;z-index:3000;animation:fadeIn 0.3s;';
+                    toast.innerHTML = `<strong>${escHtml(info.fromName)}</strong> 拒絕了你的邀請`;
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 4000);
+                    
+                    // Reset button if we are in profile or lobby
+                    const btn = document.getElementById(`invite-btn-${info.id}`);
+                    if (btn) {
+                        btn.textContent = '邀請';
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                });
+            }
         }
 
         // ── Google Login ──────────────────────────────────────────────
@@ -2323,6 +2354,9 @@
             const ov = document.getElementById('gameInviteOverlay');
             if (ov) ov.remove();
             await FriendsManager.clearGameInvite(fromUid);
+            if (typeof FriendsManager.declineGameInviteFeedback === 'function') {
+                await FriendsManager.declineGameInviteFeedback(fromUid);
+            }
         }
 
         // ── Mode Selection ─────────────────────────────────────────────
@@ -2470,11 +2504,47 @@
                             <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--glass-bg);flex-shrink:0;">${f.googlePhotoURL ? `<img src="${f.googlePhotoURL}" style="width:100%;height:100%;object-fit:cover;">` : '👤'}</div>
                             <div style="flex:1;min-width:0;">
                                 <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.displayName)}</div>
+                                <div id="status-${f.uid}" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">離線</div>
                             </div>
-                            <button class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
+                            <button id="invite-btn-${f.uid}" class="btn btn-sm btn-gold" onclick="inviteFromLobby('${f.uid}','${escHtml(f.displayName)}','${roomCode}')" style="flex-shrink:0;">邀請</button>
                         </div>`).join('');
                 }
                 section.classList.remove('hidden');
+
+                if (typeof FriendsManager.listenForFriendStatus === 'function' && friends && friends.length > 0) {
+                    if (window.lobbyFriendStatusUnsubscribe) window.lobbyFriendStatusUnsubscribe();
+                    window.lobbyFriendStatusUnsubscribe = FriendsManager.listenForFriendStatus(friends.map(f => f.uid), (fUid, status) => {
+                        const statusEl = document.getElementById(`status-${fUid}`);
+                        const btnEl = document.getElementById(`invite-btn-${fUid}`);
+                        if (!statusEl) return;
+                        if (!status) {
+                            statusEl.textContent = '離線';
+                            statusEl.style.color = 'var(--text-muted)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                            return;
+                        }
+                        if (status.state === 'online') {
+                            statusEl.innerHTML = '<span style="color:var(--neon-green)">●</span> 在線';
+                            statusEl.style.color = 'var(--neon-green)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = false;
+                        } else if (status.state === 'in_game') {
+                            statusEl.innerHTML = '<span style="color:var(--neon-magenta)">●</span> 遊戲中';
+                            statusEl.style.color = 'var(--neon-magenta)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                        } else {
+                            let timeStr = '離線';
+                            if (status.lastChanged) {
+                                const diff = Date.now() - status.lastChanged;
+                                if (diff < 3600000) timeStr = Math.floor(diff/60000) + '分鐘前';
+                                else if (diff < 86400000) timeStr = Math.floor(diff/3600000) + '小時前';
+                                else timeStr = Math.floor(diff/86400000) + '天前';
+                            }
+                            statusEl.textContent = timeStr;
+                            statusEl.style.color = 'var(--text-muted)';
+                            if (btnEl && btnEl.textContent === '邀請') btnEl.disabled = true;
+                        }
+                    });
+                }
             } catch (e) {
                 list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">無法載入好友</div>';
                 section.classList.remove('hidden');

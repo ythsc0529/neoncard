@@ -131,11 +131,97 @@ const FriendsManager = (() => {
         await rtdb().ref(`gameInvites/${uid}/${fromUid}`).remove();
     }
 
+    // ── Game Invites Feedback ────────────────────────────────────────
+
+    async function declineGameInviteFeedback(targetUid) {
+        const uid = myUid();
+        if (!uid) return;
+        const myProfile = await UserProfile.getProfile(uid);
+        await rtdb().ref(`gameInviteFeedback/${targetUid}/${uid}`).set({
+            status: 'rejected',
+            fromName: myProfile?.displayName || '玩家',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    function listenForInviteRejections(callback) {
+        const uid = myUid();
+        if (!uid) return () => {};
+        const ref = rtdb().ref(`gameInviteFeedback/${uid}`);
+        const handler = ref.on('child_added', snap => {
+            if (snap.exists()) {
+                callback({ id: snap.key, ...snap.val() });
+                snap.ref.remove().catch(() => {});
+            }
+        });
+        return () => ref.off('child_added', handler);
+    }
+
+    // ── Online Status (Presence) ─────────────────────────────────────
+    
+    let presenceUnsubscribe = null;
+
+    function initPresence() {
+        const uid = myUid();
+        if (!uid) return;
+        const connectedRef = rtdb().ref('.info/connected');
+        const statusRef = rtdb().ref(`status/${uid}`);
+        
+        if (presenceUnsubscribe) {
+            connectedRef.off('value', presenceUnsubscribe);
+        }
+        
+        presenceUnsubscribe = connectedRef.on('value', (snap) => {
+            if (snap.val() === true) {
+                statusRef.onDisconnect().set({ 
+                    state: 'offline', 
+                    lastChanged: firebase.database.ServerValue.TIMESTAMP 
+                });
+                const isInGame = localStorage.getItem('is_in_game') === 'true';
+                statusRef.set({ 
+                    state: isInGame ? 'in_game' : 'online', 
+                    lastChanged: firebase.database.ServerValue.TIMESTAMP 
+                });
+            }
+        });
+    }
+
+    async function setInGame(inGame) {
+        const uid = myUid();
+        if (!uid) return;
+        const statusRef = rtdb().ref(`status/${uid}`);
+        if (inGame) {
+            localStorage.setItem('is_in_game', 'true');
+            await statusRef.update({ state: 'in_game', lastChanged: firebase.database.ServerValue.TIMESTAMP });
+        } else {
+            localStorage.removeItem('is_in_game');
+            await statusRef.update({ state: 'online', lastChanged: firebase.database.ServerValue.TIMESTAMP });
+        }
+    }
+
+    function listenForFriendStatus(friendUids, callback) {
+        if (!friendUids || friendUids.length === 0) return () => {};
+        const handlers = [];
+        friendUids.forEach(fUid => {
+            const ref = rtdb().ref(`status/${fUid}`);
+            const handler = ref.on('value', snap => {
+                callback(fUid, snap.val());
+            });
+            handlers.push({ ref, handler });
+        });
+        
+        return () => {
+            handlers.forEach(h => h.ref.off('value', h.handler));
+        };
+    }
+
     return {
         sendFriendRequest, acceptFriendRequest, declineFriendRequest,
         getFriendList, getPendingRequests, listenForRequests,
         removeFriend, isFriend, hasOutgoingRequest,
-        sendGameInvite, listenForGameInvites, clearGameInvite
+        sendGameInvite, listenForGameInvites, clearGameInvite,
+        declineGameInviteFeedback, listenForInviteRejections,
+        initPresence, setInGame, listenForFriendStatus
     };
 })();
 

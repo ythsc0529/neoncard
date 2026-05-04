@@ -204,7 +204,29 @@
             return `已領取 ${repeats} 次`;
         }
 
+        function updateTabRedDots() {
+            if (!myProfile) return;
+            ['novice', 'daily', 'perm'].forEach(tabId => {
+                const tabBtn = document.getElementById(`tab-${tabId}`);
+                if (!tabBtn) return;
+                const hasClaimable = MISSIONS_DATA.some(m => {
+                    if (m.type !== tabId) return false;
+                    const isClaimed = MissionLogic.isClaimed(m, myProfile);
+                    const condMet = MissionLogic.checkCondition(m, myProfile);
+                    return condMet && !isClaimed;
+                });
+                
+                const existing = tabBtn.querySelector('.red-dot');
+                if (existing) existing.remove();
+                
+                if (hasClaimable) {
+                    tabBtn.innerHTML += '<div class="red-dot" style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--neon-green);border-radius:50%;box-shadow:0 0 6px var(--neon-green);"></div>';
+                }
+            });
+        }
+
         function renderMissions() {
+            updateTabRedDots();
             const list = document.getElementById('missionList');
             list.innerHTML = '';
             const claimed = myProfile.missions?.claimed || [];
