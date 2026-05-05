@@ -1289,16 +1289,52 @@
                                 <div class="friend-name" style="cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color=''">${escHtml(f.displayName)}</div>
                             </a>
                             <div class="friend-bio">${escHtml(f.bio || '沒有自我介紹')}</div>
+                            <div id="profile-status-${f.uid}" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">離線</div>
                             ${joinStr}
                         </div>
                         <div class="friend-actions">
-                            <button class="btn btn-sm btn-gold" onclick="inviteFriend('${f.uid}','${escHtml(f.displayName)}')">邀請對戰</button>
+                            <button id="profile-invite-btn-${f.uid}" class="btn btn-sm btn-gold" onclick="inviteFriend('${f.uid}','${escHtml(f.displayName)}')">邀請對戰</button>
                             <button class="btn btn-sm" style="opacity:0.5;" onclick="removeFriendConfirm('${f.uid}','${escHtml(f.displayName)}')">刪除</button>
                         </div>
                     </div>
                     ${statsBar}
                 </div>`;
             }).join('');
+
+            if (typeof FriendsManager.listenForFriendStatus === 'function' && myFriends && myFriends.length > 0) {
+                if (window.profileFriendStatusUnsubscribe) window.profileFriendStatusUnsubscribe();
+                window.profileFriendStatusUnsubscribe = FriendsManager.listenForFriendStatus(myFriends.map(f => f.uid), (fUid, status) => {
+                    const statusEl = document.getElementById(`profile-status-${fUid}`);
+                    const btnEl = document.getElementById(`profile-invite-btn-${fUid}`);
+                    if (!statusEl) return;
+                    if (!status) {
+                        statusEl.textContent = '離線';
+                        statusEl.style.color = 'var(--text-muted)';
+                        if (btnEl) btnEl.disabled = true;
+                        return;
+                    }
+                    if (status.state === 'online') {
+                        statusEl.innerHTML = '<span style="color:var(--neon-green)">●</span> 在線';
+                        statusEl.style.color = 'var(--neon-green)';
+                        if (btnEl) btnEl.disabled = false;
+                    } else if (status.state === 'in_game') {
+                        statusEl.innerHTML = '<span style="color:var(--neon-magenta)">●</span> 遊戲中';
+                        statusEl.style.color = 'var(--neon-magenta)';
+                        if (btnEl) btnEl.disabled = true;
+                    } else {
+                        let timeStr = '離線';
+                        if (status.lastChanged) {
+                            const diff = Date.now() - status.lastChanged;
+                            if (diff < 3600000) timeStr = Math.floor(diff/60000) + '分鐘前';
+                            else if (diff < 86400000) timeStr = Math.floor(diff/3600000) + '小時前';
+                            else timeStr = Math.floor(diff/86400000) + '天前';
+                        }
+                        statusEl.textContent = timeStr;
+                        statusEl.style.color = 'var(--text-muted)';
+                        if (btnEl) btnEl.disabled = true;
+                    }
+                });
+            }
         }
 
         // Invite mode select modal

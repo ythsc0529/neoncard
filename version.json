@@ -1,10 +1,10 @@
 {
-  "version": "2.0.2",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.2/app-debug.apk",
+  "version": "2.0.3",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.0.3/app-debug.apk",
   "notes": [
-    "新增：遊戲邀請拒絕提示與好友在線/遊戲中狀態即時更新。",
-    "新增：任務列表分頁動態紅點提示功能。",
-    "修復：Android 裝置受擊時的震動回饋機制。",
-    "優化：對戰結束後房主重新開局的流程畫面。"
+    "優化：啟動時改為優先載入關鍵資源，其餘圖片背景快取，降低 App 與網站開場卡頓。",
+    "優化：手機端降低部分大面積模糊與動畫成本，讓主選單與彈窗更順。",
+    "更新：抽獎加入能量核心啟動、結果翻牌、稀有光效與原生震動回饋。",
+    "修復：清理部分無效 CSS，避免瀏覽器額外解析錯誤樣式。"
   ]
 }

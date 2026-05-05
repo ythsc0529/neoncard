@@ -69,6 +69,32 @@ body {
     line-height: 1.6;
 }
 
+@media (max-width: 768px) {
+    :root {
+        --glass-blur: blur(8px);
+    }
+
+    .menu-container::before {
+        background-size: 120px 120px;
+    }
+
+    .modal-overlay,
+    .update-modal-overlay {
+        backdrop-filter: blur(6px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 /* ========== ANIMATIONS ========== */
 @keyframes neonGlow {
 
@@ -682,7 +708,7 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: 
+    background-image:
         linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
     background-size: 80px 80px;
@@ -754,7 +780,7 @@ body {
         align-items: center;
         justify-content: flex-end;
     }
-    
+
     .game-title {
         position: static;
         text-align: left;
@@ -775,7 +801,7 @@ body {
         font-size: 1.05rem;
         padding: 16px;
     }
-    
+
     .menu-btn:hover:not(:disabled) {
         transform: translateY(-2px);
     }
@@ -2833,4 +2859,4 @@ body {
 .privacy-content p {
     color: var(--text-secondary);
 }
-
+
