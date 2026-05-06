@@ -175,6 +175,10 @@ const GameState = {
         const player = this[playerKey];
         player.battleCard = player.allCards[cardIndex];
         player.standbyCards = player.allCards.filter((_, i) => i !== cardIndex);
+        // Initialize MVP tracking
+        if (player.battleCard && player.battleCard.turnsOnField === undefined) {
+            player.battleCard.turnsOnField = 0;
+        }
     },
 
     // Swap with standby
@@ -184,6 +188,10 @@ const GameState = {
         player.battleCard = player.standbyCards[standbyIndex];
         player.standbyCards[standbyIndex] = oldBattle;
         this.didSwapOrDie[playerKey] = true;
+        // Initialize MVP tracking for newly entered card
+        if (player.battleCard && player.battleCard.turnsOnField === undefined) {
+            player.battleCard.turnsOnField = 0;
+        }
     },
 
     // Add card to standby
@@ -343,8 +351,13 @@ const GameState = {
 
     // End turn
     async endTurn() {
-        // Process end-of-turn effects
+        // Track turns on field for MVP calculation
         const currentCard = this.getCurrentPlayer().battleCard;
+        if (currentCard) {
+            currentCard.turnsOnField = (currentCard.turnsOnField || 0) + 1;
+        }
+
+        // Process end-of-turn effects
         if (currentCard) {
             await this.processPassive(currentCard, 'on_turn_end');
         }

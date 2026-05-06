@@ -662,7 +662,6 @@ const Animations = {
             SoundManager.play(iWon ? 'win' : 'fail');
         }
 
-        // Clear ranked ongoing flag so we don't get penalized since game ended naturally
         localStorage.removeItem('inRankedMatchOngoing');
 
         // ── Ranked result processing ─────────────────────────────────────────
@@ -681,7 +680,6 @@ const Animations = {
             try {
                 let user = AuthManager.getCurrentUser();
                 
-                // Retry once if user is missing (e.g. state recovery delay)
                 if (!user) {
                     console.warn('[Ranked] User missing at victory, retrying Auth init...');
                     AuthManager.init();
@@ -691,7 +689,6 @@ const Animations = {
                 if (user) {
                     let iWon = false;
                     if (isBotRankedMatch) {
-                        // In bot matchmaking, we are always player 1
                         iWon = GameState.winner === 1;
                     } else {
                         const role = window.localOnlineRole || localStorage.getItem('onlineRole');
@@ -699,30 +696,24 @@ const Animations = {
                         iWon = GameState.winner === myPlayer;
                     }
 
-                    // Increment stats
                     UserProfile.incrementStat(user.uid, 'ranked', iWon).catch(() => {});
                     
-                    // Daily stats for missions
                     const dailyUpdates = { "dailyStats.onlineMatches": firebase.firestore.FieldValue.increment(1) };
                     if (iWon) dailyUpdates["dailyStats.onlineWins"] = firebase.firestore.FieldValue.increment(1);
                     UserProfile.updateProfile(user.uid, dailyUpdates).catch(console.error);
 
-                    // Handle win streak for missions
                     if (iWon) {
                         UserProfile.updateProfile(user.uid, { rankedWinStreak: firebase.firestore.FieldValue.increment(1) }).catch(console.error);
                     } else {
                         UserProfile.updateProfile(user.uid, { rankedWinStreak: 0 }).catch(console.error);
                     }
 
-                    // Get current ranked, process result
                     const profile = await UserProfile.getProfile(user.uid);
                     const currentRanked = profile?.ranked || RankedSystem.defaultRanked();
                     const { ranked: newRanked, description } = RankedSystem.processMatchResult(currentRanked, iWon);
 
-                    // Save updated ranked
                     await UserProfile.updateRanked(user.uid, newRanked);
 
-                    // Check title unlock (apex)
                     let titleUnlocked = null;
                     if (RankedSystem.shouldGrantApexTitle(newRanked)) {
                         const titles = profile?.titles || [];
@@ -732,32 +723,10 @@ const Animations = {
                         }
                     }
 
-                    // Show ranked result overlay (after a short delay)
-                    const overlay = document.getElementById('rankedResultOverlay');
-                    if (overlay) {
-                        document.getElementById('rr-icon').textContent = iWon ? '🏆' : '💀';
-                        document.getElementById('rr-title').textContent = iWon ? '勝利！' : '敗北';
-                        document.getElementById('rr-desc').textContent = description;
-                        document.getElementById('rr-rankImg').src  = RankedSystem.getImgPath(newRanked);
-                        document.getElementById('rr-rankName').textContent = RankedSystem.getDisplayName(newRanked);
-                        document.getElementById('rr-rankStars').innerHTML = RankedSystem.getStarsHtml(newRanked);
-                        // Title unlock section
-                        const titleBlock = document.getElementById('rr-titleUnlock');
-                        if (titleUnlocked) {
-                            const tInfo = RankedSystem.getTitleInfo(titleUnlocked);
-                            document.getElementById('rr-titleImg').src = tInfo?.img || '';
-                            document.getElementById('rr-titleName').textContent = titleUnlocked;
-                            titleBlock.style.display = 'block';
-                        } else {
-                            titleBlock.style.display = 'none';
-                        }
-                        
-                        rankedProcessed = true;
-                        setTimeout(() => {
-                            this.hide(); // Bug 4 Fix: Hide victory overlay before showing ranked result
-                            overlay.classList.add('active');
-                        }, 1800);
-                    }
+                    rankedProcessed = true;
+                    window._settlementRankedDesc = description;
+                    window._settlementRankedState = newRanked;
+                    window._settlementTitleUnlocked = titleUnlocked;
                 } else {
                     console.error('[Ranked] Skipping processing: No user found even after retry.');
                 }
@@ -766,7 +735,7 @@ const Animations = {
             }
         }
 
-        // Track win/loss in Firestore (for non-ranked modes or as backup)
+        // Track win/loss in Firestore
         if (!isAnyRankedMatch || !rankedProcessed) {
             try {
                 if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
@@ -787,8 +756,6 @@ const Animations = {
                         }
                         if (statMode) {
                             UserProfile.incrementStat(user.uid, statMode, iWon).catch(() => {});
-                            
-                            // Daily stats for missions (if online/competitive)
                             if (statMode === 'online' || statMode === 'competitive') {
                                 const dUpdates = { "dailyStats.onlineMatches": firebase.firestore.FieldValue.increment(1) };
                                 if (iWon) dUpdates["dailyStats.onlineWins"] = firebase.firestore.FieldValue.increment(1);
@@ -800,39 +767,39 @@ const Animations = {
             } catch (_e) { /* silent */ }
         }
 
-        // ── Record Match History ─────────────────────────────────────────────
+        // ── Record Match History & EXP ───────────────────────────────────────
+        let expGained = 0;
+        let passExpGained = 0;
+        let iWonFinal = false;
         try {
             if (typeof AuthManager !== 'undefined' && typeof UserProfile !== 'undefined') {
                 const user = AuthManager.getCurrentUser();
                 if (user && typeof GameState !== 'undefined' && GameState.winner !== 0) {
-                    let iWon = false;
                     let oppName = '';
                     let oppUid = '';
                     let matchMode = GameState.mode;
 
-                    const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
-                    
                     if (localStorage.getItem('isBotRankedMatch') === 'true') {
-                        iWon = GameState.winner === 1;
+                        iWonFinal = GameState.winner === 1;
                         oppName = localStorage.getItem('botMatchName') || '機器人';
                         oppUid = 'NPC_' + oppName;
                         matchMode = 'ranked';
                     } else if (localStorage.getItem('isRankedMatch') === 'true') {
                         const role = window.localOnlineRole || localStorage.getItem('onlineRole');
                         const myPlayer = (role === 'host') ? 1 : 2;
-                        iWon = GameState.winner === myPlayer;
+                        iWonFinal = GameState.winner === myPlayer;
                         oppName = role === 'host' ? GameState.player2.name : GameState.player1.name;
                         oppUid = (typeof NetManager !== 'undefined' && NetManager.opponentUid) || 'unknown';
                         matchMode = 'ranked';
                     } else if (GameState.mode === 'online') {
                         const role = window.localOnlineRole || localStorage.getItem('onlineRole');
                         const myPlayer = (role === 'host') ? 1 : 2;
-                        iWon = GameState.winner === myPlayer;
+                        iWonFinal = GameState.winner === myPlayer;
                         oppName = role === 'host' ? GameState.player2.name : GameState.player1.name;
                         oppUid = (typeof NetManager !== 'undefined' && NetManager.opponentUid) || 'unknown';
                     } else {
                         // PvE / Story
-                        iWon = GameState.winner === 1;
+                        iWonFinal = GameState.winner === 1;
                         oppName = GameState.player2.name;
                         oppUid = 'NPC_' + oppName;
                     }
@@ -842,42 +809,34 @@ const Animations = {
                             opponentName: oppName,
                             opponentUid: oppUid,
                             mode: matchMode,
-                            result: iWon ? 'win' : 'loss'
+                            result: iWonFinal ? 'win' : 'loss'
                         });
 
-                        // ── Grant EXP & Pass EXP ──
                         let levelExp = 0;
-                        let passExp = iWon ? 30 : 15; // Any mode grants pass points
+                        let passExp = iWonFinal ? 30 : 15;
                         
                         if (matchMode === 'story') {
-                            if (iWon) levelExp = 60; // 劇情通關+60
+                            if (iWonFinal) levelExp = 60;
                         } else if (matchMode === 'pve' || oppUid.startsWith('NPC_')) {
-                            // "跟NPC對戰經驗值減半(NPC對戰=0exp)" - user previously indicated 0 for offline/NPC
                             levelExp = 0; 
                         } else {
-                            // PvP / Ranked
-                            levelExp = iWon ? 50 : 25;
+                            levelExp = iWonFinal ? 50 : 25;
                         }
 
+                        expGained = levelExp;
+                        passExpGained = passExp;
+
                         if (levelExp > 0 || passExp > 0) {
-                            // Load profile and apply
                             UserProfile.getProfile(user.uid).then(p => {
                                 if (!p) return;
-                                
                                 const updates = {};
-                                
-                                if (levelExp > 0) {
-                                    updates.exp = (p.exp || 0) + levelExp;
-                                }
-
+                                if (levelExp > 0) updates.exp = (p.exp || 0) + levelExp;
                                 if (passExp > 0) {
                                     const bp = p.battlePass || { points: 0, premiumActive: false, claimed: { free: [], premium: [] } };
                                     bp.points = (bp.points || 0) + passExp;
                                     updates.battlePass = bp;
                                 }
-                                
                                 if (Object.keys(updates).length > 0) {
-                                    // Update Firestore
                                     AuthManager.getDb().collection('users').doc(user.uid).set(updates, { merge: true }).catch(console.error);
                                 }
                             });
@@ -887,41 +846,33 @@ const Animations = {
             }
         } catch (e) { console.error('[History] Error:', e); }
 
-        // Clean up ranked/bot flags after all recording is done
+        // ── Compute settlement mode BEFORE clearing flags ─────────────────────
+        const _settlementMode = (() => {
+            const isRanked = localStorage.getItem('isRankedMatch') === 'true';
+            const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
+            const isCompetitive = localStorage.getItem('fromCompetitiveMode') === 'true';
+            const gMode = localStorage.getItem('gameMode');
+            if (isRanked) return 'ranked';
+            if (isBotRanked) return 'ranked_bot';
+            if (isCompetitive) return 'casual';
+            if (gMode === 'online' || (typeof GameState !== 'undefined' && GameState.mode === 'online')) return 'friend';
+            return 'pve';
+        })();
+
+        // Clean up ranked/bot flags
         localStorage.removeItem('isRankedMatch');
         localStorage.removeItem('isBotRankedMatch');
         localStorage.removeItem('myRankedInfo');
         localStorage.removeItem('botMatchName');
-        localStorage.removeItem('isBotRankedMatch'); // Redundant? No harm.
 
+        // ── Compute MVP data ─────────────────────────────────────────────────
+        const mvpData = _computeMVP();
+
+        // ── Show victory flash, then open Settlement overlay ─────────────────
         return new Promise(resolve => {
             this.show();
 
             const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
-            const isOnline = typeof GameState !== 'undefined' && GameState.mode === 'online';
-
-            let btnAction = isStory ? "finishStoryBattle()" : "location.href='index.html'";
-            let btnText = isStory ? "繼續" : "返回主選單";
-            let secondaryBtnContent = '';
-
-            if (isOnline && !isAnyRankedMatch) {
-                const isComp = localStorage.getItem('fromCompetitiveMode') === 'true';
-                if (isComp) {
-                    btnAction = "location.href='index.html'";
-                    btnText = "返回主選單";
-                } else {
-                    const localRole = window.localOnlineRole || localStorage.getItem('onlineRole');
-                    if (localRole === 'host') {
-                        btnAction = "sessionStorage.setItem('isRematching', 'true'); let nextRoom = typeof NetManager !== 'undefined' ? NetManager.generateShortId() : Math.random().toString(36).substr(2, 4).toUpperCase(); sessionStorage.setItem('last_host_room_id', nextRoom); NetManager.sendAction({ type: 'lobby_rematch', newRoomId: nextRoom }); setTimeout(() => window.location.reload(), 200);";
-                        btnText = "與對手重新開始（聯機）";
-                        secondaryBtnContent = '<div style="margin-top: 15px;"><button class="btn btn-magenta" onclick="location.href=\'index.html\'">退出連線大廳</button></div>';
-                    } else {
-                        btnAction = "location.href='index.html'";
-                        btnText = "退出連線大廳";
-                        secondaryBtnContent = '<p style="color:var(--neon-gold); font-size:1.1rem; margin-top:20px; text-shadow:none;">等待房主決定是否重新開始...</p>';
-                    }
-                }
-            }
 
             this.container.innerHTML = `
                 <div style="text-align: center;">
@@ -929,27 +880,37 @@ const Animations = {
                     <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
                         ${winner} 勝利！
                     </div>
-                    <div id="victoryActions" class="victory-btn-container">
-                        ${!isAnyRankedMatch ? `<button class="btn btn-gold" style="margin-top: 40px;" onclick="${btnAction}">${btnText}</button>${secondaryBtnContent}` : '<p style="color:var(--text-muted);font-size:0.9rem;margin-top:30px;">計算段位中...</p>'}
-                    </div>
                 </div>
             `;
 
-            // Safety check: If ranked match but no overlay appears after 5.5s, show the exit button
-            if (isAnyRankedMatch) {
-                setTimeout(() => {
-                    const overlay = document.getElementById('rankedResultOverlay');
-                    const actionsDiv = document.getElementById('victoryActions');
-                    if (overlay && !overlay.classList.contains('active') && actionsDiv) {
-                        console.warn('[Ranked] Settlement UI timeout, showing recovery button.');
-                        actionsDiv.innerHTML = `<button class="btn btn-gold" style="margin-top: 40px;" onclick="location.href='index.html'">返回主選單 (結算超時)</button>`;
-                    }
-                }, 5500);
-            }
+            setTimeout(() => {
+                this.hide();
+                resolve();
 
-            setTimeout(resolve, 1000);
+                // Story mode: keep original finish flow
+                if (isStory) return;
+
+                // Show new settlement UI
+                if (typeof GameSettlement !== 'undefined') {
+                    GameSettlement.show(winner, {
+                        iWon: iWonFinal,
+                        rankedDescription: window._settlementRankedDesc || '',
+                        rankedNewState: window._settlementRankedState || null,
+                        expGained: expGained,
+                        passExpGained: passExpGained,
+                        mvpData: mvpData,
+                        mode: _settlementMode
+                    });
+                    delete window._settlementRankedDesc;
+                    delete window._settlementRankedState;
+                    delete window._settlementTitleUnlocked;
+                } else {
+                    location.href = 'index.html';
+                }
+            }, 2000);
         });
     },
+
 
     // Small in-battle title unlock notification
     showSmallTitleUnlock(titleKey) {
@@ -971,6 +932,48 @@ const Animations = {
         setTimeout(() => toast.remove(), 5500);
     }
 };
+
+// ── MVP 計算輔助函數 ───────────────────────────────────────────────────────────
+function _computeMVP() {
+    if (typeof GameState === 'undefined') return {};
+
+    const getMVP = (playerKey) => {
+        const p = GameState[playerKey];
+        if (!p) return null;
+        const all = [
+            ...(p.allCards || []),
+            ...(p.standbyCards || [])
+        ];
+        if (p.battleCard) all.push(p.battleCard);
+
+        // 去重（可能 battleCard 也在 allCards）
+        const seen = new Set();
+        const unique = all.filter(c => {
+            if (!c || seen.has(c)) return false;
+            seen.add(c);
+            return true;
+        });
+
+        if (unique.length === 0) return null;
+        return unique.reduce((best, c) => {
+            const turns = c.turnsOnField || 0;
+            return (turns > (best?.turnsOnField || 0)) ? c : best;
+        }, null);
+    };
+
+    const role = window.localOnlineRole || localStorage.getItem('onlineRole');
+    let myKey = 'player1';
+    let oppKey = 'player2';
+    if (GameState.mode === 'online' && role === 'join') {
+        myKey = 'player2';
+        oppKey = 'player1';
+    }
+
+    return {
+        mine: getMVP(myKey),
+        opponent: getMVP(oppKey)
+    };
+}
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => Animations.init());

@@ -131,6 +131,157 @@
             0% { height: 4px; }
             100% { height: 12px; }
         }
+        /* --- Settlement Overlay --- */
+        .settlement-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9000; backdrop-filter: blur(8px);
+            padding: 20px;
+        }
+        .settlement-overlay.active { display: flex; }
+        .settlement-card {
+            background: linear-gradient(135deg, rgba(8,8,28,0.98), rgba(18,12,35,0.98));
+            border: 2px solid var(--neon-gold);
+            border-radius: 24px;
+            padding: 36px 40px;
+            text-align: center;
+            max-width: 480px; width: 100%;
+            box-shadow: 0 0 40px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: settlementIn 0.45s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes settlementIn {
+            from { opacity:0; transform:scale(0.85) translateY(24px); }
+            to   { opacity:1; transform:scale(1) translateY(0); }
+        }
+        .settlement-body { min-height: 220px; }
+        /* Result step */
+        .stl-result-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; }
+        .stl-result-icon { font-size: 4rem; animation: stlIconPulse 1s ease-in-out infinite alternate; }
+        @keyframes stlIconPulse { from{transform:scale(1)} to{transform:scale(1.1)} }
+        .stl-result-text {
+            font-family: var(--font-heading);
+            font-size: 2.6rem; font-weight: 900;
+            letter-spacing: 4px;
+        }
+        .stl-ranked-section {
+            background: rgba(255,215,0,0.06);
+            border: 1px solid rgba(255,215,0,0.25);
+            border-radius: 14px;
+            padding: 14px 24px;
+            width: 100%;
+        }
+        .stl-rank-change {
+            font-size: 1.3rem; font-weight: 700;
+            margin-bottom: 10px; letter-spacing: 2px;
+        }
+        .stl-rank-display {
+            display: flex; align-items: center;
+            justify-content: center; gap: 14px;
+        }
+        .stl-rank-img { width: 52px; height: 52px; object-fit: contain; }
+        .stl-rank-name {
+            font-family: var(--font-heading);
+            font-size: 1.1rem; color: var(--neon-gold);
+        }
+        .stl-rank-stars { font-size: 1.1rem; letter-spacing: 3px; margin-top: 4px; }
+        /* EXP step */
+        .stl-exp-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
+        .stl-exp-label {
+            font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--text-muted); margin-bottom: 4px;
+        }
+        .stl-exp-value {
+            font-family: var(--font-heading);
+            font-size: 3.2rem; font-weight: 900;
+            text-shadow: 0 0 20px currentColor;
+        }
+        .stl-exp-sublabel { font-size: 0.85rem; color: var(--text-secondary); }
+        .stl-exp-row {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .stl-exp-row-label {
+            font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-muted); align-self: flex-start;
+        }
+        .stl-exp-bar-wrap {
+            width: 100%; height: 8px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px; overflow: hidden;
+        }
+        .stl-exp-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-gold));
+            border-radius: 4px;
+            transition: width 0.05s linear;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+        /* MVP step */
+        .stl-mvp-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
+        .stl-mvp-title {
+            font-family: var(--font-heading);
+            font-size: 1.1rem; color: var(--neon-gold);
+            letter-spacing: 3px;
+        }
+        .stl-mvp-card {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; text-align: left;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+        }
+        .stl-mvp-side-label { font-size: 0.78rem; color: var(--text-muted); letter-spacing: 2px; margin-bottom: 6px; }
+        .stl-mvp-char-name { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); }
+        .stl-mvp-char-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        .stl-mvp-rarity { font-size: 0.75rem; margin-top: 4px; }
+        /* Action step */
+        .stl-action-wrap { display:flex; flex-direction:column; align-items:center; gap:18px; }
+        .stl-action-title {
+            font-family: var(--font-heading);
+            font-size: 1.2rem; color: var(--neon-cyan);
+            letter-spacing: 3px;
+        }
+        .stl-action-btns {
+            display: flex; flex-direction: column;
+            gap: 10px; width: 100%;
+        }
+        .stl-action-btns .btn { width: 100%; padding: 14px; font-size: 1rem; }
+        /* Friend action */
+        .stl-friend-avatars {
+            display: flex; align-items: center;
+            justify-content: center; gap: 24px;
+            width: 100%;
+        }
+        .stl-avatar-box { display:flex; flex-direction:column; align-items:center; gap:6px; }
+        .stl-avatar { font-size: 2.5rem; }
+        .stl-avatar-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+        .stl-avatar-status { font-size: 0.78rem; color: var(--text-muted); }
+        .stl-avatar-vs {
+            font-family: var(--font-heading);
+            font-size: 1.2rem; color: var(--neon-magenta);
+        }
+        .stl-auto-exit-bar { width: 100%; }
+        .stl-auto-exit-text { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+        .stl-auto-exit-progress-wrap {
+            width: 100%; height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px; overflow: hidden;
+        }
+        .stl-auto-exit-progress {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--neon-magenta), #ff4466);
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+        .stl-rematch-status {
+            font-size: 0.88rem; color: var(--neon-cyan);
+            min-height: 20px; font-weight: 600;
+        }
+        .stl-continue-btn { margin-top: 8px; padding: 12px 32px; min-width: 140px; }
     </style>
 </head>
 
@@ -515,23 +666,10 @@
     <!-- Rank Reveal Overlay (on game start) -->
     <div id="rankRevealOverlay" style="display:none;"></div>
 
-    <!-- Ranked Result Overlay (post-game for ranked mode) -->
-    <div id="rankedResultOverlay">
-        <div class="ranked-result-card">
-            <div id="rr-icon" style="font-size:3rem;margin-bottom:12px;"></div>
-            <div id="rr-title" style="font-family:var(--font-heading);font-size:1.4rem;color:var(--neon-gold);margin-bottom:6px;"></div>
-            <div id="rr-desc" style="font-size:1.1rem;color:var(--text-primary);margin-bottom:16px;"></div>
-            <div id="rr-newRank" style="margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;">
-                <img id="rr-rankImg" style="width:80px;height:80px;object-fit:contain;" src="race_pic/骸1.png" alt="rank">
-                <div id="rr-rankName" style="font-family:var(--font-heading);font-size:1.3rem;color:var(--neon-gold);"></div>
-                <div id="rr-rankStars" style="font-size:1.2rem;letter-spacing:4px;"></div>
-            </div>
-            <div id="rr-titleUnlock" style="display:none;margin-bottom:16px;padding:12px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:12px;">
-                <div style="color:var(--neon-gold);font-size:0.8rem;letter-spacing:2px;margin-bottom:6px;">🎖 稱號解鎖</div>
-                <img id="rr-titleImg" style="width:220px;height:auto;object-fit:contain;max-height:80px;" src="" alt="title">
-                <div id="rr-titleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:1rem;margin-top:6px;"></div>
-            </div>
-            <button class="btn btn-gold" style="width:100%;padding:14px;" onclick="document.getElementById('rankedResultOverlay').classList.remove('active');location.href='index.html';">返回主選單</button>
+    <!-- Settlement Overlay (post-game for all modes) -->
+    <div id="settlementOverlay" class="settlement-overlay">
+        <div class="settlement-card glass" id="settlementCard">
+            <div id="settlementBody" class="settlement-body" style="transition: opacity 0.2s;"></div>
         </div>
     </div>
 
@@ -560,9 +698,10 @@
     <script src="js/core/tutorialSystem.js?v=3"></script>
     <script src="js/core/gameState.js?v=3"></script>
     <script src="js/core/battleSystem.js?v=3"></script>
-    <script src="js/ui/animations.js?v=3"></script>
+    <script src="js/ui/animations.js?v=4"></script>
     <script src="js/ui/musicManager.js"></script>
     <script src="js/ui/soundManager.js"></script>
+    <script src="js/ui/settlement.js?v=1"></script>
     <script>
         // ── Music & Vibration initialization ──────────
         MusicManager.init();
@@ -1218,7 +1357,21 @@
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(action.emojiId, opponentKey);
                 }
+            } else if (action.type === 'rematch_vote') {
+                // Opponent voted to rematch — notify settlement
+                if (typeof GameSettlement !== 'undefined') {
+                    GameSettlement.onOpponentRematchVote();
+                }
+            } else if (action.type === 'rematch_vote_confirm') {
+                // Host confirmed both parties agreed — join uses new room
+                window.isRematching = true;
+                if (action.newRoomId) {
+                    sessionStorage.setItem('isRematching', 'true');
+                    localStorage.setItem('roomId', action.newRoomId);
+                }
+                setTimeout(() => window.location.reload(), 200);
             } else if (action.type === 'lobby_rematch') {
+                // Legacy fallback (keep for backward compat)
                 window.isRematching = true;
                 if (action.newRoomId) {
                     localStorage.setItem('roomId', action.newRoomId);
