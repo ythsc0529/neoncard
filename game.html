@@ -1018,6 +1018,14 @@
 
                 NetManager.onDisconnected = () => {
                     if (window.isRematching) return;
+                    const inSettlement = (typeof GameState !== 'undefined' && GameState.phase === 'game_over') ||
+                                         (document.getElementById('settlementOverlay') && document.getElementById('settlementOverlay').classList.contains('active'));
+                    if (inSettlement) {
+                        if (typeof GameSettlement !== 'undefined') {
+                            GameSettlement.onOpponentLeft();
+                        }
+                        return;
+                    }
                     alert('連線已中斷。對方已離開。');
                     location.href = 'index.html';
                 };

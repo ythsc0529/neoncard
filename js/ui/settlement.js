@@ -374,8 +374,12 @@ const GameSettlement = (() => {
 
     function _rematch() {
         _cleanup();
-        // 重新進入匹配：還原 competitive flag 並跳回主選單
-        // onlineSubMode 已在 localStorage 中，isRankedMatch 也有保留
+        const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
+        if (isRanked) {
+            sessionStorage.setItem('autoMatchmake', 'ranked');
+        } else {
+            sessionStorage.setItem('autoMatchmake', 'casual');
+        }
         location.href = 'index.html';
     }
 
