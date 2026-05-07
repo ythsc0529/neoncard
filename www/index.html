@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.1.0";
+        window.APP_VERSION = "2.2.0";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -1953,11 +1953,17 @@
                     currentUserProfile = await UserProfile.getProfile(user.uid);
                     if (typeof NotificationManager !== 'undefined') NotificationManager.refresh(currentUserProfile);
 
-                    // Daily mission reset toast
+                    // Daily mission reset toast (in-app UI)
                     setTimeout(() => showDailyResetToast(
                         '🎯 每日任務已刷新！',
                         '今天的任務正在等你，完成後可領取豐厚獎勵！'
                     ), 1200);
+                    // Daily mission reset native notification
+                    sendDailyResetNativeNotif(
+                        '🎯 每日任務已刷新！',
+                        '今天的任務正在等你，完成後可領取豐厚獎勵！',
+                        2001
+                    );
 
                     // Free gacha reset toast (staggered by 3.5s)
                     if (freeGachaWasReset) {
@@ -1965,6 +1971,12 @@
                             '🎰 免費抽獎已刷新！',
                             '今天的免費抽獎機會等你去用，前往商店抽一次吧！'
                         ), 4800);
+                        // Free gacha native notification (略延遲避免與任務通知重疊)
+                        setTimeout(() => sendDailyResetNativeNotif(
+                            '🎰 免費抽獎已刷新！',
+                            '今天的免費抽獎機會等你去用，前往商店抽一次吧！',
+                            2002
+                        ), 3000);
                     }
                 } else if (freeGachaWasReset) {
                     // Only free gacha reset (edge case)
@@ -1972,6 +1984,11 @@
                         '🎰 免費抽獎已刷新！',
                         '今天的免費抽獎機會等你去用，前往商店抽一次吧！'
                     ), 1200);
+                    sendDailyResetNativeNotif(
+                        '🎰 免費抽獎已刷新！',
+                        '今天的免費抽獎機會等你去用，前往商店抽一次吧！',
+                        2002
+                    );
                 }
             })();
 
@@ -2677,6 +2694,40 @@
 
     <script src="js/ui/musicManager.js"></script>
     <script>
+        // ── Daily Reset Native Notification ──────────────────────────────
+        /**
+         * 發送 Android 系統層級的手機通知（僅原生 App 環境才執行）
+         * 用於每日任務 / 免費抽獎刷新時通知玩家
+         * @param {string} title 通知標題
+         * @param {string} body  通知內文
+         * @param {number} notifId 通知 ID（2001=任務, 2002=抽獎）
+         */
+        async function sendDailyResetNativeNotif(title, body, notifId) {
+            const isNative = window.Capacitor && window.Capacitor.getPlatform &&
+                             window.Capacitor.getPlatform() !== 'web';
+            if (!isNative) return; // 網頁版不發原生通知
+            try {
+                const { LocalNotifications } = window.Capacitor.Plugins;
+                if (!LocalNotifications) return;
+                // 先取消同 ID 的舊通知（避免重複）
+                await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+                await LocalNotifications.schedule({
+                    notifications: [{
+                        id: notifId,
+                        title: title,
+                        body: body,
+                        schedule: { at: new Date(Date.now() + 300) },
+                        autoCancel: true,
+                        smallIcon: 'ic_launcher_foreground',
+                        channelId: 'daily_rewards'
+                    }]
+                });
+                console.log('[DailyNotif] Native notification sent:', title);
+            } catch (e) {
+                console.warn('[DailyNotif] Failed to send native notification:', e);
+            }
+        }
+
         // ── Daily Reset Toast ─────────────────────────────────────────────
         var _dailyToastQueue = [];
         var _dailyToastShowing = false;
