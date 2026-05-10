@@ -533,6 +533,8 @@ function buildGachaStageMarkup(total, bestInfo) {
     const label = total > 1 ? `${total} DRAW` : 'SINGLE DRAW';
     return `
         <div class="gacha-machine" role="button" aria-label="啟動抽獎">
+            <div class="gacha-portal"></div>
+            <div class="gacha-summon-gate"></div>
             <div class="gacha-core">
                 <div class="gacha-core-icon">${total > 1 ? '✦' : '♦'}</div>
             </div>

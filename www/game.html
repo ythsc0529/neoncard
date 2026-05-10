@@ -1027,6 +1027,9 @@
                         return;
                     }
                     alert('連線已中斷。對方已離開。');
+                    if (localStorage.getItem('isRankedMatch') === 'true') {
+                        localStorage.removeItem('inRankedMatchOngoing');
+                    }
                     location.href = 'index.html';
                 };
 
@@ -1328,8 +1331,10 @@
                     startBattle();
                 }
             } else if (action.type === 'do_action') {
+                applyRemoteTurnAnchor(action);
                 doAction(action.actionType, action.skillIdx, true);
             } else if (action.type === 'retreat') {
+                applyRemoteTurnAnchor(action);
                 BattleSystem.retreat(opponentKey, action.skillIdx);
                 updateUI();
                 await GameState.endTurn();
@@ -1509,6 +1514,21 @@
                 turnTimerInterval = null;
             }
             document.getElementById('turnTimerDisplay').style.display = 'none';
+        }
+
+        function getLocalPlayerNumber() {
+            const key = getLocalPlayerKey();
+            return key === 'player2' ? 2 : 1;
+        }
+
+        function applyRemoteTurnAnchor(action) {
+            if (!action || GameState.phase !== 'battle') return;
+            if (action.actor === 1 || action.actor === 2) {
+                GameState.currentPlayer = action.actor;
+            }
+            if (Number.isFinite(action.turnCount) && action.turnCount > 0) {
+                GameState.turnCount = action.turnCount;
+            }
         }
 
         function startTurnTimer() {
@@ -1988,7 +2008,13 @@
             isProcessing = true;
 
             if (!isRemote && GameState.mode === 'online') {
-                NetManager.sendAction({ type: 'do_action', actionType: type, skillIdx: skillIndex });
+                NetManager.sendAction({
+                    type: 'do_action',
+                    actionType: type,
+                    skillIdx: skillIndex,
+                    actor: getLocalPlayerNumber(),
+                    turnCount: GameState.turnCount
+                });
             }
 
             // Disable buttons visually
@@ -2401,7 +2427,12 @@
                         TutorialSystem.onActionCompleted('click_retreat_option');
                     }
                     if (GameState.mode === 'online') {
-                        NetManager.sendAction({ type: 'retreat', skillIdx: idx });
+                        NetManager.sendAction({
+                            type: 'retreat',
+                            skillIdx: idx,
+                            actor: getLocalPlayerNumber(),
+                            turnCount: GameState.turnCount
+                        });
                     }
 
                     BattleSystem.retreat(playerKey, idx);

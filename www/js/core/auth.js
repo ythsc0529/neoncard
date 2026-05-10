@@ -85,7 +85,6 @@ const AuthManager = (() => {
                     return;
                 }
 
-                alert("正在啟動原生 Google 登入...");
                 const result = await FirebaseAuthentication.signInWithGoogle();
                 
                 if (result.credential && result.credential.idToken) {

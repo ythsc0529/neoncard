@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.2.0";
+        window.APP_VERSION = "2.2.1";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -338,6 +338,17 @@
             pointer-events: none;
         }
 
+        .boot-spinner {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.12);
+            border-top-color: var(--neon-cyan);
+            border-right-color: var(--neon-magenta);
+            box-shadow: 0 0 28px rgba(0, 243, 255, 0.22);
+            animation: spin 0.9s linear infinite;
+        }
+
         .login-box {
             padding: 50px 40px;
             max-width: 420px;
@@ -387,6 +398,30 @@
         .google-sign-in-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .google-sign-in-btn:disabled {
+            cursor: wait;
+            opacity: 0.72;
+            transform: none;
+        }
+
+        .google-sign-in-btn.is-loading .google-icon {
+            display: none;
+        }
+
+        .google-login-spinner {
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(51, 51, 51, 0.18);
+            border-top-color: #4285F4;
+            border-radius: 50%;
+            display: none;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .google-sign-in-btn.is-loading .google-login-spinner {
+            display: inline-block;
         }
 
         .google-icon {
@@ -1041,6 +1076,7 @@
 
     <!-- ② Loading Screen (Transition) -->
     <div class="fullscreen-cover hidden" id="loadingScreen">
+        <div class="boot-spinner" aria-hidden="true"></div>
         <div class=""
             style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">
             霓 虹 牌</div>
@@ -1084,7 +1120,8 @@
         <div class="login-box glass">
             <div class="login-title">霓虹牌</div>
             <div class="login-subtitle">登入帳號以使用競賽模式、好友系統等完整功能<br>或以訪客模式繼續</div>
-            <button class="google-sign-in-btn" onclick="handleGoogleSignIn()">
+            <button class="google-sign-in-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">
+                <span class="google-login-spinner" aria-hidden="true"></span>
                 <svg class="google-icon" viewBox="0 0 24 24">
                     <path fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -1713,6 +1750,11 @@
             // 檢查隱私權政策同意狀態
             const agreedVersion = localStorage.getItem('neoncard_privacy_version');
             if (agreedVersion !== PRIVACY_POLICY_VERSION) {
+                const preloader = document.getElementById('resourcePreloader');
+                if (preloader) {
+                    preloader.classList.add('hidden');
+                    setTimeout(() => { preloader.style.display = 'none'; }, 450);
+                }
                 document.getElementById('privacyModal').classList.add('active');
                 // 初始化檢查：若內容過短不需要捲動，直接啟用按鈕
                 setTimeout(() => {
@@ -1938,6 +1980,7 @@
             
             // Standardized daily reset (5:00 AM)
             // Ensures daily missions and stats are reset even if user only stays in lobby
+            scheduleNextDailyRewardNotifications();
             (async () => {
                 const lastReset = profile.dailyResetTime?.dailyMissions || 0;
                 const lastFreeGachaReset = profile.dailyResetTime?.freeGacha || 0;
@@ -2082,12 +2125,28 @@
 
         // ── Google Login ──────────────────────────────────────────────
         async function handleGoogleSignIn() {
+            const btn = document.getElementById('googleSignInBtn');
             try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('is-loading');
+                    btn.setAttribute('aria-busy', 'true');
+                    btn.dataset.originalText = btn.textContent.trim();
+                    const textNode = Array.from(btn.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                    if (textNode) textNode.textContent = ' Google 登入中...';
+                }
                 await AuthManager.signInWithGoogle();
                 // onAuthChanged handles the rest
             } catch (e) {
                 if (e.code !== 'auth/popup-closed-by-user') {
                     alert('登入失敗：' + e.message);
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('is-loading');
+                    btn.removeAttribute('aria-busy');
+                    const textNode = Array.from(btn.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                    if (textNode) textNode.textContent = ' ' + (btn.dataset.originalText || '使用 Google 登入');
                 }
             }
         }
@@ -2702,6 +2761,70 @@
          * @param {string} body  通知內文
          * @param {number} notifId 通知 ID（2001=任務, 2002=抽獎）
          */
+        async function ensureDailyNotificationChannel(LocalNotifications) {
+            if (!LocalNotifications || !LocalNotifications.createChannel) return;
+            try {
+                await LocalNotifications.createChannel({
+                    id: 'daily_rewards',
+                    name: 'Daily rewards',
+                    description: 'Daily mission and free gacha refresh reminders',
+                    importance: 4,
+                    visibility: 1,
+                    sound: 'default',
+                    vibration: true
+                });
+            } catch (e) {
+                console.warn('[DailyNotif] Channel setup failed:', e);
+            }
+        }
+
+        function getNextDailyResetDate() {
+            const next = new Date();
+            next.setHours(5, 0, 0, 0);
+            if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
+            return next;
+        }
+
+        async function scheduleNextDailyRewardNotifications() {
+            const isNative = window.Capacitor && window.Capacitor.getPlatform &&
+                             window.Capacitor.getPlatform() !== 'web';
+            if (!isNative) return;
+            try {
+                const { LocalNotifications } = window.Capacitor.Plugins;
+                if (!LocalNotifications) return;
+                const perm = await LocalNotifications.requestPermissions();
+                if (perm.display && perm.display !== 'granted') return;
+                await ensureDailyNotificationChannel(LocalNotifications);
+                const at = getNextDailyResetDate();
+                await LocalNotifications.cancel({ notifications: [{ id: 2101 }, { id: 2102 }] }).catch(() => {});
+                await LocalNotifications.schedule({
+                    notifications: [
+                        {
+                            id: 2101,
+                            title: '每日任務已刷新',
+                            body: '新的每日任務已開放，回來領取今天的獎勵吧。',
+                            schedule: { at },
+                            autoCancel: true,
+                            smallIcon: 'ic_launcher_foreground',
+                            channelId: 'daily_rewards'
+                        },
+                        {
+                            id: 2102,
+                            title: '每日免費抽獎已刷新',
+                            body: '今天的免費抽獎次數已補充，可以回商店抽卡了。',
+                            schedule: { at: new Date(at.getTime() + 1000) },
+                            autoCancel: true,
+                            smallIcon: 'ic_launcher_foreground',
+                            channelId: 'daily_rewards'
+                        }
+                    ]
+                });
+                console.log('[DailyNotif] Next daily notifications scheduled:', at);
+            } catch (e) {
+                console.warn('[DailyNotif] Failed to schedule next daily notifications:', e);
+            }
+        }
+
         async function sendDailyResetNativeNotif(title, body, notifId) {
             const isNative = window.Capacitor && window.Capacitor.getPlatform &&
                              window.Capacitor.getPlatform() !== 'web';
@@ -2710,6 +2833,9 @@
                 const { LocalNotifications } = window.Capacitor.Plugins;
                 if (!LocalNotifications) return;
                 // 先取消同 ID 的舊通知（避免重複）
+                const perm = await LocalNotifications.requestPermissions();
+                if (perm.display && perm.display !== 'granted') return;
+                await ensureDailyNotificationChannel(LocalNotifications);
                 await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
                 await LocalNotifications.schedule({
                     notifications: [{

@@ -505,6 +505,37 @@
             overflow: hidden;
         }
 
+        .gacha-portal {
+            position: absolute;
+            inset: 4%;
+            border-radius: 50%;
+            background:
+                conic-gradient(from 0deg, transparent 0 10%, var(--gacha-best, var(--neon-cyan)) 18%, transparent 28% 42%, rgba(255,255,255,0.8) 48%, transparent 58% 72%, var(--neon-magenta) 80%, transparent 92%),
+                radial-gradient(circle, transparent 44%, rgba(255,255,255,0.12) 46%, transparent 58%);
+            filter: blur(0.2px) drop-shadow(0 0 26px var(--gacha-glow, rgba(0,243,255,0.45)));
+            animation: gachaPortalSpin 2.4s linear infinite;
+        }
+
+        .gacha-portal::after {
+            content: '';
+            position: absolute;
+            inset: 18%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.55), var(--gacha-best, var(--neon-cyan)) 20%, transparent 58%);
+            opacity: 0.45;
+            animation: gachaPortalBreath 1s ease-in-out infinite alternate;
+        }
+
+        .gacha-summon-gate {
+            position: absolute;
+            width: 72%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 0 28px var(--gacha-glow, rgba(0,243,255,0.55)), inset 0 0 42px rgba(255,255,255,0.08);
+            animation: gachaGateFloat 1.8s ease-in-out infinite alternate;
+        }
+
         .gacha-machine::before,
         .gacha-machine::after {
             content: '';
@@ -606,6 +637,20 @@
 
         @keyframes gachaRingSpin {
             to { transform: rotate(360deg); }
+        }
+
+        @keyframes gachaPortalSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes gachaPortalBreath {
+            from { transform: scale(0.88); opacity: 0.35; }
+            to { transform: scale(1.08); opacity: 0.72; }
+        }
+
+        @keyframes gachaGateFloat {
+            from { transform: scale(0.96) rotate(-4deg); }
+            to { transform: scale(1.04) rotate(4deg); }
         }
 
         @keyframes gachaCorePulse {
