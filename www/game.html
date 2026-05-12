@@ -1320,6 +1320,35 @@
             const opponentKey = NetManager.isHost ? 'player2' : 'player1';
             const localKey = NetManager.isHost ? 'player1' : 'player2';
 
+            if (action.type === 'replace_death') {
+                const player = GameState[opponentKey];
+                player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
+                GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
+
+                const modal = document.getElementById('replacementModal');
+                modal.classList.remove('active');
+
+                updateUI();
+                updateBattleLog();
+                if (window.resolveRemoteReplacement) {
+                    window.resolveRemoteReplacement();
+                    window.resolveRemoteReplacement = null;
+                }
+                return;
+            } else if (action.type === 'surrender') {
+                GameState.handleSurrender(opponentKey);
+                updateUI();
+                updateBattleLog();
+                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
+                Animations.victory(winnerName);
+                return;
+            }
+
+            // Wait until previous local actions finish processing (so animations don't conflict)
+            while (isProcessing) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+
             if (action.type === 'select_initial') {
                 GameState.setBattleCard(opponentKey, action.cardIdx);
 
@@ -1339,20 +1368,6 @@
                 updateUI();
                 await GameState.endTurn();
                 updateUI();
-            } else if (action.type === 'replace_death') {
-                const player = GameState[opponentKey];
-                player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
-                GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
-
-                const modal = document.getElementById('replacementModal');
-                modal.classList.remove('active');
-
-                updateUI();
-                updateBattleLog();
-                if (window.resolveRemoteReplacement) {
-                    window.resolveRemoteReplacement();
-                    window.resolveRemoteReplacement = null;
-                }
             } else if (action.type === 'sync_mahjong_choice') {
                 if (window.resolveRemoteMahjongChoice) {
                     window.resolveRemoteMahjongChoice(action.characterId);
@@ -1360,12 +1375,6 @@
                 } else {
                     window.earlyRemoteMahjongChoice = action.characterId;
                 }
-            } else if (action.type === 'surrender') {
-                GameState.handleSurrender(opponentKey);
-                updateUI();
-                updateBattleLog();
-                const winnerName = GameState.winner === 1 ? GameState.player1.name : GameState.player2.name;
-                Animations.victory(winnerName);
             } else if (action.type === 'emoji' && window.Animations) {
                 if (window.Animations.showEmoji) {
                     window.Animations.showEmoji(action.emojiId, opponentKey);

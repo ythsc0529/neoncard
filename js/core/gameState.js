@@ -966,7 +966,7 @@ const GameState = {
                 }
                 break;
             case 'cheater_passive':
-                if (trigger === 'on_turn_end' && Math.random() * 100 < effect.chance) {
+                if (trigger === 'on_turn_end' && window.GameRandom() * 100 < effect.chance) {
                     const stolen = Math.min((this.getOpponent().battleCard?.atk || 0), effect.atk_steal);
                     if (stolen > 0) {
                         this.getOpponent().battleCard.atk -= stolen;
@@ -1035,7 +1035,7 @@ const GameState = {
                 if (trigger === 'passive') card.resources.dodge = effect.value;
                 break;
             case 'buff_atk_chance':
-                if ((trigger === 'on_turn_start' || trigger === 'on_enter') && Math.random() * 100 < effect.chance) {
+                if ((trigger === 'on_turn_start' || trigger === 'on_enter') && window.GameRandom() * 100 < effect.chance) {
                     card.atk += effect.atk;
                     this.addLog(`${card.name} 觸發機率攻擊提升！ATK +${effect.atk}`, 'skill');
                 }
@@ -1050,7 +1050,7 @@ const GameState = {
                         card.resources.dodge = effect.initial_dodge || 99;
                         card.resources.dodge_inited = true;
                     }
-                    if (Math.random() * 100 < (effect.chance || 50)) {
+                    if (window.GameRandom() * 100 < (effect.chance || 50)) {
                         card.hp = 0;
                         this.addLog(`${card.name} 被動觸發：突然死亡！`, 'damage');
                     }
@@ -1163,7 +1163,7 @@ const GameState = {
                 if (trigger === 'on_turn_start') {
                     if (!card.resources) card.resources = {};
                     const items = effect.items || ['劍', '盾', '鞋'];
-                    const item = items[Math.floor(Math.random() * items.length)];
+                    const item = items[Math.floor(window.GameRandom() * items.length)];
                     const itemChar = getCharacterByName(item);
                     if (itemChar) {
                         const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
@@ -1213,7 +1213,7 @@ const GameState = {
                             }
                         });
                     } else {
-                        if (Math.random() * 100 < deathCh) {
+                        if (window.GameRandom() * 100 < deathCh) {
                             card.hp = 0;
                             this.addLog(`${card.name} 外掛崩潰了！突然死亡！`, 'damage');
                         } else {
@@ -1291,7 +1291,7 @@ const GameState = {
 
             case 'summon_chance_category': // 勞賽-好長官
                 if (trigger === 'on_turn_start') {
-                    if (Math.random() * 100 < (effect.chance || 30)) {
+                    if (window.GameRandom() * 100 < (effect.chance || 30)) {
                         const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
                         const catChar = getRandomFromCategory(effect.category);
                         if (catChar) {
@@ -1370,14 +1370,14 @@ const GameState = {
                 }
                 break;
             case 'self_kill_chance':
-                if (Math.random() * 100 < effect.chance) {
+                if (window.GameRandom() * 100 < effect.chance) {
                     card.hp = 0;
                     this.addLog(`${card.name} 根據被動效果自我毀滅了！`, 'damage');
                 }
                 break;
             case 'self_kill_scaling':
                 const drownC = card.resources.drown_chance || effect.base_chance;
-                if (Math.random() * 100 < drownC) {
+                if (window.GameRandom() * 100 < drownC) {
                     card.hp = 0;
                     this.addLog(`${card.name} 溺水了！`, 'damage');
                 } else {
@@ -1477,7 +1477,7 @@ const GameState = {
                             }
                         }
                     });
-                } else if (Math.random() * 100 < effect.chance) {
+                } else if (window.GameRandom() * 100 < effect.chance) {
                     card.hp = 0;
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
                 }
@@ -1587,7 +1587,7 @@ const GameState = {
                         card.resources.dodge = newDodge;
                     });
                 } else {
-                    if (Math.random() * 100 < effect.chance) {
+                    if (window.GameRandom() * 100 < effect.chance) {
                         const targetChar = getCharacterByName(effect.target);
                         if (targetChar) {
                             const owner = this.player1.battleCard === card ? 'player1' : 'player2';
