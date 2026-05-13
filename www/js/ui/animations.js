@@ -888,7 +888,12 @@ const Animations = {
                 resolve();
 
                 // Story mode: keep original finish flow
-                if (isStory) return;
+                if (isStory) {
+                    if (typeof window.finishStoryBattle === 'function') {
+                        window.finishStoryBattle();
+                    }
+                    return;
+                }
 
                 // Show new settlement UI
                 if (typeof GameSettlement !== 'undefined') {

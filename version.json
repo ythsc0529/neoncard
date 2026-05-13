@@ -1,9 +1,9 @@
 {
-  "version": "2.2.2",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.2.2/app-debug.apk",
+  "version": "2.2.3",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.2.3/app-debug.apk",
   "notes": [
-    "修正連線對戰中的機率性非同步問題，現在所有戰鬥邏輯均採用同步隨機種子。",
-    "修復對戰中角色陣亡或投降時可能發生的 P2P 死結（Deadlock）問題。",
-    "優化網路封包處理流程，確保關鍵狀態更新能優先處理而不受 UI 動畫阻塞。"
+    "修復劇情模式戰鬥結束後的結算卡頓問題，確保能正常進入後續劇情。",
+    "修復好友對戰被邀請方的結算畫面分歧問題，現在能正確顯示『再來一局』與『退出』介面。",
+    "優化結算流程的狀態清除邏輯，避免跨模式切換時的狀態殘留。"
   ]
 }
