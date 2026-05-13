@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.2.3";
+        window.APP_VERSION = "2.2.4";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -46,41 +46,25 @@
                 try {
                     const isNative = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
                     if (!isNative) return;
-
                     const { Filesystem } = window.Capacitor.Plugins;
                     if (!Filesystem) return;
-
-                    await Filesystem.deleteFile({
-                        path: 'neoncard_update.apk',
-                        directory: 'CACHE'
-                    });
+                    await Filesystem.deleteFile({ path: 'neoncard_update.apk', directory: 'CACHE' });
                     console.log('[Updater] Old update APK cleared.');
-                } catch (e) {
-                    // 檔案不存在或無法刪除時忽略
-                }
+                } catch (e) {}
             }
 
             async function checkVersion() {
                 await cleanupOldApk();
                 if (sessionStorage.getItem('update_shown')) return;
-
                 const localVersion = window.APP_VERSION;
-                if (!localVersion || localVersion === '0.0.0') {
-                    console.warn('[Updater] APP_VERSION invalid, skipping check:', localVersion);
-                    return;
-                }
-
+                if (!localVersion || localVersion === '0.0.0') return;
                 try {
-                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now(), {
-                        cache: 'no-store'
-                    });
+                    const response = await fetch(VERSION_CHECK_URL + "?t=" + Date.now(), { cache: 'no-store' });
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     const data = await response.json();
                     const serverVersion = data.version;
                     if (data.apk_url) _apkDownloadUrl = data.apk_url;
-
-                    console.log(`[Updater] Local: ${localVersion}, Server: ${serverVersion}`);
-
+                    console.log('[Updater] Local: ' + localVersion + ', Server: ' + serverVersion);
                     if (isVersionOlder(localVersion, serverVersion)) {
                         sessionStorage.setItem('update_shown', '1');
                         forceUpdate(data.notes || []);
@@ -94,8 +78,7 @@
                 const lp = local.split('.').map(Number);
                 const sp = server.split('.').map(Number);
                 for (let i = 0; i < Math.max(lp.length, sp.length); i++) {
-                    const l = lp[i] || 0;
-                    const s = sp[i] || 0;
+                    const l = lp[i] || 0, s = sp[i] || 0;
                     if (s > l) return true;
                     if (l > s) return false;
                 }
@@ -106,15 +89,22 @@
                 const modal = document.getElementById('updateModal');
                 const list = document.getElementById('updateNotesList');
                 const versionDisplay = document.getElementById('versionDisplay');
-                if (versionDisplay) {
-                    versionDisplay.textContent = 'Current Version: ' + (window.APP_VERSION || '?');
-                }
+                if (versionDisplay) versionDisplay.textContent = 'Current Version: ' + (window.APP_VERSION || '?');
                 if (modal) {
-                    if (list && notes.length > 0) {
-                        list.innerHTML = notes.map(n => `<li>${n}</li>`).join('');
-                    }
+                    if (list && notes.length > 0) list.innerHTML = notes.map(n => '<li>' + n + '</li>').join('');
                     modal.classList.add('active');
                 }
+            }
+
+            // ── 下載中警告提示（顯示在 Modal 內） ─────────────────────────
+            function _showDownloadWarning() {
+                const el = document.getElementById('updateDownloadWarning');
+                if (el) el.classList.remove('hidden');
+            }
+
+            function _hideDownloadWarning() {
+                const el = document.getElementById('updateDownloadWarning');
+                if (el) el.classList.add('hidden');
             }
 
             async function startDownloadFlow() {
@@ -135,10 +125,12 @@
                     return;
                 }
 
-                btn.disabled = true;
-                btn.textContent = '準備下載...';
-                progressContainer.classList.remove('hidden');
-                progressStatus.textContent = '連接中...';
+                if (btn) { btn.disabled = true; btn.textContent = '準備下載...'; }
+                if (progressContainer) progressContainer.classList.remove('hidden');
+                if (progressStatus) progressStatus.textContent = '連接中...';
+
+                // ── 顯示「請勿切換 App」警告 ──────────────────────────────
+                _showDownloadWarning();
 
                 try {
                     const { Filesystem, LocalNotifications } = window.Capacitor.Plugins;
@@ -147,13 +139,12 @@
                     if (!Filesystem) throw new Error('Filesystem plugin 未載入');
                     if (!FileOpener) throw new Error('FileOpener plugin 未載入');
 
-                    // 請求通知權限
                     if (LocalNotifications) {
-                        await LocalNotifications.requestPermissions();
+                        await LocalNotifications.requestPermissions().catch(() => {});
                     }
 
-                    progressStatus.textContent = '下載中（原生下載器）...';
-                    btn.textContent = '下載中...';
+                    if (progressStatus) progressStatus.textContent = '下載中（原生下載器）...';
+                    if (btn) btn.textContent = '下載中...';
                     _startTime = Date.now();
 
                     const downloadResult = await Filesystem.downloadFile({
@@ -162,20 +153,18 @@
                         directory: 'CACHE',
                         progress: true,
                         recursive: false,
-                        headers: {
-                            'Accept': 'application/vnd.android.package-archive'
-                        }
+                        headers: { 'Accept': 'application/vnd.android.package-archive' }
                     });
 
-                    progressBar.style.width = '100%';
-                    progressPercent.textContent = '100%';
-                    progressStatus.textContent = '下載完成，啟動安裝...';
-                    btn.textContent = '安裝中...';
+                    if (progressBar) progressBar.style.width = '100%';
+                    if (progressPercent) progressPercent.textContent = '100%';
+                    if (progressStatus) progressStatus.textContent = '下載完成，啟動安裝...';
+                    if (btn) btn.textContent = '安裝中...';
+                    _hideDownloadWarning();
 
                     const filePath = downloadResult.path;
                     if (!filePath) throw new Error('下載完成但未取得檔案路徑');
 
-                    // 發送下載完成通知
                     if (LocalNotifications) {
                         await LocalNotifications.schedule({
                             notifications: [{
@@ -189,40 +178,31 @@
                         });
                     }
 
-                    await FileOpener.open({
-                        filePath: filePath,
-                        contentType: 'application/vnd.android.package-archive'
-                    });
+                    await FileOpener.open({ filePath: filePath, contentType: 'application/vnd.android.package-archive' });
 
                 } catch (err) {
                     console.error('[Updater] Download failed:', err);
-                    progressStatus.textContent = '下載失敗：' + err.message;
-                    btn.disabled = false;
-                    btn.textContent = '重試下載';
+                    if (progressStatus) progressStatus.textContent = '下載失敗：' + err.message;
+                    if (btn) { btn.disabled = false; btn.textContent = '重試下載'; }
                     _isDownloading = false;
-                    
-                    // 清除進度通知
+                    _hideDownloadWarning();
                     const { LocalNotifications } = window.Capacitor.Plugins;
-                    if (LocalNotifications) {
-                        LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
-                    }
+                    if (LocalNotifications) LocalNotifications.cancel({ notifications: [{ id: 1001 }] }).catch(() => {});
                 }
             }
 
             function formatTime(seconds) {
-                if (seconds < 60) return `約 ${seconds} 秒`;
+                if (seconds < 60) return '約 ' + seconds + ' 秒';
                 const m = Math.floor(seconds / 60);
                 const s = seconds % 60;
-                return `約 ${m} 分 ${s} 秒`;
+                return '約 ' + m + ' 分 ' + s + ' 秒';
             }
 
             function getProgressString(pct) {
                 const totalBars = 10;
                 const filledBars = Math.round(pct / (100 / totalBars));
                 let str = '[';
-                for (let i = 0; i < totalBars; i++) {
-                    str += i < filledBars ? '█' : '░';
-                }
+                for (let i = 0; i < totalBars; i++) { str += i < filledBars ? '█' : '░'; }
                 return str + ']';
             }
 
@@ -231,17 +211,11 @@
                 const { Filesystem, LocalNotifications, FileOpener } = window.Capacitor.Plugins;
                 if (!Filesystem || !Filesystem.addListener) return;
 
-                // 註冊通知點擊監聽
                 if (LocalNotifications) {
                     LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
                         if (action.notification.id === 1001 && action.notification.extra?.action === 'install') {
-                            const filePath = action.notification.extra.filePath;
-                            if (FileOpener) {
-                                FileOpener.open({
-                                    filePath: filePath,
-                                    contentType: 'application/vnd.android.package-archive'
-                                });
-                            }
+                            const fp = action.notification.extra.filePath;
+                            if (FileOpener) FileOpener.open({ filePath: fp, contentType: 'application/vnd.android.package-archive' });
                         }
                     });
                 }
@@ -256,50 +230,29 @@
                     if (progress.contentLength > 0) {
                         const pct = Math.round((progress.bytes / progress.contentLength) * 100);
                         progressBar.style.width = pct + '%';
-                        progressPercent.textContent = pct + '%';
-                        
+                        if (progressPercent) progressPercent.textContent = pct + '%';
                         const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
                         const totalMB = (progress.contentLength / 1024 / 1024).toFixed(1);
-                        progressStatus.textContent = `已下載: ${dlMB}MB / ${totalMB}MB`;
-
-                        // 計算剩餘時間
+                        if (progressStatus) progressStatus.textContent = '已下載: ' + dlMB + 'MB / ' + totalMB + 'MB';
                         const now = Date.now();
                         const elapsed = (now - _startTime) / 1000;
                         if (elapsed > 0 && progress.bytes > 0) {
                             const speed = progress.bytes / elapsed;
-                            const remainingBytes = progress.contentLength - progress.bytes;
-                            const remainingSeconds = Math.ceil(remainingBytes / speed);
+                            const remainingSeconds = Math.ceil((progress.contentLength - progress.bytes) / speed);
                             if (progressRemaining) progressRemaining.textContent = formatTime(remainingSeconds);
-
-                            // 更新系統通知 (頻率控制：每 2 秒或進度變動超過 5%)
                             if (LocalNotifications && (now - _lastNotifTime > 2000 || Math.abs(pct - _lastNotifPct) >= 5)) {
-                                _lastNotifTime = now;
-                                _lastNotifPct = pct;
-                                LocalNotifications.schedule({
-                                    notifications: [{
-                                        id: 1001,
-                                        title: '正在下載霓虹牌更新...',
-                                        body: `${getProgressString(pct)} ${pct}% (剩餘${formatTime(remainingSeconds)})`,
-                                        ongoing: true,
-                                        autoCancel: false,
-                                        schedule: { at: new Date(Date.now() + 100) }
-                                    }]
-                                });
+                                _lastNotifTime = now; _lastNotifPct = pct;
+                                LocalNotifications.schedule({ notifications: [{ id: 1001, title: '正在下載霓虹牌更新...', body: getProgressString(pct) + ' ' + pct + '% (剩餘' + formatTime(remainingSeconds) + ')', ongoing: true, autoCancel: false, schedule: { at: new Date(Date.now() + 100) } }] });
                             }
                         }
                     } else {
                         const dlMB = (progress.bytes / 1024 / 1024).toFixed(1);
-                        progressStatus.textContent = `已下載: ${dlMB}MB...`;
+                        if (progressStatus) progressStatus.textContent = '已下載: ' + dlMB + 'MB...';
                     }
                 });
             }
 
             return { checkVersion, startDownloadFlow, initProgressListener };
-        })();
-
-        window.addEventListener('load', () => {
-            Updater.initProgressListener();
-            setTimeout(Updater.checkVersion, 2000);
         });
     </script>
     <script src="js/core/resourceManifest.js"></script>
@@ -1077,8 +1030,7 @@
     <!-- ② Loading Screen (Transition) -->
     <div class="fullscreen-cover hidden" id="loadingScreen">
         <div class="boot-spinner" aria-hidden="true"></div>
-        <div class=""
-            style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">
+        <div style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">
             霓 虹 牌</div>
         <div style="color:var(--text-muted);font-size:0.9rem;letter-spacing:2px;">LOADING...</div>
     </div>
@@ -1089,7 +1041,7 @@
             <div class="update-icon">🚀</div>
             <div class="update-title">發現新版本</div>
             <div class="update-subtitle">為了確保遊戲穩定性與戰鬥數據同步，請更新至最新版本以繼續。</div>
-            
+
             <div class="update-notes-container">
                 <div class="update-notes-title">更新內容</div>
                 <ul class="update-notes-list" id="updateNotesList">
@@ -1110,11 +1062,19 @@
                 </div>
             </div>
 
+            <!-- ⚠️ 下載警告：下載開始後顯示 -->
+            <div id="updateDownloadWarning" class="hidden" style="margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(255,170,0,0.12);border:1px solid rgba(255,170,0,0.4);display:flex;align-items:flex-start;gap:10px;">
+                <span style="font-size:1.3rem;flex-shrink:0;">⚠️</span>
+                <div>
+                    <div style="color:#ffaa00;font-weight:700;font-size:0.88rem;margin-bottom:3px;">下載進行中，請勿退出或切換 App</div>
+                    <div style="color:var(--text-muted);font-size:0.78rem;line-height:1.5;">切換至其他應用程式或將遊戲退至背景可能導致下載中斷，請保持此頁面開啟直到安裝完成。</div>
+                </div>
+            </div>
+
             <button class="btn-update" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:20px; width:100%;">立即更新並安裝</button>
             <div class="update-footer" id="versionDisplay">Current Version: 2.0.3</div>
         </div>
     </div>
-
     <!-- ④ Login Screen -->
     <div class="fullscreen-cover hidden" id="loginScreen">
         <div class="login-box glass">
@@ -2065,6 +2025,21 @@
             
             // Check Red Dots for progression
             checkRedDots(profile);
+
+            // ── 再次匹配自動觸發（由結算畫面「再次匹配」按鈕設定）──────────────────
+            const autoMatchmake = sessionStorage.getItem('autoMatchmake');
+            if (autoMatchmake) {
+                sessionStorage.removeItem('autoMatchmake');
+                // 延遲 600ms 讓頁面渲染完成再觸發
+                setTimeout(() => {
+                    if (autoMatchmake === 'ranked') {
+                        showRankedLobby();
+                    } else {
+                        // casual：直接進入休閒匹配隊列
+                        startCasualMatchmaking();
+                    }
+                }, 600);
+            }
         }
 
         function checkRedDots(profile) {

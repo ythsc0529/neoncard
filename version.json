@@ -1,9 +1,8 @@
 {
-  "version": "2.2.3",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.2.3/app-debug.apk",
+  "version": "2.2.4",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.2.4/app-debug.apk",
   "notes": [
-    "修復劇情模式戰鬥結束後的結算卡頓問題，確保能正常進入後續劇情。",
-    "修復好友對戰被邀請方的結算畫面分歧問題，現在能正確顯示『再來一局』與『退出』介面。",
-    "優化結算流程的狀態清除邏輯，避免跨模式切換時的狀態殘留。"
+    "下載更新時新增警告提示，提醒玩家下載中請勿切換或退出 App。",
+    "修復結算畫面的「再次匹配」按鈕，現在按下後會自動重新進入對應的休閒或排位匹配隊列。"
   ]
 }
