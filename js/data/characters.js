@@ -78,6 +78,7 @@ const BALLS = ['籃球', '足球', '排球', '羽球', '高爾夫球', '撞球']
 const PLANETS = ['冥王星', '水星', '金星', '地球', '火星', '木星', '土星', '天王星', '海王星', '北極星', '太陽'];
 const TEAS = ['梅子綠茶', '檸檬紅茶', '水果茶', '台茶18號', '多多綠茶', '烏龍茶', '採茶員'];
 const MOTORCYCLES = ['越野摩托車', '重型摩托車', '水上摩托車', '狗狗肉摩托車'];
+const VEHICLES = ['越野摩托車', '重型摩托車', '水上摩托車', '狗狗肉摩托車', '高鐵', '托你使坦克', '虎式坦克'];
 
 function getRandomFromCategory(category) {
     let list;
@@ -86,6 +87,7 @@ function getRandomFromCategory(category) {
         case 'planet': list = PLANETS; break;
         case 'tea': list = TEAS; break;
         case 'motorcycle': list = MOTORCYCLES; break;
+        case 'vehicle': list = VEHICLES; break;
         default:
             const tagged = getCharactersByTag(category);
             if (tagged.length > 0) {
@@ -125,6 +127,18 @@ function createCharacterInstance(character) {
 
     // Initialize resources if any
     if (!instance.resources) instance.resources = {};
+
+    // Initial passive initializations (like Genius Boy's initial_dodge or Shield Bro's defense stacks)
+    if (instance.passive && instance.passive.effect) {
+        const pEff = instance.passive.effect;
+        if (pEff.initial_dodge !== undefined) {
+            instance.resources.dodge = pEff.initial_dodge;
+            instance.resources.dodge_inited = true;
+        }
+        if (pEff.action === 'set_damage_reduction') {
+            instance.resources.defense_stacks = (instance.resources.defense_stacks || 0) + (pEff.value || 0);
+        }
+    }
 
     // Status effects
     instance.statusEffects = [];

@@ -3,6 +3,12 @@
 const BattleSystem = {
     // Execute normal attack
     async normalAttack(attacker, defender) {
+        if (defender && defender.statusEffects && defender.statusEffects.some(e => e.type === 'immunity_all')) {
+            GameState.addLog(`${defender.name} 處於無敵狀態，${attacker.name} 的普通攻擊無效！`, 'status');
+            attacker.hasAttacked = true;
+            return { damage: 0, blocked: true };
+        }
+
         // Check for "no normal attack" passive (阿共)
         if (attacker.passive?.effect?.action === 'no_attack_dot_revive') {
             GameState.addLog(`${attacker.name} 無法發動普通攻擊`, 'status');
@@ -15,7 +21,14 @@ const BattleSystem = {
         // Check miss_chance flag
         const missEff = attacker.statusEffects.find(e => e.type === 'miss_chance');
         if (missEff) {
-            if (await Animations.probabilityRoll(missEff.chance || 50, '失誤判定')) {
+            let isMissed = await Animations.probabilityRoll(missEff.chance || 50, '失誤判定');
+            if (missEff.hits !== undefined) {
+                missEff.hits--;
+                if (missEff.hits <= 0) {
+                    attacker.statusEffects = attacker.statusEffects.filter(e => e !== missEff);
+                }
+            }
+            if (isMissed) {
                 GameState.addLog(`${attacker.name} 發生了失誤！攻擊未命中`, 'status');
                 attacker.hasAttacked = true;
                 return { damage: 0, dodged: true, missed: true };
@@ -58,6 +71,14 @@ const BattleSystem = {
         let damage = baseDamage;
         let blocked = false;
         let dodged = false;
+
+        // Check nextAttackIgnoresDodge and Paradox passive ignore_dodge
+        if (attacker) {
+            if (attacker.nextAttackIgnoresDodge || (attacker.passive?.effect?.action === 'ignore_dodge')) {
+                options = { ...options, ignoresDodge: true };
+                attacker.nextAttackIgnoresDodge = false; // consume it
+            }
+        }
 
         // Check dodge
         if (!options.ignoresDodge) {
@@ -485,6 +506,7 @@ const BattleSystem = {
             card.statusEffects.forEach(e => {
                 if (e.type === 'dodge') dodge += (e.chance || 100);
                 if (e.type === 'dodge_reflect') dodge += (e.dodge_chance || 0);
+                if (e.type === 'show_off') dodge += (e.dodge_chance || 35);
             });
         }
 
@@ -495,6 +517,21 @@ const BattleSystem = {
     async useSkill(attacker, defender, skillIndex) {
         const skill = attacker.skills[skillIndex];
         if (!skill) return false;
+
+        // Check if defender is immune to all actions
+        if (defender && defender.statusEffects && defender.statusEffects.some(e => e.type === 'immunity_all')) {
+            GameState.addLog(`${defender.name} 處於無敵狀態，${attacker.name} 的技能無效！`, 'status');
+            if (skill.speedCost && skill.speedCost > 0) {
+                const currentSpeed = attacker.resources?.speed || 0;
+                if (currentSpeed < skill.speedCost) {
+                    GameState.addLog(`速度不足！需要 ${skill.speedCost} 速度（目前 ${currentSpeed}）`, 'status');
+                    return false;
+                }
+                attacker.resources.speed = currentSpeed - skill.speedCost;
+            }
+            attacker.cooldowns[skillIndex] = skill.cd + 1;
+            return false;
+        }
 
         // Check cooldown
         if (attacker.cooldowns[skillIndex] > 0) {
@@ -529,7 +566,14 @@ const BattleSystem = {
         
         const missEff = attacker.statusEffects.find(e => e.type === 'miss_chance');
         if (missEff) {
-            if (await Animations.probabilityRoll(missEff.chance || 50, '失誤判定')) {
+            let isMissed = await Animations.probabilityRoll(missEff.chance || 50, '失誤判定');
+            if (missEff.hits !== undefined) {
+                missEff.hits--;
+                if (missEff.hits <= 0) {
+                    attacker.statusEffects = attacker.statusEffects.filter(e => e !== missEff);
+                }
+            }
+            if (isMissed) {
                 GameState.addLog(`${attacker.name} 發生了失誤！技能施放失敗`, 'status');
                 return false;
             }
@@ -885,11 +929,6 @@ const BattleSystem = {
                 case 'sleep':
                     defender.statusEffects.push({ type: 'sleep', name: '昏睡', turns: 99 });
                     GameState.addLog(`${defender.name} 陷入睡眠`, 'status');
-                    break;
-                case 'buff_atk_and_reduction': // 巔峰-全盛時期
-                    attacker.atk = Math.floor(attacker.atk * effect.mult);
-                    attacker.statusEffects.push({ type: 'damage_reduction', name: '減傷', value: effect.reduction, turns: 99 });
-                    GameState.addLog(`${attacker.name} ATK ×${effect.mult} 並獲得 ${effect.reduction}% 減傷`, 'skill');
                     break;
                 case 'apply_excite': // 霍去病-用兵高手
                     attacker.statusEffects.push({ type: 'excite', name: '振奮', turns: effect.turns });
@@ -2248,10 +2287,12 @@ const BattleSystem = {
                     GameState.addLog(`${attacker.name} 下次攻擊吸血`, 'skill');
                     break;
                 case 'damage_max_hp_chance':
-                    if (await Animations.probabilityRoll(effect.chance, '判定')) {
-                        await this.applyDamage(attacker, defender, Math.floor(defender.maxHp * (effect.percent / 100)));
-                    } else {
-                        await this.applyDamage(attacker, defender, effect.damage);
+                    await this.applyDamage(attacker, defender, effect.damage || 0);
+                    if (await Animations.probabilityRoll(effect.chance || 70, '骨骸-骸最大生命判定')) {
+                        const healVal = effect.max_hp || 40;
+                        attacker.maxHp += healVal;
+                        attacker.hp += healVal;
+                        GameState.addLog(`${attacker.name} 最大生命值與生命值上升了 ${healVal} 點！`, 'skill');
                     }
                     break;
                 case 'suicide_damage':
@@ -2557,7 +2598,6 @@ const BattleSystem = {
 
                 case 'show_off': // 小資-抽獎 (炫耀效果)
                     attacker.statusEffects.push({ type: 'show_off', name: '炫耀', dodge_chance: effect.dodge_chance || 35, turns: effect.turns || 2 });
-                    attacker.resources.dodge = (attacker.resources.dodge || 0) + (effect.dodge_chance || 35);
                     GameState.addLog(`${attacker.name} 獲得「炫耀」效果 (${effect.dodge_chance}%閃避，成功後延長)`, 'skill');
                     break;
 

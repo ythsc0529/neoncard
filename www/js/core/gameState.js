@@ -475,6 +475,10 @@ const GameState = {
                             this.addLog(`${card.name} 的攻擊力恢復了`, 'status');
                         } else if (effect.type === 'vulnerable') {
                             // vulnerable is tracked externally during damage calc
+                        } else if (effect.type === 'show_off') {
+                            this.addLog(`${card.name} 炫耀結束，閃避加成消失`, 'status');
+                        } else if (effect.type === 'immunity_all') {
+                            this.addLog(`${card.name} 的無敵狀態結束了`, 'status');
                         }
                         keep = false;
                     }
