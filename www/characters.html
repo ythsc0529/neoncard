@@ -20,15 +20,14 @@
             overflow-y: auto;
         }
 
-        .skill-list {
-            margin-top: 15px;
-        }
+        .skill-list { margin-top: 15px; }
 
         .skill-detail {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--bg-secondary);
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 4px;
             margin-bottom: 10px;
+            border: 2px solid var(--nb-border);
         }
 
         .skill-detail .skill-header {
@@ -38,22 +37,21 @@
         }
 
         .skill-detail .skill-name {
-            color: var(--neon-cyan);
-            font-weight: bold;
+            color: var(--color-primary);
+            font-weight: 900;
+            font-family: var(--font-heading);
+            text-transform: uppercase;
         }
 
         .skill-detail .skill-cd {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             font-size: 0.85rem;
+            font-weight: 700;
         }
 
-        .passive-detail {
-            margin-top: 15px;
-        }
+        .passive-detail { margin-top: 15px; }
 
-        .passive-detail .skill-name {
-            color: var(--neon-gold);
-        }
+        .passive-detail .skill-name { color: #92400E; }
 
         .stats-detail {
             display: grid;
@@ -63,50 +61,54 @@
         }
 
         .stat-box {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--bg-secondary);
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 4px;
             text-align: center;
+            border: 2px solid var(--nb-border);
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .stat-box .value {
             font-size: 1.5rem;
-            font-weight: bold;
+            font-weight: 900;
+            font-family: var(--font-heading);
         }
 
-        .stat-box.hp .value {
-            color: #ff6b6b;
-        }
-
-        .stat-box.atk .value {
-            color: #ffd93d;
-        }
+        .stat-box.hp .value { color: #EF4444; }
+        .stat-box.atk .value { color: #D97706; }
 
         .filter-container {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
             margin-bottom: 20px;
         }
 
         .filter-btn {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            border: 1px solid;
-            background: transparent;
+            padding: 7px 14px;
+            border-radius: 2px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: var(--font-heading);
+            border: var(--nb-border-width) solid var(--nb-border);
+            background: var(--bg-card);
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .filter-btn.active {
-            background: currentColor;
-            color: var(--text-primary) !important;
+            background: var(--nb-border);
+            color: var(--bg-card) !important;
         }
 
         .filter-btn:hover {
-            opacity: 0.8;
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
         }
 
         .page-header {
@@ -116,15 +118,18 @@
 
         .page-title {
             font-size: 2.5rem;
-            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-magenta));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-family: var(--font-heading);
+            font-weight: 900;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            -webkit-text-stroke: 1px var(--nb-border);
         }
 
         .char-count {
             color: var(--text-secondary);
             margin-top: 10px;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -213,7 +218,7 @@
                     }
                         ${char.skills && char.skills.length > 2 ? '<div style="color: var(--text-secondary); font-size: 0.8rem;">還有 ' + (char.skills.length - 2) + ' 個技能...</div>' : ''}
                         ${char.passive
-                        ? `<div class="skill-item passive-item"><span style="color: var(--neon-gold);">[被動] ${char.passive.name}</span></div>`
+                        ? `<div class="skill-item passive-item"><span style="color:#92400E;font-weight:900;">[被動] ${char.passive.name}</span></div>`
                         : ''
                     }
                     </div>
@@ -283,7 +288,7 @@
 
             let skillsHtml = '';
             if (char.skills && char.skills.length > 0) {
-                skillsHtml = '<div class="skill-list"><h4 style="margin-bottom: 10px; color: var(--neon-cyan);">技能</h4>';
+                skillsHtml = '<div class="skill-list"><h4 style="margin-bottom:10px;font-family:var(--font-heading);font-weight:900;text-transform:uppercase;color:var(--color-primary);border-bottom:2px solid var(--nb-border);padding-bottom:6px;">技能</h4>';
                 char.skills.forEach(skill => {
                     skillsHtml += `
                         <div class="skill-detail">
@@ -312,8 +317,8 @@
 
             document.getElementById('detailContent').innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <span style="color: var(--text-secondary);">#${char.id}</span>
-                    <span class="${getRarityClass(char.rarity)}" style="padding: 4px 12px; border: 1px solid; border-radius: 12px;">
+                    <span style="color:var(--text-muted);font-weight:700;font-family:var(--font-heading);">#${char.id}</span>
+                    <span class="${getRarityClass(char.rarity)}" style="padding:4px 12px;border:2px solid;border-radius:2px;font-weight:900;font-family:var(--font-heading);text-transform:uppercase;font-size:0.75rem;">
                         ${getRarityName(char.rarity)}
                     </span>
                 </div>

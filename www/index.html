@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.2.5";
+        window.APP_VERSION = "2.3.0";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -279,7 +279,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%);
+            background-color: var(--bg-dark);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             flex-direction: column;
             gap: 20px;
             opacity: 1;
@@ -295,30 +297,34 @@
             width: 58px;
             height: 58px;
             border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.12);
-            border-top-color: var(--neon-cyan);
-            border-right-color: var(--neon-magenta);
-            box-shadow: 0 0 28px rgba(0, 243, 255, 0.22);
+            border: 4px solid var(--bg-secondary);
+            border-top-color: var(--color-primary);
+            border-right-color: var(--nb-border);
             animation: spin 0.9s linear infinite;
         }
 
         .login-box {
-            padding: 50px 40px;
+            padding: 48px 40px;
             max-width: 420px;
             width: 90%;
             text-align: center;
             animation: fadeIn 0.6s ease backwards;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            box-shadow: var(--nb-shadow-xl);
         }
 
         .login-title {
             font-size: 3.5rem;
             font-family: var(--font-heading);
+            font-weight: 900;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, var(--neon-cyan), #fff, var(--neon-magenta));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-primary);
+            letter-spacing: -2px;
+            -webkit-text-stroke: 1px var(--nb-border);
         }
+        .login-title span { color: var(--color-primary); }
 
         .login-subtitle {
             color: var(--text-secondary);
@@ -333,29 +339,36 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            padding: 16px 24px;
-            border-radius: 12px;
-            background: white;
-            color: #333;
-            border: none;
+            padding: 14px 24px;
+            border-radius: 4px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: var(--nb-border-width) solid var(--nb-border);
             cursor: pointer;
-            font-family: var(--font-main);
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.25s;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            font-weight: 700;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
             letter-spacing: 0.5px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+            box-shadow: var(--nb-shadow);
+            text-transform: uppercase;
         }
 
         .google-sign-in-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow-lg);
+            background: var(--glass-bg-hover);
+        }
+
+        .google-sign-in-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
         }
 
         .google-sign-in-btn:disabled {
             cursor: wait;
-            opacity: 0.72;
+            opacity: 0.55;
             transform: none;
         }
 
@@ -366,8 +379,8 @@
         .google-login-spinner {
             width: 22px;
             height: 22px;
-            border: 3px solid rgba(51, 51, 51, 0.18);
-            border-top-color: #4285F4;
+            border: 3px solid var(--bg-secondary);
+            border-top-color: var(--color-primary);
             border-radius: 50%;
             display: none;
             animation: spin 0.8s linear infinite;
@@ -384,20 +397,30 @@
 
         .guest-btn {
             color: var(--text-muted);
-            background: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: 4px;
             cursor: pointer;
-            font-family: var(--font-main);
+            font-family: var(--font-heading);
             font-size: 0.9rem;
+            font-weight: 700;
             width: 100%;
-            transition: all 0.2s;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow-sm);
+            text-transform: uppercase;
         }
 
         .guest-btn:hover {
-            border-color: rgba(255, 255, 255, 0.3);
+            background: var(--bg-card);
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
             color: var(--text-secondary);
+        }
+
+        .guest-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
         }
 
         /* ── User Badge ── */
@@ -405,19 +428,25 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 50px;
-            padding: 8px 16px 8px 8px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 6px 14px 6px 8px;
             cursor: pointer;
             z-index: 100;
-            transition: all 0.2s;
-            backdrop-filter: blur(10px);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .user-badge:hover {
-            border-color: rgba(0, 243, 255, 0.4);
-            
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
+            border-color: var(--color-primary);
+        }
+
+        .user-badge:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
         }
 
         .user-badge-avatar {
@@ -425,8 +454,8 @@
             height: 32px;
             border-radius: 50%;
             overflow: hidden;
-            border: 2px solid var(--neon-cyan);
-            background: var(--glass-bg);
+            border: 2px solid var(--nb-border);
+            background: var(--bg-secondary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -441,13 +470,16 @@
         }
 
         .user-badge-name {
-            font-family: var(--font-main);
-            font-size: 0.9rem;
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            font-weight: 700;
             color: var(--text-primary);
             max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* ── Top-Left Actions ── */
@@ -465,19 +497,20 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--glass-bg);
-            border: 1px solid var(--neon-cyan);
-            border-radius: 50px;
-            padding: 8px 18px;
-            color: var(--neon-cyan);
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 7px 16px;
+            color: var(--text-primary);
             font-family: var(--font-heading);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 700;
             letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.2s;
-            backdrop-filter: blur(10px);
-            opacity: 0.6;
             cursor: not-allowed;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            opacity: 0.6;
+            box-shadow: var(--nb-shadow-sm);
+            text-transform: uppercase;
         }
 
         .mission-btn .icon {
@@ -492,9 +525,10 @@
 
         /* ── Tournament button special style ── */
         .btn-tournament {
-            border-color: var(--neon-gold) !important;
-            color: var(--neon-gold) !important;
-            background: rgba(255, 215, 0, 0.05) !important;
+            background: var(--color-cta) !important;
+            color: var(--nb-border) !important;
+            border-color: var(--nb-border) !important;
+            box-shadow: var(--nb-shadow) !important;
             position: relative;
             overflow: hidden;
         }
@@ -502,16 +536,17 @@
         .btn-tournament::after {
             content: '🏆';
             position: absolute;
-            right: 20px;
+            right: 18px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             animation: pulse 2s infinite;
         }
 
         .btn-tournament:hover:not(:disabled) {
-            background: rgba(255, 215, 0, 0.15) !important;
-             !important;
+            background: #E5C200 !important;
+            transform: translate(-3px, -3px) !important;
+            box-shadow: var(--nb-shadow-lg) !important;
         }
 
         /* ── Matchmaking Animation ── */
@@ -531,7 +566,7 @@
             position: absolute;
             width: 80px;
             height: 80px;
-            border: 2px solid var(--neon-cyan);
+            border: 3px solid var(--color-primary);
             border-radius: 50%;
             animation: radar 1.8s ease-out infinite;
         }
@@ -548,8 +583,9 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 243, 255, 0.3), rgba(0, 243, 255, 0.05));
-            border: 2px solid var(--neon-cyan);
+            background: var(--color-primary);
+            border: 3px solid var(--nb-border);
+            box-shadow: var(--nb-shadow);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -569,10 +605,12 @@
         }
 
         .matchmaking-timer {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-family: var(--font-heading);
-            color: var(--neon-gold);
+            font-weight: 900;
+            color: var(--text-primary);
             margin: 10px 0;
+            -webkit-text-stroke: 1px var(--nb-border);
         }
 
         /* ── Game Invite Notification ── */
@@ -616,24 +654,24 @@
         #gameInviteOverlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(255, 251, 240, 0.88);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 9000;
-            backdrop-filter: blur(6px);
             animation: fadeIn 0.25s ease;
         }
 
         #gameInviteOverlay .invite-card {
-            background: linear-gradient(135deg, rgba(15, 15, 40, 0.98), rgba(10, 10, 30, 0.98));
-            border: 2px solid var(--neon-gold);
-            border-radius: 20px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 32px 36px;
             max-width: 400px;
             width: 90%;
             text-align: center;
             animation: inviteSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), invitePulse 2s ease infinite 0.4s;
+            box-shadow: var(--nb-shadow-xl);
         }
 
         .invite-swords {
@@ -651,11 +689,12 @@
         }
 
         .invite-name {
-            color: var(--neon-gold);
+            color: var(--color-primary);
             font-family: var(--font-heading);
             font-size: 1.8rem;
+            font-weight: 900;
             margin-bottom: 8px;
-            
+            -webkit-text-stroke: 1px var(--nb-border);
         }
 
         .invite-detail {
@@ -671,8 +710,8 @@
         }
 
         .invite-countdown span {
-            color: var(--neon-cyan);
-            font-weight: 700;
+            color: var(--color-primary);
+            font-weight: 900;
         }
 
         .invite-btns {
@@ -694,34 +733,38 @@
 
         .name-input-big {
             width: 100%;
-            padding: 16px;
+            padding: 14px;
             font-size: 1.3rem;
+            font-weight: 700;
+            font-family: var(--font-heading);
             text-align: center;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid var(--neon-cyan);
-            border-radius: 10px;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             color: var(--text-primary);
-            font-family: var(--font-main);
             outline: none;
             letter-spacing: 1px;
             margin: 20px 0;
+            box-shadow: inset 2px 2px 0 rgba(0,0,0,0.06);
         }
 
         .name-input-big:focus {
-            border-color: var(--neon-gold);
-            
+            border-color: var(--color-primary);
+            box-shadow: var(--nb-shadow-sm);
         }
 
         /* ── Entertainment Mode Styles ── */
         .btn-entertainment {
-            border-color: var(--neon-magenta) !important;
-            color: var(--neon-magenta) !important;
-            background: rgba(124, 58, 237, 0.05) !important;
+            background: var(--color-purple) !important;
+            color: #FFFFFF !important;
+            border-color: var(--nb-border) !important;
+            box-shadow: var(--nb-shadow) !important;
         }
 
         .btn-entertainment:hover:not(:disabled) {
-            background: rgba(124, 58, 237, 0.15) !important;
-             !important;
+            background: #9333EA !important;
+            transform: translate(-3px, -3px) !important;
+            box-shadow: var(--nb-shadow-lg) !important;
         }
 
         .btn-maintenance {
@@ -738,14 +781,16 @@
         }
 
         .badge-maintenance {
-            font-size: 0.65rem;
-            background: rgba(255, 0, 85, 0.15);
-            color: var(--neon-pink);
+            font-size: 0.62rem;
+            background: #FFF1F2;
+            color: #9F1239;
             padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 0, 85, 0.3);
+            border-radius: 2px;
+            border: 2px solid #9F1239;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 900;
+            font-family: var(--font-heading);
         }
 
         /* ── Top-Right Action Buttons (Settings / Music) ── */
@@ -753,30 +798,32 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 50px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 7px 14px;
             color: var(--text-secondary);
-            font-family: var(--font-main);
-            font-size: 0.82rem;
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
-            backdrop-filter: blur(10px);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow-sm);
+            text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .top-right-action-btn:hover {
-            border-color: rgba(0, 243, 255, 0.4);
-            color: var(--neon-cyan);
-            transform: translateY(-1px);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
         }
-        .top-right-action-btn.music-btn {
-            border-color: rgba(180, 120, 255, 0.4);
+        .top-right-action-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
         }
-        .top-right-action-btn.music-btn:hover {
-            border-color: rgba(180, 120, 255, 0.8);
-            color: #b478ff;
-        }
+        .top-right-action-btn.music-btn { border-color: var(--color-purple); }
+        .top-right-action-btn.music-btn:hover { color: var(--color-purple); border-color: var(--color-purple); }
         .action-btn-icon {
             font-size: 1rem;
         }
@@ -797,42 +844,45 @@
             margin-top: 20px;
             max-height: 180px;
             overflow-y: auto;
-            border-top: 1px solid var(--glass-border);
-            padding-top: 10px;
+            border-top: 3px solid var(--nb-border);
+            padding-top: 12px;
             text-align: left;
         }
-        #musicPlaylist::-webkit-scrollbar {
-            width: 4px;
-        }
-        #musicPlaylist::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
-            border-radius: 2px;
-        }
+        #musicPlaylist::-webkit-scrollbar { width: 6px; }
+        #musicPlaylist::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        #musicPlaylist::-webkit-scrollbar-thumb { background: var(--nb-border); border-radius: 0; }
+
         .music-list-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 9px 12px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 4px;
-            background: rgba(255,255,255,0.02);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            margin-bottom: 6px;
+            background: var(--bg-secondary);
+            border: 2px solid transparent;
         }
         .music-list-item:hover {
-            background: rgba(255,255,255,0.06);
+            background: var(--glass-bg-hover);
+            border-color: var(--nb-border);
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow-sm);
         }
         .music-list-item.active {
-            background: rgba(0,243,255,0.1);
-            border: 1px solid rgba(0,243,255,0.2);
+            background: #FFF0E8;
+            border: 2px solid var(--color-primary);
+            box-shadow: var(--nb-shadow-sm);
         }
         .music-list-item-title {
             font-size: 0.85rem;
             color: var(--text-secondary);
+            font-weight: 600;
         }
         .music-list-item.active .music-list-item-title {
-            color: var(--neon-cyan);
-            font-weight: 600;
+            color: var(--color-primary);
+            font-weight: 900;
         }
         .music-playing-bars {
             display: flex;
@@ -841,14 +891,14 @@
             height: 12px;
         }
         .music-playing-bars span {
-            width: 2px;
-            background: var(--neon-cyan);
+            width: 3px;
+            background: var(--color-primary);
             animation: musicBars 0.8s ease-in-out infinite alternate;
         }
         .music-playing-bars span:nth-child(2) { animation-delay: 0.2s; height: 8px; }
         .music-playing-bars span:nth-child(3) { animation-delay: 0.4s; height: 10px; }
         @keyframes musicBars {
-            0% { height: 4px; }
+            0%   { height: 4px; }
             100% { height: 12px; }
         }
 
@@ -858,94 +908,86 @@
             align-items: center;
             justify-content: space-between;
             padding: 14px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 2px solid var(--bg-secondary);
         }
-        .settings-row:last-of-type {
-            border-bottom: none;
-        }
+        .settings-row:last-of-type { border-bottom: none; }
         .settings-label {
             display: flex;
             align-items: center;
             gap: 8px;
             color: var(--text-primary);
             font-size: 0.95rem;
+            font-weight: 700;
+            font-family: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .settings-label-icon {
-            font-size: 1.1rem;
-        }
-        .settings-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .settings-label-icon { font-size: 1.1rem; }
+        .settings-control { display: flex; align-items: center; gap: 10px; }
         .settings-value {
-            color: var(--neon-cyan);
+            color: var(--color-primary);
             font-size: 0.85rem;
+            font-weight: 900;
             min-width: 38px;
             text-align: right;
+            font-family: var(--font-heading);
         }
         .settings-slider {
             -webkit-appearance: none;
             appearance: none;
             width: 130px;
-            height: 4px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.15);
+            height: 6px;
+            border-radius: 0;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
             outline: none;
             cursor: pointer;
         }
         .settings-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--neon-cyan);
+            width: 18px;
+            height: 18px;
+            border-radius: 0;
+            background: var(--color-primary);
+            border: 2px solid var(--nb-border);
             cursor: pointer;
-            box-shadow: 0 0 6px var(--neon-cyan);
-            transition: box-shadow 0.2s;
+            box-shadow: var(--nb-shadow-sm);
         }
-        .settings-slider::-webkit-slider-thumb:hover {
-            box-shadow: 0 0 12px var(--neon-cyan);
-        }
+        .settings-slider::-webkit-slider-thumb:hover { background: #E63A0F; }
 
         /* ── Toggle Switch ── */
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 48px;
-            height: 26px;
+            width: 52px;
+            height: 28px;
             cursor: pointer;
         }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .toggle-slider {
             position: absolute;
             inset: 0;
-            background: rgba(255,255,255,0.15);
-            border-radius: 26px;
-            transition: background 0.3s;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
+            border-radius: 0;
+            transition: background 0.2s;
+            box-shadow: var(--nb-shadow-sm);
         }
         .toggle-slider::before {
             content: '';
             position: absolute;
             width: 20px;
             height: 20px;
-            left: 3px;
-            top: 3px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            left: 2px;
+            top: 2px;
+            background: var(--nb-border);
+            border-radius: 0;
+            transition: transform 0.2s;
         }
-        .toggle-switch input:checked + .toggle-slider {
-            background: var(--neon-cyan);
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
-        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--color-primary); }
         .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(22px);
+            transform: translateX(24px);
+            background: white;
         }
 
         /* ── Daily Reset Toast ── */
@@ -961,39 +1003,46 @@
             position: fixed;
             bottom: 30px;
             left: 24px;
-            background: rgba(10, 10, 30, 0.96);
-            border: 1px solid var(--neon-gold);
-            border-radius: 14px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 14px 18px;
             max-width: 300px;
             z-index: 3500;
             animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-            backdrop-filter: blur(12px);
+            box-shadow: var(--nb-shadow-lg);
         }
-        .daily-toast.hiding {
-            animation: toastSlideOut 0.35s ease forwards;
-        }
+        .daily-toast.hiding { animation: toastSlideOut 0.35s ease forwards; }
         .daily-toast-title {
-            color: var(--neon-gold);
+            color: #92400E;
             font-family: var(--font-heading);
             font-size: 0.85rem;
-            letter-spacing: 1px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
             margin-bottom: 4px;
+            text-transform: uppercase;
+            background: var(--color-cta);
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 2px;
+            border: 2px solid var(--nb-border);
         }
         .daily-toast-body {
             color: var(--text-secondary);
             font-size: 0.88rem;
             line-height: 1.4;
+            font-weight: 500;
+            margin-top: 6px;
         }
 
-        /* ── Now Playing Toast (bottom-left) ── */
+        /* ── Now Playing Toast ── */
         .now-playing-toast {
             position: fixed;
             bottom: 30px;
             left: 24px;
-            background: rgba(10, 10, 30, 0.96);
-            border: 1px solid rgba(180, 120, 255, 0.5);
-            border-radius: 12px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--color-purple);
+            border-radius: 4px;
             padding: 10px 16px;
             z-index: 3400;
             display: flex;
@@ -1001,11 +1050,9 @@
             gap: 10px;
             max-width: 280px;
             animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-            backdrop-filter: blur(12px);
+            box-shadow: var(--nb-shadow);
         }
-        .now-playing-toast.hiding {
-            animation: toastSlideOut 0.35s ease forwards;
-        }
+        .now-playing-toast.hiding { animation: toastSlideOut 0.35s ease forwards; }
     </style>
 </head>
 
@@ -1021,7 +1068,7 @@
                 <span class="preloader-label" id="preloadLabel">資源載入中...</span>
                 <span class="preloader-percent" id="preloadPercent">0%</span>
             </div>
-            <div id="preloadTime" style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:10px;text-align:center;letter-spacing:1px;">預估剩餘時間: 計算中...</div>
+            <div id="preloadTime" style="color:var(--text-muted);font-size:0.75rem;margin-top:10px;text-align:center;letter-spacing:1px;font-weight:700;">預估剩餘時間: 計算中...</div>
         </div>
         <div class="preloader-loading-text">RESOURCES PRELOADING</div>
         <button class="preloader-skip-btn" onclick="skipLoading()">跳過載入 跳到遊戲 →</button>
@@ -1030,9 +1077,9 @@
     <!-- ② Loading Screen (Transition) -->
     <div class="fullscreen-cover hidden" id="loadingScreen">
         <div class="boot-spinner" aria-hidden="true"></div>
-        <div style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;animation:pulse 1.5s infinite;">
+        <div style="color:var(--color-primary);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;font-weight:900;animation:pulse 1.5s infinite;-webkit-text-stroke:1px var(--nb-border);">
             霓 虹 牌</div>
-        <div style="color:var(--text-muted);font-size:0.9rem;letter-spacing:2px;">LOADING...</div>
+        <div style="color:var(--text-muted);font-size:0.85rem;letter-spacing:3px;font-weight:700;text-transform:uppercase;">LOADING...</div>
     </div>
 
     <!-- ③ Update Required Modal -->

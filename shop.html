@@ -31,7 +31,9 @@
     <script src="js/ui/shop.js" defer></script>
     <style>
         body {
-            background: radial-gradient(circle at center, var(--bg-gradient-start) 40%, var(--bg-gradient-end) 100%);
+            background-color: var(--bg-secondary);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             min-height: 100vh;
             color: var(--text-primary);
         }
@@ -53,25 +55,28 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: var(--neon-cyan);
+            color: var(--text-primary);
             text-decoration: none;
             font-family: var(--font-heading);
+            font-weight: 700;
             letter-spacing: 1px;
-            transition: all 0.2s;
+            text-transform: uppercase;
+            transition: transform 0.08s ease;
         }
 
         .back-btn:hover {
-            
+            color: var(--color-primary);
             transform: translateX(-3px);
         }
 
         .currency-bar {
             display: flex;
-            gap: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 8px 16px;
+            gap: 12px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 8px 14px;
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .currency-item {
@@ -80,6 +85,8 @@
             gap: 6px;
             font-size: 0.9rem;
             font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
         .item-icon-inline {
@@ -107,11 +114,11 @@
             transform: scale(1.1);
         }
         
-        .c-money { color: var(--neon-gold); }
-        .c-deed { color: #ff6b35; }
-        .c-t1 { color: #aaaaaa; }
-        .c-t2 { color: var(--neon-cyan); }
-        .c-t3 { color: var(--neon-magenta); }
+        .c-money { color: #92400E; font-weight: 900; }
+        .c-deed  { color: #C2410C; font-weight: 900; }
+        .c-t1    { color: var(--text-secondary); font-weight: 700; }
+        .c-t2    { color: #1D4ED8; font-weight: 900; }
+        .c-t3    { color: #7E22CE; font-weight: 900; }
 
         /* Bundle Specific Styles */
         .shop-item.purchased {
@@ -133,31 +140,33 @@
             z-index: 10;
         }
         .shop-item-tag.bundle {
-            background: linear-gradient(135deg, var(--neon-magenta), #6000ff);
+            background: var(--color-purple);
             color: white;
-            
+            border: 2px solid var(--nb-border);
         }
         .shop-item-tag.item {
-            background: rgba(255,255,255,0.1);
+            background: var(--bg-secondary);
             color: var(--text-secondary);
+            border: 2px solid var(--nb-border);
         }
 
         .bundle-details {
             margin: 10px 0;
             padding: 8px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.05);
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            border: 2px solid var(--nb-border);
         }
 
         .bundle-item-chip {
-            background: rgba(255,255,255,0.05);
+            background: var(--bg-card);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: 2px;
             font-size: 0.7rem;
             color: var(--text-primary);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 2px solid var(--nb-border);
             white-space: nowrap;
+            font-weight: 700;
         }
 
         .shop-item-limit {
@@ -176,41 +185,34 @@
 
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--glass-border);
+            gap: 0;
+            margin-bottom: 24px;
+            border-bottom: var(--nb-border-width) solid var(--nb-border);
         }
 
         .tab-btn {
             padding: 12px 24px;
-            background: none;
-            border: none;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-bottom: none;
             color: var(--text-muted);
             font-family: var(--font-heading);
-            font-size: 1.1rem;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.08s ease;
             position: relative;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: -3px;
         }
 
-        .tab-btn::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: transparent;
-            transition: all 0.3s;
-        }
+        .tab-btn::after { display: none; }
 
         .tab-btn.active {
-            color: var(--neon-cyan);
-        }
-
-        .tab-btn.active::after {
-            background: var(--neon-cyan);
-            
+            color: var(--nb-border);
+            background: var(--color-cta);
+            z-index: 1;
         }
 
         .tab-content {
@@ -230,34 +232,44 @@
         }
 
         .shop-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 20px;
             text-align: center;
-            transition: all 0.3s;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
             position: relative;
             overflow: hidden;
+            box-shadow: var(--nb-shadow);
         }
 
         .shop-item:hover {
-            border-color: var(--neon-gold);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.1);
+            border-color: var(--color-primary);
+            transform: translate(-3px, -3px);
+            box-shadow: var(--nb-shadow-lg);
+        }
+
+        .shop-item:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
         }
 
         .shop-item-title {
             font-family: var(--font-heading);
             font-size: 1.2rem;
+            font-weight: 900;
             margin-bottom: 10px;
             color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
         }
 
         .shop-item-desc {
             font-size: 0.85rem;
             color: var(--text-secondary);
-            margin-bottom: 15px;
+            margin-bottom: 14px;
             min-height: 40px;
+            font-weight: 500;
         }
 
         .shop-item-limit {
@@ -296,85 +308,94 @@
         }
 
         .pool-btn {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 16px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 14px;
             text-align: left;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
             display: flex;
             flex-direction: column;
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .pool-btn:hover {
-            border-color: var(--neon-cyan);
-            background: rgba(0, 243, 255, 0.05);
+            border-color: var(--color-primary);
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow);
+            background: #FFF0E8;
         }
 
         .pool-btn.active {
-            border-color: var(--neon-cyan);
-            
-            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--color-primary);
+            background: #FFF0E8;
+            box-shadow: var(--nb-shadow);
         }
 
         .pool-title {
             font-family: var(--font-heading);
-            font-size: 1.1rem;
+            font-size: 1.05rem;
+            font-weight: 900;
             color: var(--text-primary);
             margin-bottom: 4px;
+            text-transform: uppercase;
         }
 
         .pool-subtitle {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
+            font-weight: 600;
         }
 
         .gacha-display {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 30px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 28px;
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
+            box-shadow: var(--nb-shadow-lg);
         }
 
         .gacha-banner {
             width: 100%;
-            height: 200px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, rgba(74, 134, 232, 0.2), rgba(153, 0, 255, 0.2));
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 180px;
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
-            margin-bottom: 24px;
-            
+            margin-bottom: 20px;
+            box-shadow: var(--nb-shadow-sm);
         }
 
         .gacha-rates {
             width: 100%;
-            margin-bottom: 5px;
+            margin-bottom: 0;
             font-size: 0.85rem;
             line-height: 1.5;
             color: var(--text-secondary);
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-            border-bottom: 1px solid var(--glass-border);
+            background: var(--bg-secondary);
+            padding: 14px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-bottom: none;
+            font-weight: 600;
         }
 
         .gacha-content-list {
             width: 100%;
             height: 180px;
-            background: rgba(0,0,0,0.2);
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-            padding: 15px;
+            background: var(--bg-card);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            padding: 14px;
             margin-bottom: 20px;
             overflow-y: auto;
             display: flex;
@@ -382,27 +403,30 @@
             align-content: flex-start;
             gap: 8px;
             scrollbar-width: thin;
-            scrollbar-color: var(--glass-border) transparent;
+            scrollbar-color: var(--nb-border) var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-top: none;
         }
 
         .content-chip {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 6px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
+            border-radius: 2px;
             padding: 4px 10px;
             font-size: 0.75rem;
             color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 4px;
+            font-weight: 700;
         }
 
-        .content-chip[data-rarity="MYTHIC"] { border-color: #ff3366; color: #ff3366; }
-        .content-chip[data-rarity="LEGENDARY"] { border-color: #ffd700; color: #ffd700; }
-        .content-chip[data-rarity="EPIC"] { border-color: #cc44ff; color: #cc44ff; }
-        .content-chip[data-rarity="RARE"] { border-color: #4a9eff; color: #4a9eff; }
-        .content-chip[data-rarity="COMMON"] { border-color: #aaaaaa; color: #aaaaaa; }
-        .content-chip[data-rarity="SPECIAL"] { border-color: #00ff88; color: #00ff88; }
+        .content-chip[data-rarity="MYTHIC"]    { border-color: #9F1239; color: #9F1239; background: #FFF1F2; }
+        .content-chip[data-rarity="LEGENDARY"] { border-color: #92400E; color: #92400E; background: #FFFBEB; }
+        .content-chip[data-rarity="EPIC"]      { border-color: #7E22CE; color: #7E22CE; background: #FAF5FF; }
+        .content-chip[data-rarity="RARE"]      { border-color: #1D4ED8; color: #1D4ED8; background: #EFF6FF; }
+        .content-chip[data-rarity="COMMON"]    { border-color: #6B7280; color: #6B7280; background: #F9FAFB; }
+        .content-chip[data-rarity="SPECIAL"]   { border-color: #166534; color: #166534; background: #F0FDF4; }
 
         .gacha-actions {
             display: flex;
@@ -412,13 +436,35 @@
         }
 
         .btn-pull {
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 14px 36px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            font-family: var(--font-heading);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             min-width: 180px;
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-pull:hover {
+            background: #E63A0F;
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow-lg);
+        }
+
+        .btn-pull:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
         }
 
         .btn-pull .cost {
@@ -431,15 +477,14 @@
         #gachaAnimModal {
             position: fixed;
             inset: 0;
-            background:
-                radial-gradient(circle at 50% 42%, rgba(0, 229, 255, 0.16), transparent 34%),
-                linear-gradient(180deg, rgba(5, 6, 14, 0.96), rgba(0, 0, 0, 0.98));
+            background: rgba(255, 248, 220, 0.96);
+            background-image: var(--comic-halftone);
+            background-size: 18px 18px;
             z-index: 9999;
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
             padding: 24px 16px;
             overflow: hidden;
         }
@@ -454,17 +499,18 @@
         .gacha-modal-header h2 {
             font-family: var(--font-heading);
             font-size: clamp(1.35rem, 4vw, 2rem);
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 3px;
+            color: var(--text-primary);
+            font-weight: 900;
+            letter-spacing: -1px;
             margin-bottom: 6px;
+            text-transform: uppercase;
+            -webkit-text-stroke: 1px var(--nb-border);
         }
 
         .gacha-modal-header p {
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: 0.9rem;
+            font-weight: 600;
         }
 
         .gacha-stage {
@@ -487,15 +533,10 @@
         .gacha-machine {
             width: min(360px, 82vw);
             aspect-ratio: 1;
-            border: 1px solid rgba(0, 229, 255, 0.35);
+            border: var(--nb-border-width) solid var(--nb-border);
             border-radius: 50%;
-            background:
-                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12), transparent 18%),
-                radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.18), transparent 48%),
-                rgba(255, 255, 255, 0.03);
-            box-shadow:
-                inset 0 0 32px rgba(0, 229, 255, 0.12),
-                0 0 40px rgba(0, 229, 255, 0.12);
+            background: var(--bg-secondary);
+            box-shadow: var(--nb-shadow-xl);
             position: relative;
             display: grid;
             place-items: center;
@@ -509,10 +550,15 @@
             position: absolute;
             inset: 4%;
             border-radius: 50%;
-            background:
-                conic-gradient(from 0deg, transparent 0 10%, var(--gacha-best, var(--neon-cyan)) 18%, transparent 28% 42%, rgba(255,255,255,0.8) 48%, transparent 58% 72%, var(--neon-magenta) 80%, transparent 92%),
-                radial-gradient(circle, transparent 44%, rgba(255,255,255,0.12) 46%, transparent 58%);
-            filter: blur(0.2px) drop-shadow(0 0 26px var(--gacha-glow, rgba(0,243,255,0.45)));
+            background: conic-gradient(from 0deg,
+                transparent 0 10%,
+                var(--color-primary) 18%,
+                transparent 28% 42%,
+                var(--color-cta) 48%,
+                transparent 58% 72%,
+                var(--color-secondary) 80%,
+                transparent 92%
+            );
             animation: gachaPortalSpin 2.4s linear infinite;
         }
 
@@ -561,12 +607,9 @@
             place-items: center;
             position: relative;
             z-index: 2;
-            background:
-                radial-gradient(circle at 35% 28%, rgba(255,255,255,0.8), transparent 16%),
-                radial-gradient(circle at 50% 50%, var(--gacha-best, var(--neon-cyan)), rgba(0,0,0,0.1) 62%, rgba(0,0,0,0.55));
-            box-shadow:
-                0 0 26px var(--gacha-glow, rgba(0, 229, 255, 0.5)),
-                0 0 80px rgba(255,255,255,0.08);
+            background: var(--color-primary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            box-shadow: var(--nb-shadow-lg);
             animation: gachaCorePulse 1.2s ease-in-out infinite alternate;
         }
 
@@ -584,10 +627,14 @@
             padding: 8px 16px;
             color: var(--text-primary);
             font-size: 0.78rem;
+            font-weight: 700;
+            font-family: var(--font-heading);
             letter-spacing: 2px;
-            border: 1px solid rgba(255,255,255,0.14);
-            border-radius: 999px;
-            background: rgba(0,0,0,0.35);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            background: var(--bg-card);
+            box-shadow: var(--nb-shadow-sm);
+            text-transform: uppercase;
         }
 
         .gacha-energy-track {
@@ -596,9 +643,10 @@
             bottom: 18px;
             transform: translateX(-50%);
             width: 64%;
-            height: 5px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.08);
+            height: 8px;
+            border-radius: 0;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
             overflow: hidden;
             z-index: 3;
         }
@@ -606,9 +654,9 @@
         .gacha-energy-fill {
             width: 0%;
             height: 100%;
-            border-radius: inherit;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--gacha-best, var(--neon-gold)));
-            box-shadow: 0 0 18px var(--gacha-best, var(--neon-cyan));
+            border-radius: 0;
+            background: var(--color-primary);
+            border-right: 2px solid var(--nb-border);
             animation: gachaCharge 1.25s ease-out forwards;
         }
 
@@ -625,8 +673,8 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: var(--gacha-best, var(--neon-cyan));
-            box-shadow: 0 0 18px var(--gacha-best, var(--neon-cyan));
+            background: var(--color-primary);
+            border: 2px solid var(--nb-border);
             opacity: 0;
             pointer-events: none;
         }
@@ -771,25 +819,21 @@
         }
 
         .gc-card-back {
-            background: linear-gradient(135deg, #1a1a3e 0%, #0d0d1f 100%);
-            border: 2px solid var(--neon-cyan);
-            box-shadow: inset 0 0 30px rgba(0,243,255,0.05), 0 0 20px rgba(0,243,255,0.15);
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            box-shadow: var(--nb-shadow);
         }
 
         .gc-card-back-pattern {
             position: absolute;
             inset: 0;
-            background-image: repeating-linear-gradient(
-                45deg,
-                rgba(0,243,255,0.03) 0, rgba(0,243,255,0.03) 1px,
-                transparent 0, transparent 50%
-            );
-            background-size: 16px 16px;
+            background-image: var(--comic-halftone);
+            background-size: 12px 12px;
         }
 
         .gc-card-back-icon {
             font-size: 2.5rem;
-            color: var(--neon-cyan);
+            color: var(--color-primary);
             animation: gcBackPulse 2s infinite alternate;
         }
 
