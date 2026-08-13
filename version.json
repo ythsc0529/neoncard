@@ -1,10 +1,9 @@
 {
-  "version": "2.3.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.3.0/app-debug.apk",
+  "version": "2.3.1",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.3.1/app-debug.apk",
   "notes": [
-    "全新 UI 重構：採用現代 Neubrutalism（新粗野主義）與漫畫風格融合設計。",
-    "戰鬥畫面、抽獎動畫、選單、商店與角色列表全新淺色視覺登場。",
-    "優化按鈕互動反饋與硬陰影視覺質感。",
-    "提升介面流暢度與閱讀體驗。"
+    "全新 Neubrutalism (新粗獷主義) UI 重構。",
+    "包含個人檔案、通行證、隊伍配置、兌換碼與載入頁面之全面視覺升級。",
+    "優化組件互動反饋、粗黑邊框與立體陰影視覺質感。"
   ]
 }

@@ -148,6 +148,17 @@ body {
     100% { background-color: #FFFBF0; }
 }
 
+@keyframes loadBar {
+    0%   { width: 0%; }
+    40%  { width: 60%; }
+    80%  { width: 95%; }
+    100% { width: 60%; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Floating damage / heal numbers */
 .floating-number {
     position: fixed;

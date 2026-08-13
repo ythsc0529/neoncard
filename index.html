@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.3.0";
+        window.APP_VERSION = "2.3.1";
 
         // ── Service Worker 更新管理 ──
         // 策略：重新註冊新版 SW，讓新 SW 在啟動時自動清除舊快取
@@ -1076,10 +1076,13 @@
 
     <!-- ② Loading Screen (Transition) -->
     <div class="fullscreen-cover hidden" id="loadingScreen">
-        <div class="boot-spinner" aria-hidden="true"></div>
-        <div style="color:var(--color-primary);font-family:var(--font-heading);font-size:1.8rem;letter-spacing:4px;font-weight:900;animation:pulse 1.5s infinite;-webkit-text-stroke:1px var(--nb-border);">
-            霓 虹 牌</div>
-        <div style="color:var(--text-muted);font-size:0.85rem;letter-spacing:3px;font-weight:700;text-transform:uppercase;">LOADING...</div>
+        <div style="text-align:center;">
+            <div style="font-family:var(--font-heading);font-size:3rem;font-weight:900;color:var(--text-primary);-webkit-text-stroke:2px var(--nb-border);letter-spacing:-2px;animation:pulse 1.5s infinite;">霓虹牌</div>
+            <div style="width:220px;height:14px;background:var(--bg-secondary);border:var(--nb-border-width) solid var(--nb-border);border-radius:4px;overflow:hidden;box-shadow:var(--nb-shadow-sm);margin:20px auto 0;">
+                <div style="height:100%;background:var(--color-primary);animation:loadBar 1.8s ease-in-out infinite;border-right:2px solid var(--nb-border);"></div>
+            </div>
+            <div style="font-family:var(--font-heading);font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:3px;font-weight:700;margin-top:12px;">LOADING...</div>
+        </div>
     </div>
 
     <!-- ③ Update Required Modal -->
@@ -1124,7 +1127,7 @@
     </div>
     <!-- ④ Login Screen -->
     <div class="fullscreen-cover hidden" id="loginScreen">
-        <div class="login-box glass">
+        <div class="login-box">
             <div class="login-title">霓虹牌</div>
             <div class="login-subtitle">登入帳號以使用競賽模式、好友系統等完整功能<br>或以訪客模式繼續</div>
             <button class="google-sign-in-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">

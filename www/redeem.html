@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 兌換碼</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -19,93 +17,198 @@
     <script src="js/core/notificationManager.js"></script>
     <style>
         body {
-            background: #0F0F23;
+            background-color: var(--bg-dark);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .redeem-container {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--neon-gold);
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            max-width: 500px;
+        .redeem-wrapper {
             width: 90%;
-            
-            position: relative;
+            max-width: 480px;
         }
 
+        /* ── Back Link ── */
         .back-link {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: var(--neon-cyan);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
             text-decoration: none;
             font-family: var(--font-heading);
-            font-size: 0.9rem;
+            font-weight: 700;
+            font-size: 0.88rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            box-shadow: var(--nb-shadow-sm);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            margin-bottom: 20px;
         }
+
+        .back-link:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow);
+        }
+
+        .back-link:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        /* ── Main Card ── */
+        .redeem-container {
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            box-shadow: var(--nb-shadow-xl);
+            overflow: hidden;
+        }
+
+        /* Accent Header Bar */
+        .redeem-header {
+            background: var(--color-cta);
+            border-bottom: var(--nb-border-width) solid var(--nb-border);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .redeem-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+
+        .redeem-header-text {}
 
         .redeem-title {
             font-family: var(--font-heading);
-            font-size: 2.5rem;
-            color: var(--neon-gold);
-            margin-bottom: 10px;
-            
-        }
-
-        .redeem-input {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 15px;
-            font-size: 1.2rem;
-            font-family: var(--font-main);
-            color: white;
-            text-align: center;
-            width: 100%;
-            margin-bottom: 20px;
-            outline: none;
-            transition: all 0.3s;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--nb-border);
+            letter-spacing: -0.5px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
             text-transform: uppercase;
         }
 
+        .redeem-header-sub {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nb-border);
+            opacity: 0.65;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .redeem-body {
+            padding: 32px;
+        }
+
+        .redeem-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .redeem-input {
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 16px 18px;
+            font-size: 1.2rem;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            width: 100%;
+            margin-bottom: 16px;
+            outline: none;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: var(--nb-shadow-sm);
+        }
+
+        .redeem-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
         .redeem-input:focus {
-            border-color: var(--neon-gold);
-            
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow);
+            border-color: var(--color-primary);
         }
 
         .btn-redeem {
             width: 100%;
-            padding: 15px;
-            font-size: 1.2rem;
+            padding: 16px;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
         }
 
-        .history-btn {
-            margin-top: 20px;
-            background: none;
+        .redeem-divider {
             border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            text-decoration: underline;
+            border-top: var(--nb-border-width) solid var(--bg-secondary);
+            margin: 24px 0;
         }
 
+        .redeem-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
+            border-radius: 4px;
+            padding: 12px 16px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .redeem-tip-icon { font-size: 1rem; flex-shrink: 0; }
     </style>
 </head>
 
 <body>
-    <div class="redeem-container">
+    <div class="redeem-wrapper">
         <a href="index.html" class="back-link">← 返回大廳</a>
-        <div style="font-size:4rem;margin-bottom:10px;animation:pulse 2s infinite;">🎁</div>
-        <div class="redeem-title">禮包兌換</div>
-        <p style="color:var(--text-secondary);margin-bottom:30px;">請輸入您獲得的兌換碼以領取獎勵</p>
 
-        <input type="text" id="codeInput" class="redeem-input" placeholder="請輸入兌換碼..." maxlength="20">
-        <button class="btn btn-gold btn-redeem" onclick="submitRedeem()">馬上兌換</button>
-        
-        <!-- Simplified for now -->
+        <div class="redeem-container">
+            <!-- Header -->
+            <div class="redeem-header">
+                <div class="redeem-icon">🎁</div>
+                <div class="redeem-header-text">
+                    <div class="redeem-title">禮包兌換</div>
+                    <div class="redeem-header-sub">Gift Code Redemption</div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="redeem-body">
+                <p class="redeem-desc">請輸入您獲得的兌換碼以領取獎勵。兌換碼不分大小寫。</p>
+
+                <input type="text" id="codeInput" class="redeem-input" placeholder="輸入兌換碼..." maxlength="20">
+                <button class="btn btn-gold btn-redeem" onclick="submitRedeem()">馬上兌換 →</button>
+
+                <hr class="redeem-divider">
+
+                <div class="redeem-tip">
+                    <span class="redeem-tip-icon">💡</span>
+                    <span>兌換碼可在官方社群媒體、賽事活動及開發者公告中取得。每個帳號每個代碼只能兌換一次。</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>

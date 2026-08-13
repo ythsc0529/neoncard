@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 隊伍配置與圖鑑</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -24,7 +22,9 @@
     <script src="js/data/characters.js"></script>
     <style>
         body {
-            background: #0F0F23;
+            background-color: var(--bg-dark);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             min-height: 100vh;
             color: var(--text-primary);
         }
@@ -32,61 +32,145 @@
         .team-page {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 28px 20px 40px;
         }
 
+        /* ── Header ── */
         .header-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
         }
 
         .back-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: var(--neon-magenta);
+            color: var(--text-primary);
             text-decoration: none;
             font-family: var(--font-heading);
-            transition: all 0.2s;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            box-shadow: var(--nb-shadow-sm);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
         }
 
         .back-btn:hover {
-            
-            transform: translateX(-3px);
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow);
         }
 
+        .back-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .page-title-block {
+            flex: 1;
+        }
+
+        .page-title {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
+            text-transform: uppercase;
+        }
+
+        .page-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* ── Stats Bar ── */
         .stats-bar {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            background: var(--color-primary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 10px 20px;
             font-family: var(--font-heading);
-            font-size: 1.1rem;
-            color: var(--neon-cyan);
-            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+            font-size: 1rem;
+            font-weight: 900;
+            color: #FFFFFF;
+            box-shadow: var(--nb-shadow-sm);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .filters {
+        /* ── Filters ── */
+        .filters-bar {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-family: var(--font-heading);
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-right: 4px;
         }
 
         .filter-btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--glass-border);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 8px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            color: var(--text-secondary);
+            padding: 8px 18px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow-sm);
         }
 
-        .filter-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
-        .filter-btn.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon-cyan); color: var(--neon-cyan);  }
+        .filter-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
+            background: var(--glass-bg-hover);
+        }
 
+        .filter-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .filter-btn.active {
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border-color: var(--nb-border);
+            box-shadow: var(--nb-shadow-sm);
+        }
+
+        .filter-btn.active:hover {
+            background: #E63A0F;
+            transform: translate(-1px, -1px);
+            box-shadow: var(--nb-shadow);
+        }
+
+        /* ── Character Grid (reuse global .character-card) ── */
         .char-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -98,30 +182,69 @@
             cursor: not-allowed;
         }
 
+        .character-card.locked:hover {
+            transform: none;
+            box-shadow: var(--nb-shadow);
+            border-color: var(--nb-border);
+        }
+
+        /* ── Empty State ── */
+        .empty-state-nb {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            box-shadow: var(--nb-shadow-sm);
+        }
+
+        .empty-state-nb .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .empty-state-nb p {
+            color: var(--text-muted);
+            font-family: var(--font-heading);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 
 <body>
-    <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div class="" style="color:var(--neon-magenta);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
+    <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);background-image:var(--comic-halftone);background-size:20px 20px;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="text-align:center;">
+            <div style="font-family:var(--font-heading);font-size:2rem;font-weight:900;color:var(--text-primary);-webkit-text-stroke:1px var(--nb-border);margin-bottom:16px;animation:pulse 1.5s infinite;">霓虹牌</div>
+            <div style="width:200px;height:12px;background:var(--bg-secondary);border:var(--nb-border-width) solid var(--nb-border);border-radius:4px;overflow:hidden;box-shadow:var(--nb-shadow-sm);margin:0 auto;">
+                <div style="height:100%;width:60%;background:var(--color-primary);animation:pulse 1s infinite;border-right:2px solid var(--nb-border);"></div>
+            </div>
+            <div style="font-family:var(--font-heading);font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-top:10px;">LOADING...</div>
+        </div>
     </div>
 
     <div class="team-page" id="teamPage" style="display:none;">
         <div class="header-row">
             <a href="index.html" class="back-btn">← 返回大廳</a>
+            <div class="page-title-block">
+                <div class="page-title">隊伍配置</div>
+                <div class="page-subtitle">Team Collection &amp; Compendium</div>
+            </div>
             <div class="stats-bar" id="collectionStats">收集度: 0 / 0 (0%)</div>
         </div>
-        
-        <div class="filters">
-            <button class="filter-btn active" onclick="setFilter('all')">全部</button>
-            <button class="filter-btn" onclick="setFilter('owned')">已擁有</button>
-            <button class="filter-btn" onclick="setFilter('unowned')">未擁有</button>
+
+        <div class="filters-bar">
+            <span class="filter-label">篩選：</span>
+            <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
+            <button class="filter-btn" onclick="setFilter('owned', this)">已擁有</button>
+            <button class="filter-btn" onclick="setFilter('unowned', this)">未擁有</button>
         </div>
 
         <div class="char-grid" id="charGrid">
             <!-- Rendered by JS -->
         </div>
-
     </div>
 
     <script>
@@ -142,10 +265,10 @@
             document.getElementById('teamPage').style.display = 'block';
         });
 
-        function setFilter(filt) {
+        function setFilter(filt, btn) {
             currentFilter = filt;
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            btn.classList.add('active');
             renderCollection();
         }
 
@@ -160,7 +283,12 @@
             if(currentFilter === 'owned') displayList = displayList.filter(c => ownedNames.includes(c.name));
             if(currentFilter === 'unowned') displayList = displayList.filter(c => !ownedNames.includes(c.name));
             
-            // Sort: Owned first, then descending rarity (UPPERCASE matches ALL_CHARACTERS.rarity)
+            if (displayList.length === 0) {
+                grid.innerHTML = `<div class="empty-state-nb"><div class="icon">🃏</div><p>此篩選條件下沒有角色</p></div>`;
+                return;
+            }
+
+            // Sort: Owned first, then descending rarity
             const rarityOrder = { MYTHIC: 5, LEGENDARY: 4, EPIC: 3, RARE: 2, COMMON: 1, SPECIAL: 0 };
             displayList.sort((a, b) => {
                 const aOwned = ownedNames.includes(a.name) ? 1 : 0;
