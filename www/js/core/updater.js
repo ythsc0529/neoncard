@@ -345,10 +345,20 @@ const Updater = (() => {
         });
     }
 
-    return { checkVersion, startDownloadFlow, initProgressListener };
+    window.Updater = { checkVersion, startDownloadFlow, initProgressListener };
+    return window.Updater;
 })();
 
-window.addEventListener('load', () => {
-    Updater.initProgressListener();
-    setTimeout(Updater.checkVersion, 2000);
-});
+function initUpdater() {
+    if (window.Updater) {
+        window.Updater.initProgressListener();
+        setTimeout(() => window.Updater.checkVersion(), 2000);
+    }
+}
+
+if (document.readyState === 'complete') {
+    initUpdater();
+} else {
+    window.addEventListener('load', initUpdater);
+}
+

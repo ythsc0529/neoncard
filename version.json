@@ -1,9 +1,8 @@
 {
-  "version": "2.4.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.4.0/app-debug.apk",
+  "version": "2.4.1",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.4.1/app-debug.apk",
   "notes": [
-    "【試煉之路】全面升級新粗獷主義 UI，等級條與里程碑卡片重構。",
-    "【劇情模式】沉浸式動態漫畫分鏡 UI 升級（編年史選單與播放器）。",
-    "【結算畫面】新粗獷主義結算面板與戰鬥結束彈窗視覺重構。"
+    "修復 App 啟動時自動檢查新版本並彈出更新視窗之機制。",
+    "優化更新下載器載入與通知監聽邏輯。"
   ]
 }
