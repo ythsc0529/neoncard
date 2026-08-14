@@ -37,14 +37,14 @@
             z-index: 8000; pointer-events: none;
         }
         .rank-reveal-card {
-            background: linear-gradient(135deg, rgba(10,10,30,0.97), rgba(20,20,50,0.97));
-            border: 2px solid var(--neon-gold);
-            border-radius: 20px;
-            padding: 28px 40px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 24px 36px;
             text-align: center;
+            box-shadow: var(--nb-shadow-lg);
             animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards,
                        rankRevealOut 0.4s ease 2.2s forwards;
-            
         }
         @keyframes rankRevealIn {
             from { opacity:0; transform:scale(0.85) translateY(20px); }
@@ -57,18 +57,19 @@
         /* Ranked result overlay */
         #rankedResultOverlay {
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(255, 251, 240, 0.85);
             display: none; align-items: center; justify-content: center;
-            z-index: 8500; backdrop-filter: blur(6px);
+            z-index: 8500;
         }
         #rankedResultOverlay.active { display: flex; }
         .ranked-result-card {
-            background: linear-gradient(135deg, rgba(10,10,35,0.98), rgba(20,15,40,0.98));
-            border: 2px solid var(--neon-gold);
-            border-radius: 22px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 32px 40px;
             text-align: center;
             max-width: 420px; width: 90%;
+            box-shadow: var(--nb-shadow-xl);
             animation: rankRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
         }
 
@@ -134,116 +135,140 @@
         /* --- Settlement Overlay --- */
         .settlement-overlay {
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.88);
+            background: rgba(255, 251, 240, 0.92);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             display: none; align-items: center; justify-content: center;
-            z-index: 9000; backdrop-filter: blur(8px);
+            z-index: 9000;
             padding: 20px;
         }
         .settlement-overlay.active { display: flex; }
         .settlement-card {
-            background: linear-gradient(135deg, rgba(8,8,28,0.98), rgba(18,12,35,0.98));
-            border: 2px solid var(--neon-gold);
-            border-radius: 24px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 36px 40px;
             text-align: center;
             max-width: 480px; width: 100%;
-            box-shadow: 0 0 40px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+            box-shadow: var(--nb-shadow-xl);
             animation: settlementIn 0.45s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative;
+            overflow: hidden;
+        }
+        .settlement-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: var(--color-primary);
+            border-bottom: 2px solid var(--nb-border);
         }
         @keyframes settlementIn {
-            from { opacity:0; transform:scale(0.85) translateY(24px); }
+            from { opacity:0; transform:scale(0.88) translateY(24px); }
             to   { opacity:1; transform:scale(1) translateY(0); }
         }
         .settlement-body { min-height: 220px; }
         /* Result step */
         .stl-result-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; }
-        .stl-result-icon { font-size: 4rem; animation: stlIconPulse 1s ease-in-out infinite alternate; }
-        @keyframes stlIconPulse { from{transform:scale(1)} to{transform:scale(1.1)} }
+        .stl-result-icon { font-size: 4.5rem; animation: stlIconPulse 1s ease-in-out infinite alternate; }
+        @keyframes stlIconPulse { from{transform:scale(1)} to{transform:scale(1.08)} }
         .stl-result-text {
             font-family: var(--font-heading);
-            font-size: 2.6rem; font-weight: 900;
-            letter-spacing: 4px;
+            font-size: 2.8rem; font-weight: 900;
+            letter-spacing: 2px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
+            line-height: 1.1;
         }
         .stl-ranked-section {
-            background: rgba(255,215,0,0.06);
-            border: 1px solid rgba(255,215,0,0.25);
-            border-radius: 14px;
-            padding: 14px 24px;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 14px 20px;
             width: 100%;
+            box-shadow: var(--nb-shadow-sm);
         }
         .stl-rank-change {
-            font-size: 1.3rem; font-weight: 700;
-            margin-bottom: 10px; letter-spacing: 2px;
+            font-family: var(--font-heading);
+            font-size: 1.2rem; font-weight: 900;
+            margin-bottom: 8px; letter-spacing: 1px;
         }
         .stl-rank-display {
             display: flex; align-items: center;
             justify-content: center; gap: 14px;
         }
-        .stl-rank-img { width: 52px; height: 52px; object-fit: contain; }
+        .stl-rank-img { width: 48px; height: 48px; object-fit: contain; }
         .stl-rank-name {
             font-family: var(--font-heading);
-            font-size: 1.1rem; color: var(--neon-gold);
+            font-size: 1.1rem; color: var(--text-primary);
+            font-weight: 900;
         }
         .stl-rank-stars { font-size: 1.1rem; letter-spacing: 3px; margin-top: 4px; }
         /* EXP step */
         .stl-exp-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .stl-exp-label {
-            font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase;
-            color: var(--text-muted); margin-bottom: 4px;
+            font-family: var(--font-heading);
+            font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-muted); font-weight: 900; margin-bottom: 2px;
         }
         .stl-exp-value {
             font-family: var(--font-heading);
-            font-size: 3.2rem; font-weight: 900;
-            text-shadow: 0 0 20px currentColor;
+            font-size: 3rem; font-weight: 900;
+            -webkit-text-stroke: 0.5px var(--nb-border);
         }
-        .stl-exp-sublabel { font-size: 0.85rem; color: var(--text-secondary); }
+        .stl-exp-sublabel { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; }
         .stl-exp-row {
             width: 100%;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 12px;
-            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 14px 18px;
             display: flex; flex-direction: column; align-items: center; gap: 6px;
+            box-shadow: var(--nb-shadow-sm);
         }
         .stl-exp-row-label {
-            font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase;
-            color: var(--text-muted); align-self: flex-start;
+            font-family: var(--font-heading);
+            font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;
+            color: var(--text-muted); align-self: flex-start; font-weight: 900;
         }
         .stl-exp-bar-wrap {
-            width: 100%; height: 8px;
-            background: rgba(255,255,255,0.08);
+            width: 100%; height: 14px;
+            background: var(--bg-card);
+            border: 2px solid var(--nb-border);
             border-radius: 4px; overflow: hidden;
         }
         .stl-exp-bar {
             height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-gold));
-            border-radius: 4px;
+            background: var(--color-primary);
+            border-radius: 0;
+            border-right: 2px solid var(--nb-border);
             transition: width 0.05s linear;
-            box-shadow: 0 0 10px var(--neon-cyan);
         }
         /* MVP step */
         .stl-mvp-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .stl-mvp-title {
             font-family: var(--font-heading);
-            font-size: 1.1rem; color: var(--neon-gold);
-            letter-spacing: 3px;
+            font-size: 1.3rem; color: var(--text-primary);
+            font-weight: 900; letter-spacing: 1px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
         }
         .stl-mvp-card {
             width: 100%; padding: 14px 18px;
-            border-radius: 14px; text-align: left;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.03);
+            border-radius: 4px; text-align: left;
+            border: var(--nb-border-width) solid var(--nb-border);
+            background: var(--bg-secondary);
+            box-shadow: var(--nb-shadow-sm);
         }
-        .stl-mvp-side-label { font-size: 0.78rem; color: var(--text-muted); letter-spacing: 2px; margin-bottom: 6px; }
-        .stl-mvp-char-name { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); }
-        .stl-mvp-char-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
-        .stl-mvp-rarity { font-size: 0.75rem; margin-top: 4px; }
+        .stl-mvp-side-label { font-family: var(--font-heading); font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 4px; font-weight: 900; text-transform: uppercase; }
+        .stl-mvp-char-name { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 900; color: var(--text-primary); }
+        .stl-mvp-char-sub { font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px; font-weight: 600; }
+        .stl-mvp-rarity { font-size: 0.78rem; margin-top: 4px; font-weight: 700; }
         /* Action step */
         .stl-action-wrap { display:flex; flex-direction:column; align-items:center; gap:18px; }
         .stl-action-title {
             font-family: var(--font-heading);
-            font-size: 1.2rem; color: var(--neon-cyan);
-            letter-spacing: 3px;
+            font-size: 1.3rem; color: var(--text-primary);
+            font-weight: 900; letter-spacing: 2px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
         }
         .stl-action-btns {
             display: flex; flex-direction: column;
@@ -257,31 +282,43 @@
             width: 100%;
         }
         .stl-avatar-box { display:flex; flex-direction:column; align-items:center; gap:6px; }
-        .stl-avatar { font-size: 2.5rem; }
-        .stl-avatar-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
-        .stl-avatar-status { font-size: 0.78rem; color: var(--text-muted); }
+        .stl-avatar {
+            width: 52px; height: 52px;
+            border-radius: 4px;
+            border: var(--nb-border-width) solid var(--nb-border);
+            background: var(--bg-card);
+            box-shadow: var(--nb-shadow-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem;
+        }
+        .stl-avatar-name { font-family: var(--font-heading); font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+        .stl-avatar-status { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
         .stl-avatar-vs {
             font-family: var(--font-heading);
-            font-size: 1.2rem; color: var(--neon-magenta);
+            font-size: 1.4rem; color: var(--color-primary);
+            font-weight: 900;
         }
         .stl-auto-exit-bar { width: 100%; }
-        .stl-auto-exit-text { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+        .stl-auto-exit-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; }
         .stl-auto-exit-progress-wrap {
-            width: 100%; height: 4px;
-            background: rgba(255,255,255,0.08);
-            border-radius: 2px; overflow: hidden;
+            width: 100%; height: 8px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
+            border-radius: 4px; overflow: hidden;
         }
         .stl-auto-exit-progress {
             height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--neon-magenta), #ff4466);
-            border-radius: 2px;
+            background: var(--color-primary);
+            border-radius: 0;
+            border-right: 2px solid var(--nb-border);
             transition: width 1s linear;
         }
         .stl-rematch-status {
-            font-size: 0.88rem; color: var(--neon-cyan);
-            min-height: 20px; font-weight: 600;
+            font-family: var(--font-heading);
+            font-size: 0.9rem; color: var(--color-primary);
+            min-height: 20px; font-weight: 700;
         }
-        .stl-continue-btn { margin-top: 8px; padding: 12px 32px; min-width: 140px; }
+        .stl-continue-btn { margin-top: 8px; padding: 12px 36px; min-width: 140px; }
     </style>
 </head>
 
@@ -606,25 +643,24 @@
     <!-- Story Battle End Modals -->
     <div class="modal-overlay" id="storyCompleteModal">
         <div class="modal">
-            <h2 class="" style=" color: var(--neon-pink);">章節完成
-            </h2>
-            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">防線已突破，新的劇情已解鎖！</p>
+            <h2 style="color: var(--color-primary);">章節完成</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem; font-weight: 500;">防線已突破，新的劇情已解鎖！</p>
             <div class="modal-buttons" style="display: flex; justify-content: center;">
-                <button class="btn btn-magenta" onclick="location.href='story_menu.html'"
-                    style="font-size: 1.2rem; padding: 15px 30px;">返回故事大廳</button>
+                <button class="btn btn-primary" onclick="location.href='story_menu.html'"
+                    style="font-size: 1.1rem; padding: 14px 28px;">返回編年史</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="storyFailModal">
         <div class="modal">
-            <h2 class="" style=" color: #ff4444;">戰鬥失敗</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem;">反抗軍被擊潰，是否要重新挑戰？</p>
-            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 15px;">
-                <button class="btn btn-magenta" onclick="location.reload()"
-                    style="font-size: 1.1rem; padding: 10px 20px;">再次挑戰</button>
+            <h2 style="color: var(--color-danger);">戰鬥失敗</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1.1rem; font-weight: 500;">反抗軍被擊潰，是否要重新挑戰？</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 14px;">
+                <button class="btn btn-primary" onclick="location.reload()"
+                    style="font-size: 1.1rem; padding: 12px 24px;">再次挑戰</button>
                 <button class="btn" onclick="location.href='story_menu.html'"
-                    style="font-size: 1.1rem; padding: 10px 20px;">撤退</button>
+                    style="font-size: 1.1rem; padding: 12px 24px;">撤退</button>
             </div>
         </div>
     </div>

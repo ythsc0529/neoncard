@@ -31,6 +31,10 @@ AuthManager.onAuthChanged(async (user) => {
     if (typeof ALL_CHARACTERS !== 'undefined') allCharacters = ALL_CHARACTERS;
     else if (typeof window.characters !== 'undefined') allCharacters = window.characters;
     renderTrial();
+    const loading = document.getElementById('pageLoading');
+    if (loading) loading.style.display = 'none';
+    const page = document.getElementById('trialPage');
+    if (page) page.style.display = 'block';
 });
 
 // ── Render ────────────────────────────────────────────────────────────────────

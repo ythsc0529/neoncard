@@ -144,8 +144,7 @@ const GameSettlement = (() => {
 
         const bigIcon = iWon ? '🏆' : '💀';
         const resultText = iWon ? '勝利！' : '敗北';
-        const resultColor = iWon ? 'var(--neon-gold)' : '#ff4466';
-        const resultGlow = iWon ? 'var(--neon-gold)' : '#ff4466';
+        const resultColor = iWon ? 'var(--color-primary)' : 'var(--color-danger)';
 
         let rankedSection = '';
         if ((mode === 'ranked' || mode === 'ranked_bot') && rankedState && typeof RankedSystem !== 'undefined') {
@@ -153,7 +152,7 @@ const GameSettlement = (() => {
             const newRankedName = RankedSystem.getDisplayName(rankedState);
             const newRankedImg = RankedSystem.getImgPath(rankedState);
 
-            const changeColor = iWon ? 'var(--neon-green)' : '#ff4466';
+            const changeColor = iWon ? 'var(--color-success)' : 'var(--color-danger)';
             const descText = rankedDesc || '';
 
             rankedSection = `
@@ -172,7 +171,7 @@ const GameSettlement = (() => {
         return `
             <div class="stl-result-wrap">
                 <div class="stl-result-icon">${bigIcon}</div>
-                <div class="stl-result-text" style="color:${resultColor};text-shadow:0 0 30px ${resultGlow};">
+                <div class="stl-result-text" style="color:${resultColor};">
                     ${resultText}
                 </div>
                 ${rankedSection}
@@ -191,8 +190,8 @@ const GameSettlement = (() => {
         else if (expGained === 25) expLabel = '（對戰獎勵）';
         else expLabel = '（未完成對局）';
 
-        const expColor = expGained > 0 ? 'var(--neon-cyan)' : 'var(--text-muted)';
-        const passColor = passExpGained > 0 ? 'var(--neon-gold)' : 'var(--text-muted)';
+        const expColor = expGained > 0 ? 'var(--color-primary)' : 'var(--text-muted)';
+        const passColor = passExpGained > 0 ? 'var(--color-cta)' : 'var(--text-muted)';
 
         return `
             <div class="stl-exp-wrap">
@@ -211,7 +210,7 @@ const GameSettlement = (() => {
                     <div class="stl-exp-row-label">🎫 通行證積分</div>
                     <div class="stl-exp-value" style="color:${passColor};font-size:2rem;" id="stl-pass-counter">+0</div>
                     <div class="stl-exp-bar-wrap">
-                        <div class="stl-exp-bar" id="stl-pass-bar" style="background:linear-gradient(90deg,var(--neon-gold),#ffaa00);box-shadow:0 0 10px var(--neon-gold);"></div>
+                        <div class="stl-exp-bar" id="stl-pass-bar" style="background:var(--color-cta);"></div>
                     </div>
                 </div>
 
@@ -267,14 +266,14 @@ const GameSettlement = (() => {
 
         const mvpCard = (label, playerName, cardData) => {
             if (!cardData) return `
-                <div class="stl-mvp-card glass">
+                <div class="stl-mvp-card">
                     <div class="stl-mvp-side-label">${label}：${playerName}</div>
                     <div class="stl-mvp-char-name">— 無資料 —</div>
                 </div>`;
 
             const rarityClass = typeof getRarityClass === 'function' ? getRarityClass(cardData.rarity) : '';
             return `
-                <div class="stl-mvp-card glass ${rarityClass}">
+                <div class="stl-mvp-card ${rarityClass}">
                     <div class="stl-mvp-side-label">${label}：${playerName}</div>
                     <div class="stl-mvp-char-name">${cardData.name}</div>
                     <div class="stl-mvp-char-sub">上場回合：${cardData.turnsOnField || 0}</div>

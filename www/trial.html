@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹牌 - 試煉之路</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;700;900&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -20,129 +20,277 @@
     <script src="js/core/notificationManager.js"></script>
     <style>
         body {
-            background: #0F0F23;
+            background-color: var(--bg-dark);
+            background-image: var(--comic-halftone);
+            background-size: 20px 20px;
             min-height: 100vh;
             color: var(--text-primary);
         }
 
         .trial-page {
-            max-width: 800px;
+            max-width: 860px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 28px 20px 60px;
         }
 
+        /* ── Header ── */
         .header-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .back-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: var(--neon-gold);
+            color: var(--text-primary);
             text-decoration: none;
             font-family: var(--font-heading);
-            transition: all 0.2s;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 9px 18px;
+            background: var(--bg-card);
+            box-shadow: var(--nb-shadow-sm);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
         }
 
         .back-btn:hover {
-            
-            transform: translateX(-3px);
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow);
         }
 
+        .back-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .page-heading {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            -webkit-text-stroke: 0.5px var(--nb-border);
+            margin: 0;
+        }
+
+        /* ── Level Overview Banner ── */
         .level-overview {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 255, 104, 0.05));
-            border: 1px solid var(--neon-gold);
-            border-radius: 16px;
-            padding: 20px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            padding: 24px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 20px;
             margin-bottom: 30px;
-        }
-        
-        .level-progress-bar {
-            flex: 1;
-            margin: 0 20px;
-            height: 12px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 6px;
+            box-shadow: var(--nb-shadow-lg);
+            position: relative;
             overflow: hidden;
-            border: 1px solid var(--glass-border);
+        }
+
+        .level-overview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background: var(--color-cta);
+            border-right: var(--nb-border-width) solid var(--nb-border);
+        }
+
+        .level-badge-box {
+            text-align: center;
+            padding-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .level-badge-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-family: var(--font-heading);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+
+        .level-badge-value {
+            font-size: 2.8rem;
+            font-family: var(--font-heading);
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1;
+            -webkit-text-stroke: 0.5px var(--nb-border);
+        }
+
+        .level-progress-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .level-progress-bar {
+            width: 100%;
+            height: 16px;
+            background: var(--bg-secondary);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: var(--nb-shadow-sm);
         }
         
         .level-progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+            background: var(--color-primary);
             width: 0%;
-            transition: width 0.5s ease;
+            transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-right: 2px solid var(--nb-border);
         }
 
+        .level-exp-box {
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .level-exp-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-family: var(--font-heading);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+
+        .level-exp-value {
+            font-size: 1.2rem;
+            font-family: var(--font-heading);
+            font-weight: 900;
+            color: var(--color-primary);
+        }
+
+        /* ── Milestone List ── */
         .milestone-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
 
         .milestone-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            background: var(--bg-card);
+            border: var(--nb-border-width) solid var(--nb-border);
+            border-radius: 4px;
             padding: 16px 20px;
             display: flex;
             align-items: center;
-            gap: 20px;
-            transition: all 0.3s;
+            gap: 18px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            box-shadow: var(--nb-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .milestone-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--nb-shadow-lg);
+        }
+
+        .milestone-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: var(--nb-border);
         }
 
         .milestone-card.unlocked {
-            border-color: rgba(0, 255, 104, 0.4);
-            background: rgba(0, 255, 104, 0.05);
+            background: #FFFDF5;
         }
-        
+
+        .milestone-card.unlocked::before {
+            background: var(--color-success);
+        }
+
         .milestone-card.claimed {
-            opacity: 0.6;
-            border-color: var(--glass-border);
-            background: rgba(0, 0, 0, 0.2);
+            opacity: 0.55;
+            background: var(--bg-secondary);
+            box-shadow: var(--nb-shadow-sm);
+        }
+
+        .milestone-card.claimed::before {
+            background: var(--text-muted);
         }
         
         .milestone-level {
-            font-size: 2rem;
+            font-size: 1.6rem;
             font-family: var(--font-heading);
-            color: var(--text-muted);
-            min-width: 60px;
+            font-weight: 900;
+            color: var(--text-primary);
+            min-width: 65px;
             text-align: center;
+            padding-left: 6px;
+            letter-spacing: -0.5px;
         }
         
         .unlocked .milestone-level {
-            color: var(--neon-gold);
-            
+            color: var(--color-primary);
         }
 
         .milestone-rewards {
             flex: 1;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
+            align-items: center;
         }
 
         .reward-chip {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--nb-border);
+            border-radius: 4px;
             padding: 6px 12px;
             font-size: 0.85rem;
-            display: flex;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
+            box-shadow: var(--nb-shadow-sm);
+            letter-spacing: 0.3px;
         }
         
-        .c-char { color: var(--neon-magenta); border-color: rgba(255,0,255,0.3); }
-        .c-item { color: var(--neon-cyan); display: flex; align-items: center; gap: 5px; }
-        .c-title { color: #fbbc04; }
+        .c-char {
+            color: var(--color-purple);
+            border-color: var(--nb-border);
+            background: #FAF5FF;
+        }
+
+        .c-item {
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .c-title {
+            color: #92400E;
+            background: #FFFBEB;
+        }
 
         .item-icon-inline {
             width: 18px;
@@ -151,27 +299,57 @@
             object-fit: contain;
         }
 
+        @media (max-width: 640px) {
+            .level-overview {
+                flex-direction: column;
+                text-align: center;
+                gap: 16px;
+            }
+            .level-badge-box { padding-left: 0; }
+            .milestone-card {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+                gap: 14px;
+            }
+            .milestone-rewards {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <div class="trial-page">
+    <!-- Loading Screen -->
+    <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);background-image:var(--comic-halftone);background-size:20px 20px;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="text-align:center;">
+            <div style="font-family:var(--font-heading);font-size:2rem;font-weight:900;color:var(--text-primary);-webkit-text-stroke:1px var(--nb-border);margin-bottom:16px;animation:pulse 1.5s infinite;">霓虹牌</div>
+            <div style="width:200px;height:12px;background:var(--bg-secondary);border:var(--nb-border-width) solid var(--nb-border);border-radius:4px;overflow:hidden;box-shadow:var(--nb-shadow-sm);margin:0 auto;">
+                <div style="height:100%;width:60%;background:var(--color-primary);animation:pulse 1s infinite;border-right:2px solid var(--nb-border);"></div>
+            </div>
+            <div style="font-family:var(--font-heading);font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-top:10px;">LOADING...</div>
+        </div>
+    </div>
+
+    <div class="trial-page" id="trialPage" style="display:none;">
         <div class="header-row">
             <a href="profile.html" class="back-btn">← 返回個人檔案</a>
-            <h1 style="margin:0;font-family:var(--font-heading);color:var(--neon-gold);">⚔️ 試煉之路</h1>
+            <h1 class="page-heading">⚔️ 試煉之路</h1>
         </div>
 
         <div class="level-overview">
-            <div style="text-align:center;">
-                <div style="color:var(--text-muted);font-size:0.8rem;">當前等級</div>
-                <div id="displayLevel" style="font-size:2.5rem;font-family:var(--font-heading);color:var(--text-primary);line-height:1;">0</div>
+            <div class="level-badge-box">
+                <div class="level-badge-label">當前等級</div>
+                <div id="displayLevel" class="level-badge-value">0</div>
             </div>
-            <div class="level-progress-bar">
-                <div class="level-progress-fill" id="expFill"></div>
+            <div class="level-progress-wrap">
+                <div class="level-progress-bar">
+                    <div class="level-progress-fill" id="expFill"></div>
+                </div>
             </div>
-            <div style="text-align:center;">
-                <div style="color:var(--text-muted);font-size:0.8rem;">目前經驗 / 升級所需</div>
-                <div id="displayExp" style="font-size:1.2rem;font-family:var(--font-heading);color:var(--neon-cyan);">0 / 50</div>
+            <div class="level-exp-box">
+                <div class="level-exp-label">目前經驗 / 升級所需</div>
+                <div id="displayExp" class="level-exp-value">0 / 50</div>
             </div>
         </div>
 
