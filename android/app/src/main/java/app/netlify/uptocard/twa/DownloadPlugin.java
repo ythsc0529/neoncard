@@ -212,14 +212,27 @@ public class DownloadPlugin extends Plugin {
         }
     }
 
+    private long getDownloadId(PluginCall call) {
+        if (call == null || call.getData() == null) return -1L;
+        Object val = call.getData().opt("downloadId");
+        if (val instanceof Number) {
+            return ((Number) val).longValue();
+        } else if (val instanceof String) {
+            try {
+                return Long.parseLong((String) val);
+            } catch (NumberFormatException ignored) {}
+        }
+        return -1L;
+    }
+
     /**
      * JS 呼叫：查詢下載進度（供 in-app UI 輪詢用）
      * @param downloadId  startDownload 回傳的 downloadId
-     * @return { bytesDownloaded, bytesTotal, status, isComplete, isFailed }
+     * @return { bytesDownloaded, bytesTotal, status, reason, isComplete, isFailed, isRunning, isPending, isPaused }
      */
     @PluginMethod
     public void checkDownload(PluginCall call) {
-        long id = call.getLong("downloadId", -1L);
+        long id = getDownloadId(call);
         if (id == -1) {
             call.reject("downloadId is required");
             return;
@@ -232,37 +245,91 @@ public class DownloadPlugin extends Plugin {
         if (dm == null) {
             result.put("isComplete", false);
             result.put("isFailed", true);
+            result.put("reason", -1);
             call.resolve(result);
             return;
         }
 
         DownloadManager.Query query = new DownloadManager.Query();
         query.setFilterById(id);
-        Cursor cursor = dm.query(query);
+        Cursor cursor = null;
+        try {
+            cursor = dm.query(query);
+            if (cursor != null && cursor.moveToFirst()) {
+                int bytesDownloadedIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
+                int bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES);
+                int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                int reasonIdx = cursor.getColumnIndex(DownloadManager.COLUMN_REASON);
 
-        if (cursor != null && cursor.moveToFirst()) {
-            int bytesDownloadedIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
-            int bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES);
-            int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                long bytesDownloaded = bytesDownloadedIdx != -1 ? cursor.getLong(bytesDownloadedIdx) : 0;
+                long bytesTotal = bytesTotalIdx != -1 ? cursor.getLong(bytesTotalIdx) : 0;
+                int status = statusIdx != -1 ? cursor.getInt(statusIdx) : 0;
+                int reason = reasonIdx != -1 ? cursor.getInt(reasonIdx) : 0;
 
-            long bytesDownloaded = cursor.getLong(bytesDownloadedIdx);
-            long bytesTotal = cursor.getLong(bytesTotalIdx);
-            int status = cursor.getInt(statusIdx);
-
-            result.put("bytesDownloaded", bytesDownloaded);
-            result.put("bytesTotal", bytesTotal);
-            result.put("status", status);
-            result.put("isComplete", status == DownloadManager.STATUS_SUCCESSFUL);
-            result.put("isFailed", status == DownloadManager.STATUS_FAILED);
-            cursor.close();
-        } else {
+                result.put("bytesDownloaded", bytesDownloaded);
+                result.put("bytesTotal", bytesTotal);
+                result.put("status", status);
+                result.put("reason", reason);
+                result.put("isComplete", status == DownloadManager.STATUS_SUCCESSFUL);
+                result.put("isFailed", status == DownloadManager.STATUS_FAILED);
+                result.put("isRunning", status == DownloadManager.STATUS_RUNNING);
+                result.put("isPending", status == DownloadManager.STATUS_PENDING);
+                result.put("isPaused", status == DownloadManager.STATUS_PAUSED);
+            } else {
+                result.put("bytesDownloaded", 0);
+                result.put("bytesTotal", 0);
+                result.put("isComplete", false);
+                result.put("isFailed", false);
+            }
+        } catch (Exception e) {
             result.put("bytesDownloaded", 0);
             result.put("bytesTotal", 0);
             result.put("isComplete", false);
             result.put("isFailed", false);
+            result.put("error", e.getMessage());
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
 
         call.resolve(result);
+    }
+
+    /**
+     * JS 呼叫：喚起系統安裝器安裝 APK
+     * @param fileName 儲存檔名（預設 neoncard_update.apk）
+     */
+    @PluginMethod
+    public void installApk(PluginCall call) {
+        String fileName = call.getString("fileName", "neoncard_update.apk");
+        Context context = getContext();
+        File apkFile = new File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName);
+        if (!apkFile.exists()) {
+            call.reject("APK file not found: " + fileName);
+            return;
+        }
+
+        try {
+            Intent installIntent = new Intent(Intent.ACTION_VIEW);
+            Uri apkUri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                apkUri = FileProvider.getUriForFile(
+                    context,
+                    context.getPackageName() + ".fileprovider",
+                    apkFile
+                );
+                installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+                apkUri = Uri.fromFile(apkFile);
+            }
+            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(installIntent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to launch installer: " + e.getMessage());
+        }
     }
 
     /**
@@ -270,10 +337,12 @@ public class DownloadPlugin extends Plugin {
      */
     @PluginMethod
     public void cancelDownload(PluginCall call) {
-        if (activeDownloadId != -1) {
+        long id = getDownloadId(call);
+        long targetId = id != -1 ? id : activeDownloadId;
+        if (targetId != -1) {
             DownloadManager dm = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
-            if (dm != null) dm.remove(activeDownloadId);
-            activeDownloadId = -1;
+            if (dm != null) dm.remove(targetId);
+            if (targetId == activeDownloadId) activeDownloadId = -1;
         }
         if (downloadReceiver != null) {
             try { getContext().unregisterReceiver(downloadReceiver); } catch (Exception ignored) {}

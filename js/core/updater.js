@@ -168,11 +168,11 @@ const Updater = (() => {
                 _startTime = Date.now();
 
                 // 向 Android DownloadManager 提交下載任務
-                const { downloadId } = await DownloadPlugin.startDownload({
+                const res = await DownloadPlugin.startDownload({
                     url: _apkDownloadUrl,
                     fileName: 'neoncard_update.apk'
                 });
-                _activeDownloadId = downloadId;
+                _activeDownloadId = res.downloadId;
 
                 // 更新 UI：通知使用者可以切換至後台
                 if (progressStatus) {
@@ -180,39 +180,65 @@ const Updater = (() => {
                 }
                 if (btn) btn.textContent = '下載中（後台）...';
 
-                // 啟動輪詢：每 2 秒更新 in-app 進度 UI
+                // 啟動輪詢：每 1 秒更新 in-app 進度 UI
                 _pollInterval = setInterval(async () => {
                     try {
                         const progress = await DownloadPlugin.checkDownload({ downloadId: _activeDownloadId });
-                        updateProgressUI(progress.bytesDownloaded || 0, progress.bytesTotal || 0);
+                        if (progress.bytesDownloaded > 0 || progress.bytesTotal > 0) {
+                            updateProgressUI(progress.bytesDownloaded || 0, progress.bytesTotal || 0);
+                        }
 
                         if (progress.isComplete) {
                             clearInterval(_pollInterval);
                             _pollInterval = null;
-                            // 下載完成！（Android 系統通知已由 DownloadPlugin 自動發出）
                             if (progressBar) progressBar.style.width = '100%';
                             if (progressPercent) progressPercent.textContent = '100%';
-                            if (progressStatus) progressStatus.textContent = '✅ 下載完成！請查看通知或稍候安裝提示。';
-                            if (btn) btn.textContent = '下載完成';
+                            if (progressStatus) progressStatus.textContent = '✅ 下載完成！正在啟動安裝程式...';
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.textContent = '立即安裝';
+                                btn.onclick = (e) => {
+                                    e.preventDefault();
+                                    DownloadPlugin.installApk({ fileName: 'neoncard_update.apk' }).catch(err => {
+                                        console.error('[Updater] installApk click failed:', err);
+                                    });
+                                };
+                            }
                             _isDownloading = false;
                             _activeDownloadId = null;
+
+                            // 自動喚起系統安裝器
+                            try {
+                                await DownloadPlugin.installApk({ fileName: 'neoncard_update.apk' });
+                                if (progressStatus) {
+                                    progressStatus.textContent = '✅ 下載完成！如未跳出安裝畫面，請點擊上方「立即安裝」或下拉通知欄。';
+                                }
+                            } catch (installErr) {
+                                console.warn('[Updater] Auto install prompt error:', installErr);
+                                if (progressStatus) {
+                                    progressStatus.textContent = '✅ 下載完成！請點擊上方「立即安裝」或下拉通知欄進行安裝。';
+                                }
+                            }
                         } else if (progress.isFailed) {
                             clearInterval(_pollInterval);
                             _pollInterval = null;
-                            throw new Error('DownloadManager 回報下載失敗');
+                            throw new Error('DownloadManager 回報下載失敗 (代碼: ' + (progress.reason || '未知') + ')');
                         }
                     } catch (pollErr) {
                         clearInterval(_pollInterval);
                         _pollInterval = null;
                         handleDownloadError(pollErr, btn, progressStatus);
                     }
-                }, 2000);
+                }, 1000);
 
                 return; // 成功啟動後台下載，函數到此結束
 
             } catch (pluginErr) {
                 console.warn('[Updater] DownloadPlugin failed, falling back to Filesystem:', pluginErr);
-                clearInterval(_pollInterval);
+                if (_pollInterval) {
+                    clearInterval(_pollInterval);
+                    _pollInterval = null;
+                }
                 // 繼續往下走，使用 Fallback 方案
             }
         }
@@ -255,7 +281,19 @@ const Updater = (() => {
             if (progressBar) progressBar.style.width = '100%';
             if (progressPercent) progressPercent.textContent = '100%';
             if (progressStatus) progressStatus.textContent = '下載完成，啟動安裝...';
-            if (btn) btn.textContent = '安裝中...';
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '立即安裝';
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    if (downloadResult.path) {
+                        FileOpener.open({
+                            filePath: downloadResult.path,
+                            contentType: 'application/vnd.android.package-archive'
+                        }).catch(console.error);
+                    }
+                };
+            }
 
             const filePath = downloadResult.path;
             if (!filePath) throw new Error('下載完成但未取得檔案路徑');
@@ -291,7 +329,14 @@ const Updater = (() => {
     function handleDownloadError(err, btn, progressStatus) {
         console.error('[Updater] Download failed:', err);
         if (progressStatus) progressStatus.textContent = '下載失敗：' + (err.message || err);
-        if (btn) { btn.disabled = false; btn.textContent = '重試下載'; }
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '重試下載';
+            btn.onclick = (e) => {
+                e.preventDefault();
+                startDownloadFlow();
+            };
+        }
         _isDownloading = false;
         _activeDownloadId = null;
     }
