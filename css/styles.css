@@ -1521,171 +1521,634 @@ body {
 .dice-face:nth-child(5) { transform: rotateX(90deg)   translateZ(50px); }
 .dice-face:nth-child(6) { transform: rotateX(-90deg)  translateZ(50px); }
 
-/* ========== PROBABILITY ROLL — NEUBRUTALISM ========== */
-.prob-panel {
+/* ========== PROBABILITY ROLL — NEO-BRUTALISM × MANGA / COMIC STYLE ========== */
+.comic-prob-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    perspective: 1000px;
+    background: radial-gradient(circle at center, rgba(10, 10, 10, 0.88) 0%, rgba(5, 5, 5, 0.96) 100%);
+}
+
+/* Dynamic Manga Speedlines Radial Background */
+.comic-speedlines {
+    position: absolute;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.14) 0deg 2.5deg,
+        transparent 2.5deg 8deg,
+        rgba(255, 255, 255, 0.08) 8deg 10.5deg,
+        transparent 10.5deg 16deg
+    );
+    pointer-events: none;
+    animation: comicSpeedSpin 20s linear infinite;
+    mix-blend-mode: screen;
+    z-index: 0;
+}
+
+@keyframes comicSpeedSpin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.comic-halftone-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px);
+    background-size: 12px 12px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Manga Floating Onomatopoeia (ドドドド…) */
+.comic-rumble-text {
+    position: absolute;
+    font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+    font-weight: 900;
+    font-size: 2.2rem;
+    color: #FFD700;
+    -webkit-text-stroke: 1.5px #000;
+    text-shadow: 3px 3px 0 #000;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.85;
+    letter-spacing: 4px;
+    animation: comicRumbleVibe 0.12s infinite alternate ease-in-out;
+}
+.comic-rumble-tl {
+    top: 8%;
+    left: 8%;
+    transform: rotate(-12deg);
+}
+.comic-rumble-br {
+    bottom: 8%;
+    right: 8%;
+    transform: rotate(10deg);
+}
+
+@keyframes comicRumbleVibe {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-4px) scale(1.05); }
+}
+
+/* Main Comic Panel (Neo-Brutalist Manga Cut-In Frame) */
+.comic-prob-panel {
+    position: relative;
+    z-index: 2;
+    background: #FFFDF8;
+    border: 4px solid #0A0A0A;
+    border-radius: 4px;
+    box-shadow: 10px 10px 0px #0A0A0A;
+    padding: 24px 28px 24px;
+    width: 90%;
+    max-width: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
-    animation: probContainerIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    background: var(--bg-card);
-    border: var(--nb-border-width) solid var(--nb-border);
+    gap: 16px;
+    transform: rotate(-1.5deg);
+    animation: comicPanelSlam 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+    overflow: visible;
+}
+
+@keyframes comicPanelSlam {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) rotate(-8deg) translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(-1.5deg) translateY(0);
+    }
+}
+
+/* Screen shake effect on verdict */
+.comic-prob-panel.impact-shake {
+    animation: comicImpactShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes comicImpactShake {
+    10%, 90% { transform: translate3d(-3px, 0, 0) rotate(-2deg); }
+    20%, 80% { transform: translate3d(5px, -2px, 0) rotate(-1deg); }
+    30%, 50%, 70% { transform: translate3d(-6px, 4px, 0) rotate(-2.5deg); }
+    40%, 60% { transform: translate3d(6px, -3px, 0) rotate(-0.5deg); }
+    100% { transform: translate3d(0, 0, 0) rotate(-1.5deg); }
+}
+
+/* Top Status Bar */
+.comic-prob-top-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.comic-prob-tag {
+    background: #0A0A0A;
+    color: #FFD700;
+    font-size: 0.75rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border: 2px solid #0A0A0A;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 2px 2px 0px #0A0A0A;
+}
+
+.comic-prob-tag .tag-hazard {
+    color: #FF4D1C;
+    font-weight: 900;
+}
+.comic-prob-tag .tag-sub {
+    color: #FFF;
+    font-size: 0.7rem;
+    margin-left: 2px;
+}
+
+.comic-prob-target-tag {
+    background: #FFE600;
+    color: #0A0A0A;
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    padding: 3px 10px;
+    border: 2px solid #0A0A0A;
+    box-shadow: 2px 2px 0px #0A0A0A;
+}
+.comic-prob-target-tag strong {
+    font-size: 0.95rem;
+    color: #0A0A0A;
+}
+
+/* Header Banner */
+.comic-prob-header-banner {
+    position: relative;
+    width: 100%;
+    background: #0A0A0A;
+    padding: 8px 16px;
+    transform: skewX(-4deg);
+    border: 2px solid #0A0A0A;
+    box-shadow: 4px 4px 0px #FF4D1C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comic-prob-header-text {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transform: skewX(4deg);
+    text-shadow: 2px 2px 0px #000;
+}
+
+/* Central Display: Comic Number Drum */
+.comic-drum-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0;
+    width: 100%;
+}
+
+.comic-bracket {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: #0A0A0A;
+    line-height: 1;
+    font-family: var(--font-heading);
+    user-select: none;
+}
+
+.comic-number-box {
+    position: relative;
+    background: #F0EDE4;
+    border: 3.5px solid #0A0A0A;
     border-radius: 4px;
-    padding: 32px 44px 28px;
-    box-shadow: var(--nb-shadow-xl);
-    min-width: 320px;
+    min-width: 150px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 4px 4px 0px rgba(0, 0, 0, 0.12), 4px 4px 0px #0A0A0A;
+    overflow: hidden;
+}
+
+/* Comic halftone pattern inside number box */
+.comic-number-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.05) 0px,
+        rgba(0, 0, 0, 0.05) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+    pointer-events: none;
+}
+
+.comic-number-val {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-heading);
+    font-size: 4.8rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #FF4D1C;
+    -webkit-text-stroke: 2.5px #0A0A0A;
+    text-shadow: 4px 4px 0px #0A0A0A;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+    transition: transform 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28), color 0.2s;
+}
+
+.comic-number-val.rolling-jitter {
+    animation: comicNumberJitter 0.08s infinite alternate;
+}
+
+@keyframes comicNumberJitter {
+    0% { transform: scale(0.98) translate(-1px, 1px); }
+    100% { transform: scale(1.02) translate(1px, -1px); }
+}
+
+.comic-number-val.num-success {
+    color: #00FF66;
+    -webkit-text-stroke: 2.5px #0A0A0A;
+    transform: scale(1.1);
+}
+
+.comic-number-val.num-fail {
+    color: #FF2A6D;
+    -webkit-text-stroke: 2.5px #0A0A0A;
+    transform: scale(1.1);
+}
+
+/* Dual-Zone Fate Gauge Section */
+.comic-gauge-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.comic-gauge-track-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 26px; /* space for pointer */
+}
+
+/* Moving pointer cursor */
+.comic-gauge-pointer-wrapper {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+    transition: none;
+    pointer-events: none;
+}
+
+.comic-pointer-arrow {
+    font-size: 1.6rem;
+    color: #FFD700;
+    -webkit-text-stroke: 2px #0A0A0A;
+    filter: drop-shadow(2px 2px 0px #0A0A0A);
+    line-height: 1;
+    animation: comicPointerBounce 0.25s infinite alternate;
+}
+
+@keyframes comicPointerBounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(3px); }
+}
+
+/* The Gauge Bar */
+.comic-gauge-bar {
+    position: relative;
+    width: 100%;
+    height: 28px;
+    background: #E5E0D8;
+    border: 3.5px solid #0A0A0A;
+    border-radius: 4px;
+    box-shadow: 3px 3px 0px #0A0A0A;
+    display: flex;
+    overflow: hidden;
+}
+
+.comic-gauge-zone {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
     overflow: hidden;
 }
 
-/* Comic halftone corner decoration */
-.prob-panel::before {
-    content: '';
+.comic-gauge-zone.zone-success {
+    background: #00FF66;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(0,0,0,0.08) 0px,
+        rgba(0,0,0,0.08) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+}
+
+.comic-gauge-zone.zone-fail {
+    background: #FF2A6D;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(0,0,0,0.12) 0px,
+        rgba(0,0,0,0.12) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+}
+
+.zone-label-text {
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #0A0A0A;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    opacity: 0.9;
+    padding: 0 4px;
+}
+
+/* Threshold pin */
+.comic-thresh-pin {
     position: absolute;
-    inset: 0;
-    background: var(--comic-halftone);
-    background-size: 14px 14px;
-    opacity: 0.3;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 3px;
+    background: #0A0A0A;
+    z-index: 3;
     pointer-events: none;
 }
 
-.prob-skill-name {
+.comic-thresh-pin::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #FFD700;
+    border: 1.5px solid #0A0A0A;
+    border-radius: 50%;
+}
+
+.comic-thresh-flag {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0A0A0A;
+    color: #FFD700;
+    font-size: 0.65rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    padding: 1px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+}
+
+/* Gauge Legend */
+.comic-gauge-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-heading);
     font-size: 0.75rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    animation: probTitleGlow 0.5s ease-out both;
-    font-family: var(--font-heading);
-    position: relative;
-    z-index: 1;
+    font-weight: 800;
+    color: var(--text-secondary);
+    padding: 0 2px;
+    margin-top: 14px;
 }
 
-.prob-header {
-    font-size: 1.4rem;
-    font-weight: 900;
-    font-family: var(--font-heading);
-    color: var(--text-primary);
-    margin-bottom: 24px;
-    letter-spacing: -0.5px;
-    animation: probTitleGlow 0.6s 0.1s ease-out both;
-    position: relative;
-    z-index: 1;
-    text-transform: uppercase;
-    border-bottom: 3px solid var(--nb-border);
-    padding-bottom: 8px;
+.legend-item.legend-win span {
+    color: #00FF66;
+    -webkit-text-stroke: 1px #0A0A0A;
 }
 
-.prob-gauge-wrap {
-    position: relative;
-    width: 220px;
-    height: 220px;
-    margin-bottom: 16px;
-    z-index: 1;
+.legend-item.legend-lose span {
+    color: #FF2A6D;
+    -webkit-text-stroke: 1px #0A0A0A;
 }
 
-.prob-gauge-wrap svg { overflow: visible; }
-
-.prob-center-text {
+/* Climax Verdict Stamp Overlay */
+.comic-verdict-overlay {
     position: absolute;
     inset: 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
+    z-index: 10;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
 }
 
-.prob-roll-num {
-    font-size: 3rem;
-    font-weight: 900;
-    font-family: var(--font-heading);
-    color: var(--color-primary);
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    transition: color 0.3s;
-    -webkit-text-stroke: 1px var(--nb-border);
+.comic-verdict-overlay.show {
+    opacity: 1;
 }
 
-.prob-roll-num.success-color {
-    color: var(--color-success);
-    -webkit-text-stroke: 1px #166534;
-}
-
-.prob-roll-num.fail-color {
-    color: var(--color-danger);
-    -webkit-text-stroke: 1px #991B1B;
-}
-
-.prob-roll-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 2px;
-    font-weight: 700;
-    font-family: var(--font-heading);
-}
-
-.prob-threshold {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: 14px;
-    letter-spacing: 1px;
-    font-weight: 700;
+.comic-verdict-stamp {
     position: relative;
-    z-index: 1;
-}
-
-.prob-threshold span {
-    color: #92400E;
-    font-weight: 900;
-    background: var(--color-cta);
-    padding: 2px 6px;
-    border-radius: 2px;
-    border: 2px solid var(--nb-border);
-}
-
-.prob-result-badge {
-    display: none;
+    padding: 16px 28px;
+    border: 4.5px solid #0A0A0A;
+    border-radius: 6px;
+    box-shadow: 8px 8px 0px #0A0A0A;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 10px 28px;
-    border-radius: 4px;
-    font-size: 1.3rem;
-    font-weight: 900;
-    font-family: var(--font-heading);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    animation: probResultPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    border: var(--nb-border-width) solid var(--nb-border);
-    position: relative;
-    z-index: 1;
+    text-align: center;
+    gap: 4px;
+    transform: scale(2.5) rotate(-6deg);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
-.prob-result-badge.success {
-    background: var(--color-success);
-    color: #FFFFFF;
-    box-shadow: var(--nb-shadow);
+.comic-verdict-stamp.slam-active {
+    opacity: 1;
+    transform: scale(1) rotate(-3.5deg);
+    animation: stampSlamBounce 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
 }
 
-.prob-result-badge.fail {
-    background: var(--color-danger);
-    color: #FFFFFF;
-    box-shadow: var(--nb-shadow);
+@keyframes stampSlamBounce {
+    0% {
+        transform: scale(2.6) rotate(-15deg);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(0.92) rotate(-2deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) rotate(-3.5deg);
+        opacity: 1;
+    }
 }
 
-.prob-particle {
+.comic-verdict-stamp.stamp-success {
+    background: #FFE600;
+    background-image: radial-gradient(#00FF66 20%, transparent 20%);
+    background-size: 8px 8px;
+    border-color: #0A0A0A;
+}
+
+.comic-verdict-stamp.stamp-fail {
+    background: #FF2A6D;
+    background-image: radial-gradient(#0A0A0A 15%, transparent 15%);
+    background-size: 8px 8px;
+    border-color: #0A0A0A;
+    transform: scale(1) rotate(3deg);
+}
+.comic-verdict-stamp.stamp-fail.slam-active {
+    transform: scale(1) rotate(2.5deg);
+}
+
+.stamp-onomatopoeia {
     position: absolute;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    top: -18px;
+    right: -12px;
+    background: #0A0A0A;
+    color: #FFF;
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border: 2px solid #FFF;
+    box-shadow: 3px 3px 0px #0A0A0A;
+    transform: rotate(10deg);
+}
+
+.stamp-main-text {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.stamp-success .stamp-main-text {
+    color: #0A0A0A;
+    text-shadow: 2px 2px 0px #FFF;
+}
+
+.stamp-fail .stamp-main-text {
+    color: #FFFFFF;
+    text-shadow: 3px 3px 0px #0A0A0A;
+}
+
+.stamp-sub-text {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: #0A0A0A;
+    color: #FFFFFF;
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-top: 4px;
+}
+
+.stamp-success .stamp-sub-text {
+    color: #00FF66;
+}
+
+.stamp-fail .stamp-sub-text {
+    color: #FFD700;
+}
+
+/* Comic Explosive Particles */
+.comic-particle {
+    position: absolute;
     top: 50%;
     left: 50%;
     pointer-events: none;
-    animation: probParticleFly 0.8s ease-out forwards;
-    border: 2px solid var(--nb-border);
+    z-index: 15;
+    animation: comicParticleBurst 0.9s cubic-bezier(0.12, 0.8, 0.33, 1) forwards;
+    border: 2px solid #0A0A0A;
+}
+
+.comic-particle.shape-star {
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.comic-particle.shape-square {
+    border-radius: 2px;
+}
+
+@keyframes comicParticleBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--px)), calc(-50% + var(--py))) scale(1.2) rotate(var(--prot));
+        opacity: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .comic-prob-panel {
+        padding: 18px 16px 18px;
+        width: 94%;
+        gap: 12px;
+    }
+    .comic-prob-header-text {
+        font-size: 1.15rem;
+    }
+    .comic-number-box {
+        min-width: 120px;
+        height: 80px;
+    }
+    .comic-number-val {
+        font-size: 3.8rem;
+    }
+    .comic-bracket {
+        font-size: 2.8rem;
+    }
+    .comic-verdict-stamp {
+        padding: 12px 18px;
+    }
+    .stamp-main-text {
+        font-size: 1.45rem;
+    }
+    .comic-rumble-text {
+        font-size: 1.6rem;
+    }
 }
 
 /* ========== RANDOM NUMBER GENERATOR — NEUBRUTALISM ========== */

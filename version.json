@@ -1,8 +1,8 @@
 {
-  "version": "2.4.3",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.4.3/app-debug.apk",
+  "version": "2.5.0",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.5.0/app-debug.apk",
   "notes": [
-    "修復遊戲內更新下載時誤報「下載失敗」的型別解析問題。",
-    "優化更新下載體驗：支援下載完成後自動喚起安裝程式與按鈕即時狀態切換。"
+    "全新重構「新粗獷主義 × 漫畫風格」機率判定動畫：動態漫畫集中速度線背景、特寫分鏡框、雙區命運量表與滑動指針。",
+    "新增震撼全螢幕打擊震動、巨型數字滾輪與漫畫狀聲字（BAM!! / GAHN!!）終結蓋章特效。"
   ]
 }

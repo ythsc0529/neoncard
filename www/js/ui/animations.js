@@ -164,192 +164,194 @@ const Animations = {
         });
     },
 
-    // Probability roll animation — arc-gauge redesign
+    // Probability roll animation — Neo-Brutalism × Manga / Comic Style
     async probabilityRoll(chance, description = '') {
-        if (window.SoundManager) SoundManager.play('pos');
+        if (window.SoundManager) SoundManager.play('random');
         return new Promise(resolve => {
             try {
                 this.show();
-                // Decide result NOW so the gauge sweep aims for the correct zone
                 const rolled = Math.floor(window.GameRandom() * 100) + 1; // 1-100
                 const success = rolled <= chance;
-
-                // ── SVG arc helpers ──────────────────────────────────────────
-                // Full circle circumference for r=66: 2π×66 ≈ 414.7  → use 419 (slight gap)
-                const R = 66, CX = 110, CY = 110;
-                const CIRC = 2 * Math.PI * R;   // ≈ 414.7
-
-                // dashoffset for a given 0-100 value (0% = full circle hidden → sweeping CW)
-                const offsetFor = v => CIRC - (v / 100) * CIRC;
-
-                // Threshold marker: angle on circle for `chance`%
-                const threshAngle = (chance / 100) * 360 - 90; // start from top
-                const threshRad = (threshAngle * Math.PI) / 180;
-                const tx1 = CX + (R - 12) * Math.cos(threshRad);
-                const ty1 = CY + (R - 12) * Math.sin(threshRad);
-                const tx2 = CX + (R + 12) * Math.cos(threshRad);
-                const ty2 = CY + (R + 12) * Math.sin(threshRad);
-
-                // Arc fill colour: cyan during roll → green or red on result
-                const fillColor = success ? '#0aff68' : '#ff4466';
-                const glowColor = success ? '10,255,104' : '255,68,102';
-
-                // dashoffset for rolled value (animation end point)
-                const endOffset = offsetFor(rolled);
+                const clampedChance = Math.max(1, Math.min(99, Math.round(chance)));
 
                 this.container.innerHTML = `
-                    <div class="prob-panel">
-                        <div class="prob-skill-name">機率判定</div>
-                        <div class="prob-header">${description || '擲骰判定'}</div>
+                    <div class="comic-prob-stage">
+                        <!-- Dynamic Manga Speedlines & Halftone Background -->
+                        <div class="comic-speedlines"></div>
+                        <div class="comic-halftone-overlay"></div>
 
-                        <div class="prob-gauge-wrap">
-                            <svg width="220" height="220" viewBox="0 0 220 220">
-                                <!-- Background track -->
-                                <circle id="probTrack"
-                                    cx="${CX}" cy="${CY}" r="${R}"
-                                    fill="none"
-                                    stroke="rgba(255,255,255,0.07)"
-                                    stroke-width="14"
-                                    stroke-linecap="round"
-                                />
-                                <!-- Fill arc -->
-                                <circle id="probArc"
-                                    cx="${CX}" cy="${CY}" r="${R}"
-                                    fill="none"
-                                    stroke="#00f3ff"
-                                    stroke-width="14"
-                                    stroke-linecap="round"
-                                    stroke-dasharray="${CIRC.toFixed(2)}"
-                                    stroke-dashoffset="${CIRC.toFixed(2)}"
-                                    transform="rotate(-90 ${CX} ${CY})"
-                                    style="filter: drop-shadow(0 0 8px #00f3ff);"
-                                />
-                                <!-- Threshold tick mark -->
-                                <line id="probThresh"
-                                    x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}"
-                                    x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}"
-                                    stroke="var(--neon-gold)"
-                                    stroke-width="3"
-                                    stroke-linecap="round"
-                                    opacity="0"
-                                />
-                                <!-- Threshold label -->
-                                <text id="probThreshLabel"
-                                    x="${CX}" y="200"
-                                    text-anchor="middle"
-                                    fill="rgba(255,215,0,0.7)"
-                                    font-size="11"
-                                    font-family="Outfit, sans-serif"
-                                    font-weight="600"
-                                    letter-spacing="1"
-                                    opacity="0"
-                                >${chance}% 門檻</text>
-                            </svg>
+                        <!-- Tension Onomatopoeia -->
+                        <div class="comic-rumble-text comic-rumble-tl">ドドドド…</div>
+                        <div class="comic-rumble-text comic-rumble-br">ゴゴゴゴ…</div>
 
-                            <!-- Centre readout -->
-                            <div class="prob-center-text">
-                                <span class="prob-roll-num" id="probNum">--</span>
-                                <span class="prob-roll-label" id="probNumLabel">擲骰中</span>
+                        <!-- Main Comic Frame -->
+                        <div class="comic-prob-panel" id="comicProbPanel">
+                            <!-- Top Status Row -->
+                            <div class="comic-prob-top-bar">
+                                <div class="comic-prob-tag">
+                                    <span class="tag-hazard">///</span> PROBABILITY CHECK <span class="tag-sub">運命の判定</span>
+                                </div>
+                                <div class="comic-prob-target-tag">
+                                    目標 <strong>≤ ${chance}%</strong>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Threshold info row -->
-                        <div class="prob-threshold">需 ≤ <span>${chance}</span> 方可通過</div>
+                            <!-- Header Title Banner -->
+                            <div class="comic-prob-header-banner">
+                                <div class="comic-prob-header-text">${description || '機率判定'}</div>
+                            </div>
 
-                        <!-- Result badge (hidden until reveal) -->
-                        <div class="prob-result-badge" id="probBadge">
-                            ${success ? '✓ 判定通過' : '✗ 判定失敗'}
+                            <!-- Central Display: Comic Number Drum -->
+                            <div class="comic-drum-section">
+                                <div class="comic-bracket bracket-l">【</div>
+                                <div class="comic-number-box" id="comicNumBox">
+                                    <div class="comic-number-val rolling-jitter" id="comicNumVal">--</div>
+                                </div>
+                                <div class="comic-bracket bracket-r">】</div>
+                            </div>
+
+                            <!-- Fate Gauge Section (Dual Zone) -->
+                            <div class="comic-gauge-section">
+                                <div class="comic-gauge-track-wrap">
+                                    <!-- Pointer that glides horizontally -->
+                                    <div class="comic-gauge-pointer-wrapper" id="comicPointerWrap" style="left: 10%;">
+                                        <div class="comic-pointer-arrow">▼</div>
+                                    </div>
+
+                                    <!-- Dual Zone Bar -->
+                                    <div class="comic-gauge-bar">
+                                        <!-- Success Zone (0% -> chance%) -->
+                                        <div class="comic-gauge-zone zone-success" style="width: ${clampedChance}%;">
+                                            <span class="zone-label-text">SUCCESS 成功</span>
+                                        </div>
+                                        <!-- Danger/Miss Zone (chance% -> 100%) -->
+                                        <div class="comic-gauge-zone zone-fail" style="width: ${100 - clampedChance}%;">
+                                            <span class="zone-label-text">FAIL 失敗</span>
+                                        </div>
+
+                                        <!-- Threshold Divider Pin -->
+                                        <div class="comic-thresh-pin" style="left: ${clampedChance}%;">
+                                            <div class="comic-thresh-flag">${chance}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="comic-gauge-legend">
+                                    <div class="legend-item legend-win"><span>■</span> ≤ ${chance}% 通過</div>
+                                    <div class="legend-item legend-lose"><span>■</span> &gt; ${chance}% 失敗</div>
+                                </div>
+                            </div>
+
+                            <!-- Climax Verdict Stamp Overlay -->
+                            <div class="comic-verdict-overlay" id="comicVerdictOverlay">
+                                <div class="comic-verdict-stamp ${success ? 'stamp-success' : 'stamp-fail'}" id="comicVerdictStamp">
+                                    <div class="stamp-onomatopoeia">${success ? 'ズバッ!! BAM!!' : 'ガーン… GAHN!!'}</div>
+                                    <div class="stamp-main-text">
+                                        ${success ? '💥 判定通過！' : '💀 判定失敗！'}
+                                    </div>
+                                    <div class="stamp-sub-text">
+                                        ${success ? `CRITICAL SUCCESS [ 點數 ${rolled} ≤ ${chance} ]` : `FAILED / MISS [ 點數 ${rolled} > ${chance} ]`}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
 
-                const arcEl = document.getElementById('probArc');
-                const numEl = document.getElementById('probNum');
-                const labelEl = document.getElementById('probNumLabel');
-                const threshEl = document.getElementById('probThresh');
-                const threshLblEl = document.getElementById('probThreshLabel');
-                const badgeEl = document.getElementById('probBadge');
-                const gaugeWrap = this.container.querySelector('.prob-gauge-wrap');
+                const panelEl = document.getElementById('comicProbPanel');
+                const numEl = document.getElementById('comicNumVal');
+                const pointerEl = document.getElementById('comicPointerWrap');
+                const verdictOverlay = document.getElementById('comicVerdictOverlay');
+                const verdictStamp = document.getElementById('comicVerdictStamp');
 
-                if (!arcEl || !numEl) {
+                if (!panelEl || !numEl || !pointerEl) {
                     this.hide();
                     resolve(success);
                     return;
                 }
 
-                // ── Phase 1: Rolling numbers (0 → 1000 ms) ───────────────────
-                const rollDuration = 1000;
+                let isResolved = false;
+                const finish = () => {
+                    if (isResolved) return;
+                    isResolved = true;
+                    this.hide();
+                    resolve(success);
+                };
+
+                // Click to skip / speed up close
+                this.container.onclick = () => {
+                    if (Date.now() - rollStart > 1100) {
+                        finish();
+                    }
+                };
+
+                // ── Phase 1: High Energy Rolling Numbers (0 → 800ms) ───────────
+                const rollDuration = 800;
                 const rollStart = Date.now();
 
                 const rollLoop = () => {
                     const elapsed = Date.now() - rollStart;
                     if (elapsed < rollDuration) {
                         const fakeVal = Math.floor(Math.random() * 100) + 1;
-                        numEl.textContent = fakeVal;
-                        // Animate arc to fake value — use setAttribute for SVG compat
-                        arcEl.setAttribute('stroke-dashoffset', offsetFor(fakeVal));
-                        arcEl.style.transition = 'stroke-dashoffset 0.08s linear';
+                        numEl.textContent = fakeVal.toString().padStart(2, '0');
+                        // Gliding jitter pointer
+                        pointerEl.style.left = (10 + Math.random() * 80) + '%';
                         requestAnimationFrame(rollLoop);
                     } else {
-                        // ── Phase 2: Slow-down sweep to real value ──
-                        numEl.textContent = rolled;
-                        arcEl.style.transition =
-                            'stroke-dashoffset 0.55s cubic-bezier(0.22,1,0.36,1), ' +
-                            'stroke 0.35s ease, filter 0.35s ease';
-                        arcEl.setAttribute('stroke-dashoffset', endOffset);
-                        arcEl.style.stroke = fillColor;
-                        arcEl.style.filter = `drop-shadow(0 0 10px ${fillColor})`;
+                        // ── Phase 2: Decelerate & Snap to Real Value (800ms) ───
+                        numEl.textContent = rolled.toString().padStart(2, '0');
+                        numEl.classList.remove('rolling-jitter');
+                        numEl.classList.add(success ? 'num-success' : 'num-fail');
 
-                        numEl.className = `prob-roll-num ${success ? 'success-color' : 'fail-color'}`;
-                        labelEl.textContent = rolled <= chance ? '通過' : '未通過';
+                        // Snap pointer smoothly to exact location
+                        pointerEl.style.transition = 'left 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+                        pointerEl.style.left = Math.max(2, Math.min(98, rolled)) + '%';
 
-                        // Show threshold marker
+                        // ── Phase 3: Impact Slam & Climax Stamp (1050ms) ──────
                         setTimeout(() => {
-                            threshEl.style.transition = 'opacity 0.3s';
-                            threshEl.style.opacity = '1';
-                            threshLblEl.style.transition = 'opacity 0.3s';
-                            threshLblEl.style.opacity = '1';
-                        }, 200);
+                            panelEl.classList.add('impact-shake');
+                            verdictOverlay.classList.add('show');
+                            verdictStamp.classList.add('slam-active');
 
-                        // ── Phase 3: Result badge + particles (after sweep) ──
-                        setTimeout(() => {
-                            // Show badge
-                            badgeEl.className = `prob-result-badge ${success ? 'success' : 'fail'}`;
-                            badgeEl.style.display = 'flex';
+                            if (window.SoundManager) {
+                                SoundManager.play(success ? 'win' : 'fail');
+                            }
 
-                            // Particle burst
-                            const PARTICLE_COUNT = 18;
+                            // Particle explosion burst
+                            const PARTICLE_COUNT = 22;
                             const pColors = success
-                                ? ['#0aff68', '#00f3ff', '#ffffff', '#80ffb4']
-                                : ['#ff4466', '#ff0055', '#ffcc44', '#ff8888'];
+                                ? ['#00FF66', '#FFE600', '#FFFFFF', '#00F0FF', '#FF4D1C']
+                                : ['#FF2A6D', '#EF4444', '#0A0A0A', '#FFE600', '#FFFFFF'];
+
                             for (let i = 0; i < PARTICLE_COUNT; i++) {
                                 const p = document.createElement('div');
-                                p.className = 'prob-particle';
-                                const angle = (i / PARTICLE_COUNT) * 360;
-                                const dist = 60 + Math.random() * 60;
+                                const isStar = i % 2 === 0;
+                                p.className = `comic-particle ${isStar ? 'shape-star' : 'shape-square'}`;
+                                const angle = (i / PARTICLE_COUNT) * 360 + (Math.random() * 20 - 10);
+                                const dist = 70 + Math.random() * 90;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
+                                const rot = Math.floor(Math.random() * 360) + 'deg';
                                 p.style.setProperty('--px', px + 'px');
                                 p.style.setProperty('--py', py + 'px');
+                                p.style.setProperty('--prot', rot);
                                 p.style.background = pColors[i % pColors.length];
-                                p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (4 + Math.random() * 6) + 'px';
-                                p.style.height = p.style.width;
-                                gaugeWrap.style.position = 'relative';
-                                gaugeWrap.appendChild(p);
-                                setTimeout(() => p.remove(), 900);
+                                const size = (6 + Math.random() * 8) + 'px';
+                                p.style.width = size;
+                                p.style.height = size;
+                                panelEl.appendChild(p);
+                                setTimeout(() => p.remove(), 950);
                             }
-                        }, 600);
+                        }, 250);
                     }
                 };
                 requestAnimationFrame(rollLoop);
 
-                // ── Auto-close ───────────────────────────────────────────────
+                // ── Phase 4: Auto-resolve and close (2300ms) ──────────────────
                 setTimeout(() => {
-                    this.hide();
-                    resolve(success);
-                }, 2800);
+                    finish();
+                }, 2300);
 
             } catch (e) {
                 console.error("Animation Error:", e);
@@ -427,17 +429,18 @@ const Animations = {
                             const pColors = ['#ffd700', '#ffb700', '#ffffff', '#ffea00'];
                             for (let i = 0; i < PARTICLE_COUNT; i++) {
                                 const p = document.createElement('div');
-                                p.className = 'prob-particle'; // reuse prob-particle css
+                                p.className = 'comic-particle shape-star';
                                 const angle = (i / PARTICLE_COUNT) * 360;
                                 const dist = 40 + Math.random() * 40;
                                 const rad = (angle * Math.PI) / 180;
                                 const px = Math.cos(rad) * dist;
                                 const py = Math.sin(rad) * dist;
+                                const rot = Math.floor(Math.random() * 360) + 'deg';
                                 p.style.setProperty('--px', px + 'px');
                                 p.style.setProperty('--py', py + 'px');
+                                p.style.setProperty('--prot', rot);
                                 p.style.background = pColors[i % pColors.length];
-                                p.style.boxShadow = `0 0 6px ${pColors[i % pColors.length]}`;
-                                p.style.width = (3 + Math.random() * 5) + 'px';
+                                p.style.width = (4 + Math.random() * 6) + 'px';
                                 p.style.height = p.style.width;
                                 wrapEl.appendChild(p);
                                 setTimeout(() => p.remove(), 900);
