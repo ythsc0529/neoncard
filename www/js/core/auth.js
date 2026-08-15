@@ -37,22 +37,11 @@ const AuthManager = (() => {
             requestNativePermissions();
         }
 
-        // [核心] 檢查是否有從瀏覽器跳回來的登入結果
+        // [核心] 監聽登入狀態變化（Popup 模式不需要 getRedirectResult）
         if (_auth) {
             _auth.onAuthStateChanged(user => {
                 _currentUser = user;
                 _onAuthCallbacks.forEach(cb => cb(user));
-            });
-
-            _auth.getRedirectResult().then((result) => {
-                if (result.user) {
-                    console.log("[Auth] 已透過瀏覽器跳轉成功登入:", result.user);
-                    _currentUser = result.user;
-                }
-            }).catch((error) => {
-                if (error.code !== "auth/no-auth-event") {
-                    console.error("[Auth] 跳轉登入發生錯誤:", error);
-                }
             });
         }
     }
@@ -72,7 +61,6 @@ const AuthManager = (() => {
     async function signInWithGoogle() {
         if (!_auth) init();
 
-        // [診斷] 先跳出視窗告訴我們偵測到了什麼環境
         const platform = (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : "unknown";
         console.log("[Auth] 當前偵測平台:", platform);
 
@@ -86,7 +74,7 @@ const AuthManager = (() => {
                 }
 
                 const result = await FirebaseAuthentication.signInWithGoogle();
-                
+
                 if (result.credential && result.credential.idToken) {
                     const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
                     return _auth.signInWithCredential(credential);
@@ -99,12 +87,11 @@ const AuthManager = (() => {
                 throw error;
             }
         } else {
-            // 只有在真的網頁版才執行 Redirect
-            alert("偵測為網頁環境，執行網頁版登入...");
+            // 網頁版使用 Popup 登入，避免現代瀏覽器封鎖跨域 Cookie 導致 Redirect 後登入狀態傳遞失敗
             await _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
-            return _auth.signInWithRedirect(provider);
+            return _auth.signInWithPopup(provider);
         }
     }
 

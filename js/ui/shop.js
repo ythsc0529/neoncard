@@ -502,9 +502,9 @@ function showGachaModal(results) {
     stage.style.setProperty('--gacha-best', bestInfo.color);
     stage.style.setProperty('--gacha-glow', bestInfo.glow);
     stage.innerHTML = buildGachaStageMarkup(sorted.length, bestInfo);
-    if (title) title.textContent = sorted.length > 1 ? '十連抽獎啟動' : '抽獎啟動';
-    if (hint) hint.textContent = '點擊能量核心，讓獎池開始轉動';
-    if (skipBtn) skipBtn.textContent = '快速啟動';
+    if (title) title.textContent = sorted.length > 1 ? 'PULL!!' : 'GO!!';
+    if (hint) hint.textContent = '點擊啟動，讓命運決定！';
+    if (skipBtn) skipBtn.textContent = '▶ 啟動抽獎';
     if (revealBtn) revealBtn.style.visibility = 'hidden';
 
     gachaAnimState = {
@@ -530,29 +530,18 @@ function showGachaModal(results) {
 }
 
 function buildGachaStageMarkup(total, bestInfo) {
-    const label = total > 1 ? `${total} DRAW` : 'SINGLE DRAW';
+    const label = total > 1 ? `${total} DRAW COMBO` : 'SINGLE DRAW';
     return `
-        <div class="gacha-machine" role="button" aria-label="啟動抽獎">
-            <div class="gacha-portal"></div>
-            <div class="gacha-summon-gate"></div>
-            <div class="gacha-core">
-                <div class="gacha-core-icon">${total > 1 ? '✦' : '♦'}</div>
+        <div class="comic-launch-frame" role="button" aria-label="啟動抽獎">
+            <div class="comic-boom-text" data-label="${label}">
+                ${ total > 1 ? 'PULL!!' : 'GO!!'}
             </div>
-            <div class="gacha-prompt">TAP TO CHARGE · ${label}</div>
-            <div class="gacha-energy-track"><div class="gacha-energy-fill"></div></div>
+            <div class="comic-draw-count">${total > 1 ? `${total} 連抜` : '單次抽取'}</div>
+            <button class="comic-tap-btn">▶ TAP TO DRAW</button>
+            <!-- BOOM overlay -->
+            <div class="comic-explode-overlay">BOOM!!</div>
         </div>
-        ${buildBurstRays(bestInfo.color)}
     `;
-}
-
-function buildBurstRays(color) {
-    let html = '';
-    for (let i = 0; i < 14; i++) {
-        const angle = (Math.PI * 2 * i) / 14;
-        const dist = 130 + (i % 3) * 18;
-        html += `<span class="gacha-burst" style="left:50%;top:50%;background:${color};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation-delay:${i * 0.025}s;"></span>`;
-    }
-    return html;
 }
 
 function createGachaCard(r, idx) {
@@ -561,12 +550,9 @@ function createGachaCard(r, idx) {
     const el = document.createElement('div');
     el.className = 'gc-card';
     el.dataset.rarity = r.rarity;
-    el.style.cssText = `
-        --card-color: ${info.color};
-        --card-glow: ${info.glow};
-        --card-bg: ${info.bg};
-        animation-delay: ${idx * 0.07}s;
-    `;
+
+    // Random slight tilt for comic feel
+    const tilt = (Math.random() * 6 - 3).toFixed(1);
 
     const rarityBackIcon = {
         MYTHIC: '◆', LEGENDARY: '✦', EPIC: '✧',
@@ -577,12 +563,18 @@ function createGachaCard(r, idx) {
         ? `+${EXP_CONVERSION[r.rarity] || 30} EXP`
         : '重複';
 
+    el.style.cssText = `
+        --card-color: ${info.color};
+        --tilt: ${tilt}deg;
+        animation-delay: ${idx * 0.065}s;
+    `;
+
     el.innerHTML = `
         <div class="gc-card-inner">
-            <div class="gc-card-back" style="border-color:${info.color};box-shadow:inset 0 0 30px ${info.glow},0 0 20px ${info.glow};">
-                <div class="gc-card-back-pattern" style="background-image:repeating-linear-gradient(45deg,${info.color}18 0,${info.color}18 1px,transparent 0,transparent 50%);background-size:16px 16px;"></div>
-                <div class="gc-card-back-icon" style="color:${info.color};filter:drop-shadow(0 0 12px ${info.color});">${rarityBackIcon}</div>
-                <div style="font-size:0.6rem;font-family:var(--font-heading);letter-spacing:2px;color:${info.color};opacity:0.7;margin-top:4px;">${info.label}</div>
+            <div class="gc-card-back" style="border-color:${info.color}">
+                <div class="gc-card-back-pattern"></div>
+                <div class="gc-card-back-icon">${rarityBackIcon}</div>
+                <div class="gc-card-back-label">${info.label}</div>
             </div>
             <div class="gc-card-front">
                 <div class="gc-rarity-band">${rarityLabel}</div>
@@ -610,10 +602,11 @@ function beginGachaReveal() {
     const skipBtn = document.getElementById('btnSkipAnim');
     const revealBtn = document.getElementById('btnRevealAll');
 
+    // Trigger BOOM explosion overlay
     if (stage) stage.classList.add('is-opening');
-    if (title) title.textContent = '獎勵展開';
-    if (hint) hint.textContent = '點擊卡片翻開。稀有獎勵會有更強的光效。';
-    if (skipBtn) skipBtn.textContent = '翻開全部';
+    if (title) title.textContent = 'FLIP IT!!';
+    if (hint) hint.textContent = '點擊卡片翻開。稀有獎勵會有漫畫間點效果。';
+    if (skipBtn) skipBtn.textContent = '▶ 翻開全部';
     triggerHaptic('Medium');
 
     setTimeout(() => {
@@ -621,17 +614,18 @@ function beginGachaReveal() {
         if (container) container.classList.remove('is-hidden');
         if (revealBtn) revealBtn.style.visibility = 'visible';
         if (gachaAnimState.total === 1 && gachaAnimState.cards[0]) {
-            setTimeout(() => revealGachaCard(gachaAnimState.cards[0]), 520);
+            setTimeout(() => revealGachaCard(gachaAnimState.cards[0]), 480);
         }
-    }, 620);
+    }, 500);
 }
 
 function revealGachaCard(cardEl) {
     if (!gachaAnimState || !gachaAnimState.opened || !cardEl || cardEl.classList.contains('revealed')) return;
     const info = RARITY_INFO[cardEl.dataset.rarity] || RARITY_INFO.COMMON;
+    const isDupe = cardEl.querySelector('.gc-status.is-dupe') !== null;
     cardEl.classList.add('revealed');
     gachaAnimState.revealed++;
-    spawnParticles(cardEl, info.color, cardEl.dataset.rarity);
+    spawnComicPop(cardEl, info, isDupe, cardEl.dataset.rarity);
     triggerHaptic(['MYTHIC', 'LEGENDARY'].includes(cardEl.dataset.rarity) ? 'Heavy' : 'Light');
 
     if (gachaAnimState.revealed >= gachaAnimState.total) {
@@ -639,23 +633,54 @@ function revealGachaCard(cardEl) {
     }
 }
 
-function spawnParticles(cardEl, color, rarity = 'COMMON') {
+function spawnComicPop(cardEl, info, isDupe, rarity) {
     const rect = cardEl.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const count = ['MYTHIC', 'LEGENDARY'].includes(rarity) ? 22 : 12;
-    for (let i = 0; i < count; i++) {
-        const p = document.createElement('div');
-        const angle = (i / count) * Math.PI * 2;
-        const dist = 54 + Math.random() * (['MYTHIC', 'LEGENDARY'].includes(rarity) ? 96 : 58);
-        p.style.cssText = `
-            position:fixed; left:${cx}px; top:${cy}px; width:6px; height:6px;
-            background:${color}; border-radius:50%; pointer-events:none;
-            z-index:99999; box-shadow:0 0 8px ${color};
-            --dx:${Math.cos(angle)*dist}px; --dy:${Math.sin(angle)*dist}px;
-            animation: particleFly 0.62s ease-out forwards;`;
-        document.body.appendChild(p);
-        setTimeout(() => p.remove(), 720);
+    const cy = rect.top + rect.height / 3;
+
+    // Comic pop bubble
+    const bubble = document.createElement('div');
+    bubble.className = 'comic-pop-bubble';
+    if (isDupe) {
+        bubble.classList.add('is-dupe');
+        bubble.textContent = `+${EXP_CONVERSION[rarity] || 30} EXP`;
+    } else if (['MYTHIC', 'LEGENDARY'].includes(rarity)) {
+        bubble.classList.add('is-mythic');
+        bubble.textContent = rarity === 'MYTHIC' ? '\u795e\u8a71\u51fa\u73fe!!' : '\u50b3\u8aaa\u964d\u81e8!!';
+    } else {
+        bubble.classList.add('is-new');
+        bubble.textContent = 'NEW!!';
+    }
+    bubble.style.cssText = `left:${cx}px; top:${cy - 30}px; transform: translateX(-50%);`;
+    document.body.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 1350);
+
+    // Speed lines burst (replaces old particle orbs)
+    const lineCount = ['MYTHIC', 'LEGENDARY'].includes(rarity) ? 10 : 6;
+    for (let i = 0; i < lineCount; i++) {
+        const angle = (i / lineCount) * 360;
+        const line = document.createElement('div');
+        const dist = 50 + Math.random() * (['MYTHIC', 'LEGENDARY'].includes(rarity) ? 70 : 40);
+        line.style.cssText = `
+            position:fixed;
+            left:${cx}px; top:${cy}px;
+            width:${18 + Math.random()*24}px; height:3px;
+            background:${info.color};
+            border: 1px solid #0A0A0A;
+            transform-origin: left center;
+            transform: rotate(${angle}deg);
+            pointer-events:none; z-index:99999;
+            --ddx:${Math.cos(angle * Math.PI/180) * dist}px;
+            animation: comicLineFly 0.4s ease-out forwards;
+            animation-delay: ${i * 0.03}s;`;
+        document.body.appendChild(line);
+        setTimeout(() => line.remove(), 550);
+    }
+
+    // Shake card on rare reveal
+    if (['MYTHIC', 'LEGENDARY'].includes(rarity)) {
+        cardEl.classList.add('shake-anim');
+        setTimeout(() => cardEl.classList.remove('shake-anim'), 400);
     }
 }
 
@@ -691,10 +716,9 @@ function markGachaComplete() {
 function resetGachaFooter() {
     const btn = document.getElementById('btnSkipAnim');
     if (!btn) return;
-    btn.style.background = 'rgba(255,255,255,0.03)';
-    btn.style.borderColor = 'var(--neon-cyan)';
-    btn.style.color = 'var(--neon-cyan)';
-    btn.style.boxShadow = '';
+    btn.classList.remove('is-done');
+    btn.style.cssText = '';
+    btn.textContent = '\u25b6 \u555f\u52d5\u62bd\u734e';
 }
 
 function closeGachaModal() {

@@ -1,8 +1,8 @@
 {
-  "version": "2.4.1",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.4.1/app-debug.apk",
+  "version": "2.4.2",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.4.2/app-debug.apk",
   "notes": [
-    "修復 App 啟動時自動檢查新版本並彈出更新視窗之機制。",
-    "優化更新下載器載入與通知監聽邏輯。"
+    "全新「漫畫 × 新粗獷主義」商店抽獎動畫正式上線！",
+    "重構抽獎特效、開牌動態與視覺回饋效果。"
   ]
 }
