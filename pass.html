@@ -3,8 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>霓虹牌 - 通行證</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>霓虹牌 - 賽季通行證 (BATTLE PASS)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=Noto+Sans+TC:wght@500;700;900&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -17,504 +20,1608 @@
     <script src="js/ui/soundManager.js"></script>
     <script src="js/core/notificationManager.js"></script>
     <style>
+        :root {
+            --comic-black: #0A0A0A;
+            --comic-yellow: #FFD700;
+            --comic-orange: #FF4D1C;
+            --comic-blue: #3B82F6;
+            --comic-cyan: #00D2FF;
+            --comic-green: #10B981;
+            --comic-purple: #8B5CF6;
+            --comic-paper: #FFFBF0;
+            --comic-paper-dark: #F5EEDB;
+            --comic-card: #FFFFFF;
+            --comic-border: 3px solid #0A0A0A;
+            --comic-border-thick: 4px solid #0A0A0A;
+            --comic-shadow-sm: 2px 2px 0px #0A0A0A;
+            --comic-shadow: 4px 4px 0px #0A0A0A;
+            --comic-shadow-lg: 6px 6px 0px #0A0A0A;
+            --comic-shadow-xl: 8px 8px 0px #0A0A0A;
+        }
+
         body {
-            background-color: var(--bg-dark);
-            background-image: var(--comic-halftone);
-            background-size: 20px 20px;
+            background-color: var(--comic-paper);
+            background-image: radial-gradient(circle, #0A0A0A 1.1px, transparent 1.1px);
+            background-size: 18px 18px;
             min-height: 100vh;
-            color: var(--text-primary);
+            color: var(--comic-black);
+            font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
         }
 
-        .pass-page {
-            max-width: 960px;
+        /* ── Loading Screen ── */
+        #pageLoading {
+            position: fixed;
+            inset: 0;
+            background: var(--comic-paper);
+            background-image: radial-gradient(circle, #0A0A0A 1.2px, transparent 1.2px);
+            background-size: 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
+
+        .loading-box {
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow-xl);
+            padding: 32px 40px;
+            text-align: center;
+            transform: rotate(-1deg);
+            max-width: 90%;
+        }
+
+        .loading-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: var(--comic-orange);
+            -webkit-text-stroke: 1.5px #0A0A0A;
+            margin-bottom: 12px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        .loading-bar-wrap {
+            width: 240px;
+            max-width: 100%;
+            height: 16px;
+            background: var(--comic-paper-dark);
+            border: 3px solid #0A0A0A;
+            box-shadow: var(--comic-shadow-sm);
+            overflow: hidden;
+            margin: 0 auto 12px;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            width: 60%;
+            background: repeating-linear-gradient(45deg, var(--comic-yellow), var(--comic-yellow) 10px, var(--comic-orange) 10px, var(--comic-orange) 20px);
+            animation: comicBarMove 1s linear infinite;
+        }
+
+        @keyframes comicBarMove {
+            from { background-position: 0 0; }
+            to { background-position: 28px 0; }
+        }
+
+        /* ── Pass Main Container ── */
+        .pass-container {
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 28px 20px 40px;
+            padding: 16px 16px 60px;
         }
 
-        /* ── Header ── */
-        .header-row {
+        /* ── Header Row ── */
+        .pass-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .back-btn {
+        .comic-back-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: var(--text-primary);
+            background: #FFFFFF;
+            color: #0A0A0A;
             text-decoration: none;
-            font-family: var(--font-heading);
-            font-weight: 700;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            padding: 8px 16px;
-            background: var(--bg-card);
-            box-shadow: var(--nb-shadow-sm);
-            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            font-weight: 900;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            padding: 10px 18px;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
         }
 
-        .back-btn:hover {
+        .comic-back-btn:hover {
+            background: var(--comic-yellow);
             transform: translate(-2px, -2px);
-            box-shadow: var(--nb-shadow);
+            box-shadow: var(--comic-shadow-lg);
         }
 
-        .back-btn:active {
+        .comic-back-btn:active {
             transform: translate(3px, 3px);
             box-shadow: none;
         }
 
-        .season-badge {
-            background: var(--color-cta);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            padding: 6px 14px;
-            font-family: var(--font-heading);
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: var(--nb-border);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            box-shadow: var(--nb-shadow-sm);
-        }
-
-        /* ── Pass Overview Banner ── */
-        .pass-overview {
-            background: var(--bg-card);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            padding: 28px 32px;
-            margin-bottom: 32px;
+        .header-badges {
             display: flex;
             align-items: center;
-            gap: 24px;
-            box-shadow: var(--nb-shadow-lg);
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .season-countdown-badge {
+            background: #FFFFFF;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow);
+            padding: 8px 16px;
+            font-weight: 900;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: rotate(1deg);
+        }
+
+        .season-countdown-badge span.highlight {
+            color: var(--comic-orange);
+            background: #FFE4DC;
+            padding: 2px 6px;
+            border: 2px solid #0A0A0A;
+        }
+
+        .mission-quick-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--comic-cyan);
+            color: #0A0A0A;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 0.85rem;
+            padding: 8px 14px;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow-sm);
+            transition: transform 0.08s ease;
+        }
+
+        .mission-quick-link:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--comic-shadow);
+            background: #38bdf8;
+        }
+
+        /* ── Hero Showcase Section ── */
+        .hero-showcase-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr 0.95fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-showcase-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .hero-card-grand {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .hero-showcase-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-card-grand {
+                grid-column: span 1;
+            }
+        }
+
+        .hero-card {
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow-lg);
+            padding: 20px;
             position: relative;
             overflow: hidden;
-        }
-
-        /* Comic accent stripe */
-        .pass-overview::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 8px;
-            height: 100%;
-            background: var(--color-primary);
-            border-right: var(--nb-border-width) solid var(--nb-border);
-        }
-
-        .pass-overview-left {
-            flex: 1;
-            padding-left: 12px;
-        }
-
-        .pass-overview-right {
-            text-align: right;
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            gap: 12px;
-            flex-shrink: 0;
+            justify-content: space-between;
         }
 
-        .pass-title {
-            font-family: var(--font-heading);
-            font-size: 2.2rem;
+        /* Comic Corner Sticker */
+        .comic-sticker {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+            border: 2px solid #0A0A0A;
+            box-shadow: var(--comic-shadow-sm);
+            font-size: 0.72rem;
             font-weight: 900;
-            color: var(--text-primary);
-            letter-spacing: -1px;
-            margin-bottom: 4px;
-            -webkit-text-stroke: 1px var(--nb-border);
-        }
-
-        .pass-title span {
-            color: var(--color-primary);
-        }
-
-        .pass-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 18px;
-            font-weight: 500;
+            padding: 3px 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            transform: rotate(3deg);
+            z-index: 2;
         }
 
-        /* ── Progress Bar ── */
-        .pass-progress {
+        /* Card 1: Pass Progress */
+        .pass-hero-title-row {
+            margin-bottom: 12px;
+        }
+
+        .pass-hero-tag {
+            display: inline-block;
+            background: var(--comic-orange);
+            color: #FFFFFF;
+            font-size: 0.72rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            transform: rotate(-1.5deg);
+        }
+
+        .pass-hero-title {
+            font-size: 1.85rem;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -0.5px;
+            color: #0A0A0A;
+            text-transform: uppercase;
+        }
+
+        .pass-hero-title span {
+            color: var(--comic-orange);
+            -webkit-text-stroke: 0.5px #0A0A0A;
+        }
+
+        .level-progress-block {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 14px 0 10px;
+            background: var(--comic-paper);
+            border: var(--comic-border);
+            padding: 12px 14px;
+            box-shadow: var(--comic-shadow-sm);
+        }
+
+        .level-shield-badge {
+            width: 58px;
+            height: 58px;
+            background: var(--comic-orange);
+            border: 3px solid #0A0A0A;
+            box-shadow: var(--comic-shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #FFFFFF;
+            transform: rotate(-3deg);
+        }
+
+        .level-shield-badge .lv-lbl {
+            font-size: 0.62rem;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .level-shield-badge .lv-num {
+            font-size: 1.7rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .exp-gauge-container {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exp-gauge-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            font-weight: 900;
+        }
+
+        .exp-gauge-info .exp-val {
+            color: var(--comic-orange);
+            font-size: 0.95rem;
+        }
+
+        .comic-gauge-bar {
+            width: 100%;
+            height: 16px;
+            background: #FFFFFF;
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comic-gauge-fill {
+            height: 100%;
+            width: 0%;
+            background: repeating-linear-gradient(45deg, var(--comic-yellow), var(--comic-yellow) 10px, #F59E0B 10px, #F59E0B 20px);
+            border-right: 2px solid #0A0A0A;
+            transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .comic-rule-callout {
+            background: #FEF3C7;
+            border: 2px solid #0A0A0A;
+            padding: 8px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #78350F;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        /* Card 2: Grand Prize Spotlight (Clean Badge / Text-driven) */
+        .hero-card-grand {
+            background: linear-gradient(135deg, #FFF8E7 0%, #FFE9C2 100%);
+            border: var(--comic-border-thick);
+            position: relative;
+        }
+
+        .hero-card-grand::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1.5px, transparent 1.5px);
+            background-size: 12px 12px;
+            pointer-events: none;
+        }
+
+        .grand-prize-header {
+            position: relative;
+            z-index: 1;
+        }
+
+        .grand-prize-content {
             display: flex;
             align-items: center;
             gap: 14px;
+            margin: 12px 0;
+            position: relative;
+            z-index: 1;
         }
 
-        .pass-level-badge {
-            width: 52px;
-            height: 52px;
-            background: var(--color-primary);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
+        .grand-emblem-badge {
+            width: 64px;
+            height: 64px;
+            background: var(--comic-yellow);
+            border: 3px solid #0A0A0A;
+            box-shadow: var(--comic-shadow);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-family: var(--font-heading);
-            font-size: 1.5rem;
+            flex-shrink: 0;
+            transform: rotate(-2deg);
+            color: #0A0A0A;
             font-weight: 900;
-            color: #FFFFFF;
-            box-shadow: var(--nb-shadow-sm);
+        }
+
+        .grand-emblem-badge .emblem-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+
+        .grand-emblem-badge .emblem-txt {
+            font-size: 0.55rem;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .grand-info {
+            flex: 1;
+        }
+
+        .grand-info .grand-tag {
+            font-size: 0.7rem;
+            font-weight: 900;
+            color: #92400E;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .grand-info .grand-name {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #0A0A0A;
+            line-height: 1.2;
+            margin: 2px 0 4px;
+        }
+
+        .grand-info .grand-sub {
+            font-size: 0.78rem;
+            color: #6B7280;
+            font-weight: 700;
+        }
+
+        .grand-action-badge {
+            background: #FFFFFF;
+            border: 2px solid #0A0A0A;
+            box-shadow: var(--comic-shadow-sm);
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Card 3: Premium Unlock */
+        .hero-card-premium {
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .premium-status-unlocked {
+            background: #ECFDF5;
+            border: 3px solid var(--comic-green);
+            padding: 14px;
+            box-shadow: var(--comic-shadow-sm);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .premium-status-unlocked .vip-crown {
+            font-size: 1.8rem;
+            margin-bottom: 2px;
+        }
+
+        .premium-status-unlocked .vip-title {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #065F46;
+        }
+
+        .premium-status-unlocked .vip-desc {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #047857;
+            margin-top: 4px;
+        }
+
+        .premium-perks-list {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .premium-perks-list li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .premium-perks-list li span.bullet {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: var(--comic-yellow);
+            border: 1.5px solid #0A0A0A;
+            font-size: 0.7rem;
+            font-weight: 900;
             flex-shrink: 0;
         }
 
-        .progress-bar {
-            flex: 1;
-            height: 14px;
-            background: var(--bg-secondary);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: var(--nb-shadow-sm);
+        .unlock-btn-wrap {
+            margin-top: auto;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--color-primary);
-            width: 0%;
-            transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            border-right: 2px solid var(--nb-border);
-        }
-
-        .progress-label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            font-family: var(--font-heading);
-        }
-
-        /* ── Premium Status ── */
-        .premium-badge {
-            background: var(--color-cta);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            padding: 6px 14px;
-            font-family: var(--font-heading);
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: var(--nb-border);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            box-shadow: var(--nb-shadow-sm);
-        }
-
-        .free-badge {
-            background: var(--bg-secondary);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            padding: 6px 14px;
-            font-family: var(--font-heading);
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        /* ── Track Container ── */
-        .pass-track-section {
-            background: var(--bg-card);
-            border: var(--nb-border-width) solid var(--nb-border);
-            border-radius: 4px;
-            box-shadow: var(--nb-shadow);
-            overflow: hidden;
-        }
-
-        .track-header {
-            display: grid;
-            grid-template-columns: 110px 1fr;
-            border-bottom: var(--nb-border-width) solid var(--nb-border);
-        }
-
-        .track-header-label {
-            padding: 12px 16px;
-            border-right: var(--nb-border-width) solid var(--nb-border);
-        }
-
-        .track-header-scroll {
-            overflow-x: auto;
-        }
-
-        .track-content {
-            display: grid;
-            grid-template-columns: 110px 1fr;
-        }
-
-        .track-labels {
-            display: flex;
-            flex-direction: column;
-            border-right: var(--nb-border-width) solid var(--nb-border);
-        }
-
-        .track-label {
-            height: 130px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 0 16px;
-            text-align: right;
-            font-family: var(--font-heading);
+        .btn-comic-unlock {
+            width: 100%;
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow);
+            padding: 12px 14px;
+            font-family: inherit;
             font-size: 0.95rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: var(--nb-border-width) solid var(--nb-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
         }
 
-        .track-label:last-child {
+        .btn-comic-unlock:hover {
+            background: #FBBF24;
+            transform: translate(-2px, -2px);
+            box-shadow: var(--comic-shadow-lg);
+        }
+
+        .btn-comic-unlock:active {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .token-inventory-tip {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #6B7280;
+            text-align: center;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        /* ── Control Action Bar ── */
+        .pass-action-bar {
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .action-bar-left, .action-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-comic-action {
+            background: #FFFFFF;
+            color: #0A0A0A;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow-sm);
+            padding: 8px 14px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+        }
+
+        .btn-comic-action:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--comic-shadow);
+            background: var(--comic-paper);
+        }
+
+        .btn-comic-action:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .btn-comic-claim-all {
+            background: var(--comic-orange);
+            color: #FFFFFF;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow);
+            padding: 9px 18px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+            position: relative;
+        }
+
+        .btn-comic-claim-all:hover:not(:disabled) {
+            background: #E03E10;
+            transform: translate(-2px, -2px);
+            box-shadow: var(--comic-shadow-lg);
+        }
+
+        .btn-comic-claim-all:active:not(:disabled) {
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        .btn-comic-claim-all:disabled {
+            background: #9CA3AF;
+            color: #E5E7EB;
+            cursor: not-allowed;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            opacity: 0.85;
+        }
+
+        .claim-count-pill {
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+            font-size: 0.72rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1.5px solid #0A0A0A;
+        }
+
+        .pass-stats-pill {
+            background: var(--comic-paper);
+            border: 2px solid #0A0A0A;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pass-stats-pill span.stat-item {
+            color: #4B5563;
+        }
+
+        .pass-stats-pill span.stat-item strong {
+            color: var(--comic-orange);
+            font-size: 0.95rem;
+        }
+
+        .scroll-nav-btn {
+            width: 36px;
+            height: 36px;
+            background: #FFFFFF;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+        }
+
+        .scroll-nav-btn:hover {
+            background: var(--comic-yellow);
+            transform: translate(-1px, -1px);
+            box-shadow: var(--comic-shadow);
+        }
+
+        .scroll-nav-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        /* ── Main Dual-Track Battle Pass Section ── */
+        .pass-track-wrapper {
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .track-grid-layout {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            position: relative;
+        }
+
+        @media (max-width: 640px) {
+            .track-grid-layout {
+                grid-template-columns: 110px 1fr;
+            }
+        }
+
+        /* Left Header Column */
+        .track-lane-headers {
+            border-right: var(--comic-border-thick);
+            background: var(--comic-paper);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            position: relative;
+            box-shadow: 4px 0 0 rgba(0,0,0,0.06);
+        }
+
+        .lane-header-cell {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 14px 12px;
+            border-bottom: var(--comic-border);
+            position: relative;
+        }
+
+        .lane-header-cell:last-child {
             border-bottom: none;
         }
 
-        .label-premium {
-            color: var(--nb-border);
-            background: var(--color-cta);
+        .lane-header-premium {
+            height: 160px;
+            background: linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 100%);
+            border-bottom: var(--comic-border-thick);
         }
 
-        .label-free {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
-        }
-
-        .track-scroll {
-            overflow-x: auto;
-            padding: 0;
-        }
-
-        .track-levels {
+        .lane-header-axis {
+            height: 52px;
+            background: #0A0A0A;
+            color: #FFFFFF;
+            border-bottom: var(--comic-border-thick);
             display: flex;
-            gap: 0;
-            padding: 0;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 8px;
         }
 
-        /* ── Level Column ── */
-        .level-column {
+        .lane-header-free {
+            height: 160px;
+            background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+        }
+
+        .lane-badge {
+            font-size: 0.65rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border: 1.5px solid #0A0A0A;
+            display: inline-block;
+            width: fit-content;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lane-badge.gold {
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+        }
+
+        .lane-badge.blue {
+            background: var(--comic-cyan);
+            color: #0A0A0A;
+        }
+
+        .lane-title {
+            font-size: 1rem;
+            font-weight: 900;
+            line-height: 1.15;
+            color: #0A0A0A;
+        }
+
+        .lane-sub {
+            font-size: 0.7rem;
+            color: #6B7280;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Scrollable Columns Section */
+        .track-scroll-pane {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            background: #FFFFFF;
+            position: relative;
+        }
+
+        .track-scroll-pane::-webkit-scrollbar {
+            height: 12px;
+        }
+
+        .track-scroll-pane::-webkit-scrollbar-track {
+            background: var(--comic-paper-dark);
+            border-top: 2px solid #0A0A0A;
+        }
+
+        .track-scroll-pane::-webkit-scrollbar-thumb {
+            background: var(--comic-orange);
+            border: 2px solid #0A0A0A;
+            box-shadow: inset 1px 1px 0 #FFF;
+        }
+
+        .track-levels-grid {
+            display: flex;
+            width: max-content;
+            position: relative;
+        }
+
+        /* Single Level Column (Width 140px) */
+        .level-node-column {
+            width: 140px;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            border-right: 2px solid #E5E7EB;
             position: relative;
-            border-right: 2px solid var(--bg-secondary);
-        }
-
-        .level-column:last-child {
-            border-right: none;
-        }
-
-        .level-num {
-            width: 100%;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-heading);
-            font-size: 0.75rem;
-            font-weight: 900;
-            color: var(--text-muted);
-            background: var(--bg-secondary);
-            border-bottom: var(--nb-border-width) solid var(--nb-border);
-            text-transform: uppercase;
-        }
-
-        .level-num.unlocked-num {
-            background: var(--color-primary);
-            color: #FFFFFF;
-        }
-
-        /* Level indicator injected by pass.js */
-        .level-indicator {
-            width: 110px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-heading);
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: var(--text-muted);
-            background: var(--bg-secondary);
-            border-top: 2px solid var(--nb-border);
-            border-bottom: 2px solid var(--nb-border);
             flex-shrink: 0;
+            transition: background 0.15s ease;
         }
 
-        /* ── Reward Box ── */
-        .reward-box {
-            width: 110px;
-            height: 130px;
+        .level-node-column.current-active-col {
+            background: rgba(255, 215, 0, 0.08);
+            border-right-color: #0A0A0A;
+        }
+
+        .level-node-column.current-active-col::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-left: 2px dashed var(--comic-orange);
+            border-right: 2px dashed var(--comic-orange);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* ── Reward Card Styles ── */
+        .reward-card-slot {
+            height: 160px;
+            padding: 10px 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 10px 8px;
             position: relative;
             cursor: pointer;
-            transition: transform 0.08s ease, background 0.15s ease;
-            border-bottom: 2px solid var(--bg-secondary);
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.1s ease, background 0.15s ease;
+            box-sizing: border-box;
         }
 
-        .reward-box:hover {
-            background: var(--glass-bg-hover);
+        .reward-card-slot.slot-premium {
+            border-bottom: var(--comic-border-thick);
+            background: #FFFDF7;
         }
 
-        .reward-box.premium {
-            background: #FFFBEB;
+        .reward-card-slot.slot-free {
+            background: #FFFFFF;
         }
 
-        .reward-box.unlocked {
-            background: #F0FDF4;
+        .reward-card-inner {
+            width: 100%;
+            height: 100%;
+            background: #FFFFFF;
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0px #0A0A0A;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            position: relative;
+            border-radius: 2px;
+            overflow: hidden;
+            transition: transform 0.1s ease, border-color 0.1s ease;
         }
 
-        .reward-box.unlocked::after {
-            content: '可領取';
+        .reward-card-slot:hover .reward-card-inner {
+            transform: translateY(-2px);
+            box-shadow: 3px 3px 0px #0A0A0A;
+            border-color: var(--comic-orange);
+        }
+
+        /* Card States: Empty, Locked, Claimable, Claimed */
+        .reward-card-slot.state-empty .reward-card-inner {
+            background: var(--comic-paper);
+            border: 2px dashed #D1D5DB;
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .reward-card-slot.state-empty .reward-card-inner .empty-label {
+            font-size: 0.72rem;
+            color: #9CA3AF;
+            font-weight: 700;
+        }
+
+        .reward-card-slot.state-locked .reward-card-inner {
+            background: #F9FAFB;
+            opacity: 0.85;
+        }
+
+        .reward-card-slot.state-locked .lock-corner-badge {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            background: var(--color-success);
+            top: 4px;
+            right: 4px;
+            background: #E5E7EB;
+            color: #4B5563;
+            border: 1px solid #0A0A0A;
+            font-size: 0.65rem;
+            padding: 1px 4px;
+            font-weight: 900;
+            border-radius: 2px;
+        }
+
+        .reward-card-slot.state-locked.locked-premium .reward-card-inner {
+            background: #FFF1F2;
+            border-color: #FDA4AF;
+        }
+
+        .reward-card-slot.state-locked.locked-premium .lock-corner-badge {
+            background: #FFE4E6;
+            color: #E11D48;
+        }
+
+        /* Claimable state (High excitement!) */
+        .reward-card-slot.state-claimable .reward-card-inner {
+            background: #FEF3C7;
+            border: 2.5px solid var(--comic-orange);
+            box-shadow: 3px 3px 0px #0A0A0A;
+            animation: claimablePulse 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes claimablePulse {
+            0% { transform: scale(1); box-shadow: 3px 3px 0px #0A0A0A; }
+            100% { transform: scale(1.02); box-shadow: 4px 4px 0px var(--comic-orange); }
+        }
+
+        .claim-action-tag {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--comic-orange);
             color: #FFFFFF;
-            font-family: var(--font-heading);
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             font-weight: 900;
             padding: 2px 5px;
-            border-radius: 2px;
-            border: 1px solid var(--nb-border);
+            border: 1.5px solid #0A0A0A;
+            box-shadow: 1px 1px 0 #0A0A0A;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            z-index: 3;
+            animation: bounceAction 0.8s infinite alternate ease-in-out;
         }
 
-        .reward-box.claimed {
-            opacity: 0.4;
+        @keyframes bounceAction {
+            from { transform: translateY(0); }
+            to { transform: translateY(-3px); }
         }
 
-        .reward-box.locked-premium {
-            background: #FFF1F2;
-            opacity: 0.7;
+        /* Claimed state (Stamped!) */
+        .reward-card-slot.state-claimed .reward-card-inner {
+            background: #F3F4F6;
+            opacity: 0.55;
+            cursor: pointer;
         }
 
-        .locked-icon {
+        .claimed-ink-stamp {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            font-size: 0.75rem;
-            opacity: 0.6;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            background: rgba(16, 185, 129, 0.92);
+            color: #FFFFFF;
+            border: 2px dashed #0A0A0A;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 3px 8px;
+            white-space: nowrap;
+            letter-spacing: 1px;
+            z-index: 4;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            text-transform: uppercase;
         }
 
-        .r-icon {
-            font-size: 2rem;
+        /* Card inner contents */
+        .r-thumb-wrap {
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 6px;
+            position: relative;
+        }
+
+        .r-thumb-img {
+            max-width: 48px;
+            max-height: 48px;
+            object-fit: contain;
+            filter: drop-shadow(1px 2px 0px rgba(0,0,0,0.25));
+        }
+
+        .r-thumb-emoji {
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+
+        .r-item-name {
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: #0A0A0A;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .r-qty-tag {
+            font-size: 0.68rem;
+            font-weight: 900;
+            color: var(--comic-orange);
+            background: #FFE4DC;
+            border: 1px solid #0A0A0A;
+            padding: 1px 5px;
+            border-radius: 2px;
+            margin-top: 2px;
+            display: inline-block;
+        }
+
+        /* ── Center Level Axis Row ── */
+        .level-axis-slot {
+            height: 52px;
+            background: #F3F4F6;
+            border-bottom: var(--comic-border-thick);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .level-axis-slot::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 4px;
+            background: #D1D5DB;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .level-axis-slot.reached-axis::before {
+            background: var(--comic-orange);
+        }
+
+        .level-circle-badge {
+            width: 36px;
+            height: 36px;
+            background: #FFFFFF;
+            border: 2.5px solid #0A0A0A;
+            box-shadow: 2px 2px 0px #0A0A0A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.88rem;
+            font-weight: 900;
+            color: #0A0A0A;
+            position: relative;
+            z-index: 2;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .level-axis-slot.reached-axis .level-circle-badge {
+            background: var(--comic-orange);
+            color: #FFFFFF;
+            border-color: #0A0A0A;
+        }
+
+        .level-axis-slot.current-tier-axis .level-circle-badge {
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+            transform: scale(1.15);
+            box-shadow: 3px 3px 0px #0A0A0A;
+        }
+
+        /* "YOU ARE HERE" comic pointer tooltip */
+        .current-pin-bubble {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--comic-yellow);
+            color: #0A0A0A;
+            border: 1.5px solid #0A0A0A;
+            box-shadow: 1.5px 1.5px 0 #0A0A0A;
+            font-size: 0.58rem;
+            font-weight: 900;
+            padding: 1px 5px;
+            white-space: nowrap;
+            z-index: 10;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .current-pin-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 4px 4px 0;
+            border-style: solid;
+            border-color: var(--comic-yellow) transparent transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* ── Comic Modal Styles ── */
+        .comic-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 10, 0.75);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+
+        .comic-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .comic-modal-box {
+            background: var(--comic-paper);
+            background-image: radial-gradient(circle, #0A0A0A 1px, transparent 1px);
+            background-size: 16px 16px;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow-xl);
+            width: 460px;
+            max-width: 100%;
+            padding: 28px;
+            position: relative;
+            transform: translateY(12px) scale(0.95);
+            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .comic-modal-overlay.active .comic-modal-box {
+            transform: translateY(0) scale(1);
+        }
+
+        .comic-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 32px;
+            height: 32px;
+            background: #FFFFFF;
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            font-size: 1.1rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.08s ease;
+        }
+
+        .comic-modal-close:hover {
+            background: #EF4444;
+            color: #FFF;
+            transform: translate(-1px, -1px);
+        }
+
+        .modal-comic-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-comic-tag {
+            display: inline-block;
+            background: var(--comic-yellow);
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .modal-comic-title {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #0A0A0A;
+            letter-spacing: -0.5px;
+        }
+
+        .modal-reward-body {
+            background: #FFFFFF;
+            border: 3px solid #0A0A0A;
+            box-shadow: var(--comic-shadow);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-reward-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 12px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .r-name {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            line-height: 1.2;
+        .modal-reward-icon img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .modal-reward-name {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #0A0A0A;
+            margin-bottom: 4px;
+        }
+
+        .modal-reward-desc {
+            font-size: 0.85rem;
+            color: #4B5563;
             font-weight: 600;
+            line-height: 1.4;
         }
 
-        .reward-icon-img {
-            width: 48px;
-            height: 48px;
+        .modal-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 900;
+            padding: 4px 12px;
+            border: 2px solid #0A0A0A;
+            margin-top: 12px;
+        }
+
+        .btn-modal-action {
+            width: 100%;
+            background: var(--comic-orange);
+            color: #FFFFFF;
+            border: var(--comic-border);
+            box-shadow: var(--comic-shadow);
+            padding: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+        }
+
+        .btn-modal-action:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--comic-shadow-lg);
+            background: #E03E10;
+        }
+
+        .btn-modal-action:active:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .btn-modal-action:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ── Batch Claim Summary Grid ── */
+        .batch-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-height: 240px;
+            overflow-y: auto;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .batch-summary-item {
+            background: #FFFFFF;
+            border: 2px solid #0A0A0A;
+            box-shadow: 2px 2px 0 #0A0A0A;
+            padding: 10px 6px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .batch-summary-item img {
+            width: 36px;
+            height: 36px;
             object-fit: contain;
+            margin-bottom: 4px;
         }
 
-        .item-icon-inline {
-            width: 18px;
-            height: 18px;
-            vertical-align: middle;
-            object-fit: contain;
-            margin-right: 4px;
+        .batch-summary-item .item-lbl {
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: #0A0A0A;
         }
 
-        /* ── Scrollbar ── */
-        .track-scroll::-webkit-scrollbar { height: 6px; }
-        .track-scroll::-webkit-scrollbar-track { background: var(--bg-secondary); }
-        .track-scroll::-webkit-scrollbar-thumb {
-            background: var(--nb-border);
-            border-radius: 0;
+        .batch-summary-item .item-qty {
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: var(--comic-orange);
+        }
+
+        /* Bottom Rules Strip */
+        .pass-footer-strip {
+            margin-top: 30px;
+            background: #FFFFFF;
+            border: var(--comic-border-thick);
+            box-shadow: var(--comic-shadow-lg);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-rule-text {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
     </style>
 </head>
 
 <body>
-    <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);background-image:var(--comic-halftone);background-size:20px 20px;display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div style="text-align:center;">
-            <div style="font-family:var(--font-heading);font-size:2rem;font-weight:900;color:var(--text-primary);-webkit-text-stroke:1px var(--nb-border);margin-bottom:16px;animation:pulse 1.5s infinite;">霓虹牌</div>
-            <div style="width:200px;height:12px;background:var(--bg-secondary);border:var(--nb-border-width) solid var(--nb-border);border-radius:4px;overflow:hidden;box-shadow:var(--nb-shadow-sm);margin:0 auto;">
-                <div style="height:100%;width:60%;background:var(--color-primary);animation:pulse 1s infinite;border-right:2px solid var(--nb-border);"></div>
+    <!-- ── Loading Overlay ── -->
+    <div id="pageLoading">
+        <div class="loading-box">
+            <div class="loading-title">💥 霓虹牌通行證</div>
+            <div class="loading-bar-wrap">
+                <div class="loading-bar-fill"></div>
             </div>
-            <div style="font-family:var(--font-heading);font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-top:10px;">LOADING...</div>
+            <div style="font-size:0.85rem;font-weight:900;letter-spacing:1px;color:#4B5563;">LOADING BATTLE PASS...</div>
         </div>
     </div>
 
-    <div class="pass-page" id="passPage" style="display:none;">
-        <div class="header-row">
-            <a href="index.html" class="back-btn">← 返回大廳</a>
-            <div class="season-badge">賽季結束：2026/08/31</div>
-        </div>
+    <!-- ── Main Pass View ── -->
+    <div class="pass-container" id="passPage" style="display:none;">
+        <!-- Header -->
+        <header class="pass-header">
+            <a href="index.html" class="comic-back-btn">
+                <span>←</span> 返回遊戲大廳
+            </a>
+            <div class="header-badges">
+                <div class="season-countdown-badge" id="seasonCountdown">
+                    ⏳ 賽季結算：<span class="highlight">2026/12/31</span>
+                </div>
+                <a href="missions.html" class="mission-quick-link">
+                    📜 前往任務賺積分 →
+                </a>
+            </div>
+        </header>
 
-        <!-- Pass Overview -->
-        <div class="pass-overview">
-            <div class="pass-overview-left">
-                <div class="pass-title">踢飛<span>．盛宴</span></div>
-                <div class="pass-subtitle">踢飛．起步 (免費) / 踢飛．盛宴 (進階)</div>
-                <div class="pass-progress">
-                    <div class="pass-level-badge" id="displayLevel">0</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="expFill"></div>
+        <!-- Hero Showcase Grid -->
+        <section class="hero-showcase-grid">
+            <!-- 1. Pass Level & Exp Gauge -->
+            <div class="hero-card">
+                <div class="comic-sticker">S1 PASS</div>
+                <div class="pass-hero-title-row">
+                    <div class="pass-hero-tag">BATTLE PASS</div>
+                    <div class="pass-hero-title">踢飛<span>．盛宴</span></div>
+                </div>
+
+                <div class="level-progress-block">
+                    <div class="level-shield-badge">
+                        <span class="lv-lbl">TIER</span>
+                        <span class="lv-num" id="heroLevelNum">0</span>
                     </div>
-                    <div class="progress-label" id="displayExp">0 / 50 積分</div>
+                    <div class="exp-gauge-container">
+                        <div class="exp-gauge-info">
+                            <span style="color:#6B7280;">充能進度</span>
+                            <span class="exp-val" id="heroExpText">0 / 50 積分</span>
+                        </div>
+                        <div class="comic-gauge-bar">
+                            <div class="comic-gauge-fill" id="heroExpFill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comic-rule-callout">
+                    <span>⚡</span>
+                    <span id="heroNextTip">每勝 1 場 +30 積分，敗 1 場 +15 積分，50 積分升 1 階！</span>
                 </div>
             </div>
-            <div class="pass-overview-right">
-                <div id="premiumStatus"></div>
-                <button class="btn btn-gold" id="btnUnlock" style="display:none;" onclick="unlockPremium()">
-                    解鎖進階通行證 (需1 <img src="item_pic/通行證兌換券.png" class="item-icon-inline">)
+
+            <!-- 2. Grand Prize Showcase (LV.20) - Clean Badge/Text Style without image -->
+            <div class="hero-card hero-card-grand">
+                <div class="comic-sticker" style="background:#EF4444;color:#FFF;">🏆 FINAL TIER 20</div>
+                <div class="grand-prize-header">
+                    <div class="pass-hero-tag" style="background:#D97706;">終極榮譽大獎</div>
+                </div>
+                <div class="grand-prize-content">
+                    <div class="grand-emblem-badge">
+                        <span class="emblem-icon">🏆</span>
+                        <span class="emblem-txt">LV.20</span>
+                    </div>
+                    <div class="grand-info">
+                        <div class="grand-tag">限定角色 ✕ 專屬稱號</div>
+                        <div class="grand-name">踢飛你 ＆ 一腳定江山</div>
+                        <div class="grand-sub">達到第 20 階並啟用進階通行證即可全數解鎖！</div>
+                    </div>
+                </div>
+                <div class="grand-action-badge">
+                    <span>💎 盛宴限定特典</span>
+                    <span id="grandPrizeStatus" style="color:var(--comic-orange);">第 20 階解鎖</span>
+                </div>
+            </div>
+
+            <!-- 3. Premium Pass Unlock Panel -->
+            <div class="hero-card hero-card-premium" id="premiumPanel">
+                <div class="comic-sticker" style="background:var(--comic-purple);color:#FFF;">VIP PASS</div>
+                <div>
+                    <div class="pass-hero-tag" style="background:var(--comic-purple);">盛宴進階特權</div>
+                    <div id="premiumStatusArea">
+                        <!-- Injected via pass.js -->
+                    </div>
+                </div>
+                <div class="unlock-btn-wrap" id="unlockActionArea">
+                    <!-- Injected via pass.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Smart Action & Control Bar -->
+        <section class="pass-action-bar">
+            <div class="action-bar-left">
+                <button class="btn-comic-claim-all" id="btnClaimAll" onclick="claimAllRewards()">
+                    <span>⚡ 一鍵領取全部獎勵</span>
+                    <span class="claim-count-pill" id="claimAllCount">0</span>
+                </button>
+                <button class="btn-comic-action" onclick="scrollToCurrentLevel()">
+                    🎯 定位至當前等級
+                </button>
+                <button class="btn-comic-action" onclick="scrollToTier20()">
+                    🏆 跳至滿級大獎
                 </button>
             </div>
-        </div>
-
-        <!-- Pass Track -->
-        <div class="pass-track-section">
-            <!-- Column headers (level numbers) rendered in track-levels -->
-            <div style="display:grid;grid-template-columns:110px 1fr;">
-                <!-- Left label header -->
-                <div style="border-right:var(--nb-border-width) solid var(--nb-border);border-bottom:var(--nb-border-width) solid var(--nb-border);background:var(--bg-secondary);padding:10px 16px;font-family:var(--font-heading);font-size:0.72rem;font-weight:900;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:flex-end;">獎勵軌道</div>
-                <!-- Scrollable level numbers -->
-                <div class="track-scroll" id="levelNumRow" style="border-bottom:var(--nb-border-width) solid var(--nb-border);background:var(--bg-secondary);">
-                    <div style="display:flex;" id="levelNumContainer"></div>
+            <div class="action-bar-right">
+                <div class="pass-stats-pill">
+                    <span class="stat-item">當前等級：<strong id="statCurrentLevel">0</strong>/20</span>
+                    <span class="stat-item">可領取：<strong id="statClaimableCount">0</strong> 項</span>
+                </div>
+                <div style="display:flex;gap:4px;">
+                    <button class="scroll-nav-btn" onclick="scrollTrack(-280)" title="向左滾動">◀</button>
+                    <button class="scroll-nav-btn" onclick="scrollTrack(280)" title="向右滾動">▶</button>
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:110px 1fr;">
-                <!-- Row labels -->
-                <div class="track-labels">
-                    <div class="track-label label-premium">進階<br><span style="font-size:0.65rem;font-weight:400;text-transform:none;opacity:0.7;">盛宴獎勵</span></div>
-                    <div class="track-label label-free">免費<br><span style="font-size:0.65rem;font-weight:400;text-transform:none;opacity:0.7;">起步獎勵</span></div>
+        </section>
+
+        <!-- Dual-Track Battle Pass Grid -->
+        <section class="pass-track-wrapper">
+            <div class="track-grid-layout">
+                <!-- Left Sticky Headers -->
+                <div class="track-lane-headers">
+                    <div class="lane-header-cell lane-header-premium">
+                        <span class="lane-badge gold">👑 盛宴進階</span>
+                        <div class="lane-title">進階獎勵</div>
+                        <div class="lane-sub">解鎖盛宴特權</div>
+                    </div>
+                    <div class="lane-header-cell lane-header-axis">
+                        <div style="font-size:0.75rem;font-weight:900;letter-spacing:1px;">里程碑</div>
+                    </div>
+                    <div class="lane-header-cell lane-header-free">
+                        <span class="lane-badge blue">🎁 起步免費</span>
+                        <div class="lane-title">免費獎勵</div>
+                        <div class="lane-sub">全員皆可領取</div>
+                    </div>
                 </div>
-                <!-- Reward boxes -->
-                <div class="track-scroll">
-                    <div class="track-levels" id="trackLevels">
-                        <!-- Injected via JS -->
+
+                <!-- Right Scrollable Levels (1 to 20) -->
+                <div class="track-scroll-pane" id="trackScrollPane">
+                    <div class="track-levels-grid" id="trackLevelsGrid">
+                        <!-- Injected via pass.js -->
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- Bottom Guidance Strip -->
+        <footer class="pass-footer-strip">
+            <div class="footer-rule-text">
+                <span>💡</span>
+                <span>通行證賽季持續進行至 <strong>2026/12/31</strong>！多打對戰與完成日常任務即可快速升級！</span>
+            </div>
+            <a href="missions.html" class="comic-back-btn" style="padding:8px 16px;font-size:0.85rem;background:var(--comic-yellow);">
+                ⚡ 前往任務清單 →
+            </a>
+        </footer>
+    </div>
+
+    <!-- ── Reward Detail / Inspection Modal ── -->
+    <div class="comic-modal-overlay" id="rewardDetailModal" onclick="closeRewardModal(event)">
+        <div class="comic-modal-box" onclick="event.stopPropagation()">
+            <button class="comic-modal-close" onclick="closeRewardModal()">✕</button>
+            <div class="modal-comic-header">
+                <div class="modal-comic-tag" id="modalTrackTag">盛宴進階獎勵</div>
+                <div class="modal-comic-title" id="modalLevelTitle">第 1 階獎勵詳情</div>
+            </div>
+            <div class="modal-reward-body">
+                <div class="modal-reward-icon" id="modalRewardIcon">
+                    <!-- Icon -->
+                </div>
+                <div class="modal-reward-name" id="modalRewardName">普通抽獎券 x1</div>
+                <div class="modal-reward-desc" id="modalRewardDesc">可用於抽取普通卡包的珍貴券券。</div>
+                <div class="modal-status-pill" id="modalStatusPill">
+                    <!-- Status -->
+                </div>
+            </div>
+            <button class="btn-modal-action" id="modalActionButton">
+                ⚡ 立即領取獎勵
+            </button>
         </div>
     </div>
 
+    <!-- ── Batch Claim Summary Modal ── -->
+    <div class="comic-modal-overlay" id="claimSummaryModal" onclick="closeClaimSummaryModal(event)">
+        <div class="comic-modal-box" onclick="event.stopPropagation()">
+            <button class="comic-modal-close" onclick="closeClaimSummaryModal()">✕</button>
+            <div class="modal-comic-header">
+                <div class="modal-comic-tag" style="background:var(--comic-orange);color:#FFF;">💥 BAM! 獎勵大爆發</div>
+                <div class="modal-comic-title">已領取以下所有獎勵！</div>
+            </div>
+            <div class="batch-summary-grid" id="batchSummaryGrid">
+                <!-- Injected summary -->
+            </div>
+            <button class="btn-modal-action" onclick="closeClaimSummaryModal()" style="background:var(--comic-yellow);color:#0A0A0A;">
+                🎉 收入囊中！
+            </button>
+        </div>
+    </div>
+
+    <!-- Pass Logic Script -->
     <script src="js/ui/pass.js"></script>
 </body>
+
 </html>
