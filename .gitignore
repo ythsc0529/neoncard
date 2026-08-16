@@ -8,3 +8,8 @@ www/
 release_notes.md
 assets/
 AI_GUIDE.md
+
+# Release Keystore - 絕對不能上傳 GitHub！
+*.jks
+*.keystore
+keystore.properties

@@ -1,8 +1,10 @@
 {
-  "version": "2.5.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.5.0/app-debug.apk",
+  "version": "2.5.1",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.5.1/app-debug.apk",
   "notes": [
-    "全新重構「新粗獷主義 × 漫畫風格」機率判定動畫：動態漫畫集中速度線背景、特寫分鏡框、雙區命運量表與滑動指針。",
-    "新增震撼全螢幕打擊震動、巨型數字滾輪與漫畫狀聲字（BAM!! / GAHN!!）終結蓋章特效。"
+    "全面啟用 Firebase App Check 與 Play Integrity 原生資安憑證防護，修復連線驗證問題。",
+    "圖片資源全面深度壓縮瘦身 76%（體積大減 274 MB），大幅提升遊戲啟動與載入流暢度。",
+    "資安加固：關閉系統備份資料洩漏風險，並導入 Google Play 正式簽名機制。"
   ]
 }
+

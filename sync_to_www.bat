@@ -21,4 +21,3 @@ echo ==============================================
 echo Sync Complete! Now you can run:
 echo npx cap copy android
 echo ==============================================
-pause

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隱私權政策 - 霓虹牌 (NeonCard)</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(18, 26, 43, 0.85);
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #ff007f;
+            --text-main: #f0f4f8;
+            --text-muted: #94a3b8;
+            --border-color: rgba(0, 242, 254, 0.2);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 24px 16px;
+            background-image: radial-gradient(circle at 50% 0%, rgba(0, 242, 254, 0.08), transparent 70%);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+        }
+        .update-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+        h2 {
+            color: var(--secondary);
+            font-size: 1.25rem;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        p, ul {
+            color: var(--text-main);
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        .highlight-box {
+            background: rgba(0, 242, 254, 0.05);
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>霓虹牌 (NeonCard) 隱私權政策</h1>
+        <div class="update-date">最後更新日期：2026 年 8 月 16 日</div>
+
+        <p>歡迎遊玩「霓虹牌」（以下簡稱「本遊戲」或「我們」）。我們非常重視您的隱私權，並致力於保護您的個人資料。本隱私權政策旨在向您說明我們如何收集、使用、儲存及保護您的資訊。</p>
+
+        <h2>一、我們收集的資料類型</h2>
+        <p>當您使用本遊戲時，我們可能會收集並處理以下資訊：</p>
+        <ul>
+            <li><strong>帳號認證資訊：</strong>當您使用 Google 登入或訪客模式時，我們透過 Google Firebase Authentication 取得您的不重複使用者識別碼（User ID, UID）、電子郵件地址與公開暱稱/個人頭像。</li>
+            <li><strong>遊戲進度與戰績：</strong>您的玩家等級、卡牌收藏、對戰紀錄、成就、通行證進度、好友列表及商店購買紀錄，此資料儲存於 Google Cloud Firestore。</li>
+            <li><strong>連線對戰狀態：</strong>於多人配對與即時連線對局期間，我們會透過 Firebase Realtime Database 暫存即時遊戲房間狀態、連線狀態與出牌操作。</li>
+        </ul>
+
+        <h2>二、裝置權限使用說明（相機權限）</h2>
+        <div class="highlight-box">
+            <p><strong>相機（Camera）權限聲明：</strong></p>
+            <p>本遊戲申請裝置之相機使用權限，<strong>唯一目的係用於好友功能之「掃描好友 QR Code」以快速新增遊戲好友</strong>。</p>
+            <ul>
+                <li>我們<strong>不會</strong>拍攝、儲存、側錄或上傳任何照片、影片或相機畫面至伺服器。</li>
+                <li>相機畫面僅在您主動開啟掃描器時於本機即時辨識 QR Code 字串，辨識完成後即刻釋放關閉相機。</li>
+                <li>您可自由隨時透過裝置系統設定開啟或拒絕此權限；若拒絕，您仍可透過輸入好友代碼等替代方式進行好友新增。</li>
+            </ul>
+        </div>
+
+        <h2>三、第三方服務與技術</h2>
+        <p>本遊戲整合了以下第三方服務以提供穩定的遊戲運作：</p>
+        <ul>
+            <li><strong>Google Firebase（包含 Auth, Cloud Firestore, Realtime Database, App Check / Play Integrity）：</strong>用於帳號身分驗證、遊戲資料同步備份、多人即時連線以及防止未授權惡意存取之安全防護。相關服務遵守 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 隱私權政策</a>。</li>
+        </ul>
+
+        <h2>四、資料安全與保護</h2>
+        <p>我們採用業界標準的加密傳輸技術（HTTPS / TLS）與嚴格的雲端安全存取規則（Firebase Security Rules）保護您的資料，並透過 Firebase App Check 機制防止未經授權的第三方程式存取或偽造請求。</p>
+
+        <h2>五、資料保留與刪除權利</h2>
+        <p>您對您的個人資料享有以下權利：</p>
+        <ul>
+            <li>您可以隨時於遊戲內檢視您的個人資料與遊戲統計數據。</li>
+            <li><strong>要求刪除帳號：</strong>若您欲刪除遊戲帳號及所有關聯之雲端存檔資料，您可以透過遊戲內設定或聯絡開發者提出請求，我們將在驗證身分後於 30 日內自伺服器完全清除您的所有資料。</li>
+        </ul>
+
+        <h2>六、隱私權政策之修改</h2>
+        <p>我們可能會不定期修訂本隱私權政策。重大變更將於本遊戲官方頁面或遊戲內公告。建議您定期檢視以保障自身權益。</p>
+
+        <h2>七、聯絡我們</h2>
+        <p>若您對本隱私權政策或個人資料處理有任何疑問、建議或刪除請求，請透過以下方式與我們聯繫：</p>
+        <ul>
+            <li>開發團隊：霓虹牌開發團隊 (NeonCard Team)</li>
+            <li>電子郵件：uptocard@gmail.com</li>
+            <li>官方網站：<a href="https://app.netlify.uptocard.twa" target="_blank" rel="noopener">https://app.netlify.uptocard.twa</a></li>
+        </ul>
+
+        <div class="footer">
+            &copy; 2026 霓虹牌 (NeonCard). All Rights Reserved.
+        </div>
+    </div>
+</body>
+</html>
