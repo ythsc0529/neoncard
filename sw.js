@@ -1,6 +1,6 @@
-// Neon Card Game - Service Worker (v2.5.1)
+// Neon Card Game - Service Worker (v2.6.0)
 // ⚠️ 每次發布新版本時，務必同步更新此版本號以清空舊快取
-const CACHE_NAME = 'neoncard-v2.5.1';
+const CACHE_NAME = 'neoncard-v2.6.0';
 
 
 // 核心靜態資源（不含 HTML 頁面，HTML 永遠走 network-first）

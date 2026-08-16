@@ -1,10 +1,10 @@
 {
-  "version": "2.5.1",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.5.1/app-debug.apk",
+  "version": "2.6.0",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.6.0/app-debug.apk",
   "notes": [
-    "全面啟用 Firebase App Check 與 Play Integrity 原生資安憑證防護，修復連線驗證問題。",
-    "圖片資源全面深度壓縮瘦身 76%（體積大減 274 MB），大幅提升遊戲啟動與載入流暢度。",
-    "資安加固：關閉系統備份資料洩漏風險，並導入 Google Play 正式簽名機制。"
+    "試煉之路介面全面重構為新粗獷美漫風（Neo-Brutalism & Manga），關卡進度與挑戰體驗更為震撼清晰。",
+    "戰鬥通行證介面全新視覺升級，大幅優化通行證獎勵軌道展示，賽季延長至 2026/12/31。",
+    "遊戲大廳主畫面重構升級，強化漫畫線條風格、排版結構與互動動態體驗。"
   ]
 }
 
