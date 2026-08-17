@@ -1,10 +1,10 @@
 {
-  "version": "2.6.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.6.0/app-debug.apk",
+  "version": "2.7.0",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.0/app-debug.apk",
   "notes": [
-    "試煉之路介面全面重構為新粗獷美漫風（Neo-Brutalism & Manga），關卡進度與挑戰體驗更為震撼清晰。",
-    "戰鬥通行證介面全新視覺升級，大幅優化通行證獎勵軌道展示，賽季延長至 2026/12/31。",
-    "遊戲大廳主畫面重構升級，強化漫畫線條風格、排版結構與互動動態體驗。"
+    "移除訪客登入模式：全面強制使用 Google 帳號登入，保障雲端存檔與對戰資料安全。",
+    "優化登入頁面排版視覺與操作流暢度。",
+    "遊戲系統與連線邏輯穩定性提升。"
   ]
 }
 

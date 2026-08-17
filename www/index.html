@@ -15,7 +15,7 @@
     
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.6.0";
+        window.APP_VERSION = "2.7.0";
 
         // ── Service Worker 更新管理 ──
         if ('serviceWorker' in navigator) {
@@ -283,7 +283,7 @@
             font-weight: 900;
             transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: 0;
             text-transform: uppercase;
         }
 
@@ -318,32 +318,6 @@
         }
 
         .google-icon { width: 22px; height: 22px; }
-
-        .guest-btn {
-            color: #666666;
-            background: var(--comic-paper);
-            border: var(--comic-border);
-            padding: 12px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.88rem;
-            font-weight: 800;
-            width: 100%;
-            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
-            box-shadow: var(--comic-shadow-sm);
-        }
-
-        .guest-btn:hover {
-            background: #FFFFFF;
-            color: #0A0A0A;
-            transform: translate(-1px, -1px);
-            box-shadow: var(--comic-shadow);
-        }
-
-        .guest-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: none;
-        }
 
         /* ══════════════════════════════════════════════════════════════
            MAIN MENU PAGE LAYOUT & COMIC PANELS
@@ -1524,7 +1498,7 @@
             <div class="preloader-sticker" style="top:-14px;right:16px;">READY TO DUEL</div>
             <div class="login-title">NEON CARD</div>
             <div style="font-size:1.15rem;font-weight:900;letter-spacing:6px;color:#0A0A0A;margin-bottom:12px;">霓 虹 牌</div>
-            <div class="login-subtitle">登入帳號以使用競賽排位、好友對戰等完整功能<br>或以訪客模式快速遊玩</div>
+            <div class="login-subtitle">請登入 Google 帳號以進入遊戲<br>體驗完整雲端存檔、競賽排位與好友對戰功能</div>
             
             <button class="google-sign-in-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">
                 <span class="google-login-spinner" aria-hidden="true"></span>
@@ -1536,7 +1510,6 @@
                 </svg>
                 使用 Google 登入
             </button>
-            <button class="guest-btn" onclick="continueAsGuest()">以訪客模式繼續（無雲端同步與排位功能）</button>
         </div>
     </div>
 
@@ -2249,7 +2222,6 @@
         // ── State ──────────────────────────────────────────────────────
         let selectedPvEType = 'classic';
         let currentUserProfile = null;
-        let isGuest = false;
         let matchmakingTimerInterval = null;
         let matchmakingSeconds = 0;
         let selectedOnlineSubMode = 'classic';
@@ -2296,7 +2268,6 @@
 
             AuthManager.init();
             AuthManager.onAuthChanged(async (user) => {
-                if (isGuest) return;
                 if (user) {
                     let profile = await UserProfile.getProfile(user.uid);
                     if (!profile && typeof UserProfile.getLastProfileError === 'function' && UserProfile.getLastProfileError()) {
@@ -2636,19 +2607,6 @@
             }
         }
 
-        function continueAsGuest() {
-            isGuest = true;
-            showScreen('main');
-            document.getElementById('topLeftActions').classList.remove('hidden');
-            document.getElementById('tournamentBtn').style.opacity = '0.55';
-            document.getElementById('tournamentBtn').title = '需要登入才能使用競賽模式';
-            const LOG_VERSION = '2.5.1';
-            if (localStorage.getItem('lastSeenVersion') !== LOG_VERSION) {
-                showUpdateLog();
-                localStorage.setItem('lastSeenVersion', LOG_VERSION);
-            }
-        }
-
         // ── First-time Setup ──────────────────────────────────────────
         let isFirstTimeSetup = false;
         let firstTimeUser = null;
@@ -2706,11 +2664,7 @@
 
         // ── Tournament / Matchmaking ───────────────────────────────────
         function showTournamentMenu() {
-            if (!currentUserProfile && !isGuest) return;
-            if (isGuest || !AuthManager.getCurrentUser()) {
-                alert('競賽模式需要 Google 登入帳號才能使用！\n請先登入或刷新頁面。');
-                return;
-            }
+            if (!currentUserProfile || !AuthManager.getCurrentUser()) return;
             document.getElementById('tournamentModal').classList.add('active');
         }
 
