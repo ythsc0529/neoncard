@@ -1107,21 +1107,6 @@
             .comic-boom-text {
                 font-size: clamp(3rem, 18vw, 5rem);
             }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .gc-card,
-            .gc-card-back-icon,
-            .gc-card[data-rarity="MYTHIC"].revealed,
-            .gc-card[data-rarity="LEGENDARY"].revealed {
-                animation: none !important;
-            }
-
-            .gc-card-inner {
-                transition-duration: 0.1s;
-            }
-        }
-
         /* ── Rarity front-face backgrounds (comic print palette) ── */
         /* COMMON  */ .gc-card[data-rarity="COMMON"]    { --card-front-bg: #F8F5EF; }
         /* RARE    */ .gc-card[data-rarity="RARE"]      { --card-front-bg: #EFF6FF; }
