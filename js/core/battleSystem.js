@@ -3,8 +3,15 @@
 const BattleSystem = {
     // Execute normal attack
     async normalAttack(attacker, defender) {
-        if (defender && defender.statusEffects && defender.statusEffects.some(e => e.type === 'immunity_all')) {
+        const immAll = defender?.statusEffects?.find(e => e.type === 'immunity_all');
+        if (immAll) {
             GameState.addLog(`${defender.name} 處於無敵狀態，${attacker.name} 的普通攻擊無效！`, 'status');
+            if (immAll.hits !== undefined) {
+                immAll.hits--;
+                if (immAll.hits <= 0) {
+                    defender.statusEffects = defender.statusEffects.filter(e => e !== immAll);
+                }
+            }
             attacker.hasAttacked = true;
             return { damage: 0, blocked: true };
         }
@@ -224,9 +231,15 @@ const BattleSystem = {
             }
         }
 
-        // Check damage reduction (from passive defense_stacks like 盾哥)
-        if (defender.resources && defender.resources.defense_stacks) {
-            damage = Math.floor(damage * (1 - Math.min(defender.resources.defense_stacks, 100) / 100));
+        // Check damage reduction (from passive set_damage_reduction or defense_stacks like 盾哥, 機槍哥)
+        if (defender.passive?.effect?.action === 'set_damage_reduction') {
+            const dr = defender.passive.effect.value || 25;
+            damage = Math.floor(damage * (1 - dr / 100));
+            GameState.addLog(`${defender.name} 被動 [${defender.passive.name}] 減傷 ${dr}%`, 'status');
+        } else if (defender.resources && defender.resources.defense_stacks) {
+            const dr = Math.min(defender.resources.defense_stacks, 100);
+            damage = Math.floor(damage * (1 - dr / 100));
+            GameState.addLog(`${defender.name} 減傷 ${dr}%`, 'status');
         }
 
         // Check damage reduction (from passive conditional_stats - 王世堅情)
@@ -328,10 +341,8 @@ const BattleSystem = {
             }
         }
 
-        // conditional_stats damage reduction is handled above (near line 140)
-
         // Check shield (unless ignores shield)
-        const ignoresShield = attacker.passive?.effect?.action === 'ignore_shield';
+        const ignoresShield = options.ignoresShield || (attacker && attacker.passive?.effect?.action === 'ignore_shield') || (attacker && attacker.nextAttackIgnoresShield);
         if (defender.shield > 0 && !ignoresShield) {
             if (defender.shield >= damage) {
                 defender.shield -= damage;
@@ -343,7 +354,7 @@ const BattleSystem = {
                 defender.shield = 0;
             }
         } else if (ignoresShield && defender.shield > 0) {
-            GameState.addLog(`${attacker.name} 穿透了護盾！`, 'skill');
+            GameState.addLog(`${attacker ? attacker.name : '攻擊'} 穿透了護盾！`, 'skill');
         }
 
         // Apply damage to HP
@@ -368,33 +379,17 @@ const BattleSystem = {
 
         // E-Ren passive: Update ATK based on HP loss
         if (defender.passive?.effect?.action === 'buff_atk_per_hp') {
-            const hpLost = defender.maxHp - defender.hp;
-            const step = defender.passive.effect.ratio || defender.passive.effect.hp_step || 10;
-            const gainPerStep = defender.passive.effect.atk || defender.passive.effect.atk_gain || 10;
-            const newBonus = Math.floor(hpLost / step) * gainPerStep;
-
-            const oldBonus = defender.resources.atk_bonus_hp || 0;
-            const diff = newBonus - oldBonus;
-
-            if (diff !== 0) {
-                defender.atk += diff;
-                defender.resources.atk_bonus_hp = newBonus;
-                GameState.addLog(`${defender.name} 根據血量損失調整 ATK (${diff > 0 ? '+' : ''}${diff})`, 'status');
-            }
+            const hpLoss = defender.maxHp - defender.hp;
+            const mult = defender.passive.effect.atk_per_hp || 1;
+            defender.atk = defender.baseAtk + Math.floor(hpLoss * mult);
+            GameState.addLog(`${defender.name} 攻擊力提升至 ${defender.atk}`, 'status');
         }
 
-        // Check vs_character passive (I-Ren vs E-Ren)
-        if (attacker.passive?.effect?.action === 'vs_character') {
-            if (defender.name.includes(attacker.passive.effect.target)) {
-                damage = Math.floor(damage * (attacker.passive.effect.damage_mult || 1));
-                GameState.addLog(`${attacker.name} 對 ${defender.name} 造成額外傷害 (x${attacker.passive.effect.damage_mult})`, 'status');
-            }
-        }
-
-        // Check vs_character extra damage taken (I-Ren vs E-Ren)
-        if (defender.passive?.effect?.action === 'vs_character') {
-            if (attacker.name.includes(defender.passive.effect.target)) {
-                const extra = defender.passive.effect.extra_damage_taken || 0;
+        // Extra damage from special passive (雷包)
+        if (attacker && attacker.passive?.effect?.action === 'extra_damage_to_other') {
+            const extra = attacker.passive.effect.value || 0;
+            if (extra > 0) {
+                defender.hp -= extra;
                 damage += extra;
                 GameState.addLog(`${defender.name} 受到來自 ${attacker.name} 的額外傷害 (+${extra})`, 'status');
             }
@@ -403,12 +398,8 @@ const BattleSystem = {
         // --- ON HIT PASSIVES ---
 
         // Ray生我夢 - conditional_dodge_heal
-        if (defender.passive?.effect?.action === 'conditional_dodge_heal') {
-            // Note: This logic technically should happen BEFORE damage application if it's a "dodge", 
-            // but the description says "When taking > 70 dmg". We can refund the HP if it triggers.
-            if (options.originalDamage > defender.passive.effect.threshold) { // Need original damage? Or calculated? Usually calculated.
-                // Should pass calculate damage to check? Assuming 'damage' here is final.
-                // But if we already deducted HP, we should add it back.
+        if (!options.ignoresDodge && defender.passive?.effect?.action === 'conditional_dodge_heal') {
+            if (options.originalDamage > defender.passive.effect.threshold) {
                 if (damage > defender.passive.effect.threshold) {
                     if (window.GameRandom() * 100 < defender.passive.effect.chance) {
                         defender.hp += damage; // Undo damage
@@ -487,16 +478,28 @@ const BattleSystem = {
 
     // Get total dodge chance
     getDodgeChance(card) {
+        if (!card) return 0;
         // Check for dodge_zero status
         if (card.statusEffects && card.statusEffects.some(e => e.type === 'dodge_zero')) {
             return 0;
         }
 
+        // Tower shield player threshold check
+        if (card.passive?.effect?.action === 'tower_shield_player_passive' && card.maxHp >= (card.passive.effect.dodge_lose_threshold || 1400)) {
+            return 0;
+        }
+
         let dodge = card.resources?.dodge || 0;
 
-        // Check passive dodge
-        if (card.passive?.effect?.trigger === 'on_hit' && (card.passive.effect.action === 'dodge_chance' || card.passive.effect.action === 'dodge_scale')) {
-            dodge = Math.max(dodge, card.passive.effect.chance);
+        // Check passive dodge (on_hit, initial_dodge, death_chance like 天才少年)
+        if (card.passive?.effect) {
+            const pEff = card.passive.effect;
+            if (pEff.trigger === 'on_hit' && (pEff.action === 'dodge_chance' || pEff.action === 'dodge_scale')) {
+                dodge = Math.max(dodge, pEff.chance || 0);
+            }
+            if (pEff.initial_dodge !== undefined && dodge === 0) {
+                dodge = pEff.initial_dodge;
+            }
         }
 
         dodge += (card.resources?.dodge_chance_bonus || 0);
@@ -519,8 +522,15 @@ const BattleSystem = {
         if (!skill) return false;
 
         // Check if defender is immune to all actions
-        if (defender && defender.statusEffects && defender.statusEffects.some(e => e.type === 'immunity_all')) {
+        const immAll = defender?.statusEffects?.find(e => e.type === 'immunity_all');
+        if (immAll) {
             GameState.addLog(`${defender.name} 處於無敵狀態，${attacker.name} 的技能無效！`, 'status');
+            if (immAll.hits !== undefined) {
+                immAll.hits--;
+                if (immAll.hits <= 0) {
+                    defender.statusEffects = defender.statusEffects.filter(e => e !== immAll);
+                }
+            }
             if (skill.speedCost && skill.speedCost > 0) {
                 const currentSpeed = attacker.resources?.speed || 0;
                 if (currentSpeed < skill.speedCost) {
@@ -563,21 +573,6 @@ const BattleSystem = {
 
         // Execute skill effect
         GameState.addLog(`${attacker.name} 使用 [${skill.name}]`, 'skill');
-        
-        const missEff = attacker.statusEffects.find(e => e.type === 'miss_chance');
-        if (missEff) {
-            let isMissed = await Animations.probabilityRoll(missEff.chance || 50, '失誤判定');
-            if (missEff.hits !== undefined) {
-                missEff.hits--;
-                if (missEff.hits <= 0) {
-                    attacker.statusEffects = attacker.statusEffects.filter(e => e !== missEff);
-                }
-            }
-            if (isMissed) {
-                GameState.addLog(`${attacker.name} 發生了失誤！技能施放失敗`, 'status');
-                return false;
-            }
-        }
 
         const result = await this.executeSkillEffect(attacker, defender, skill);
         // Handle on_skill passive (e.g., 水上摩托車-溺水)
@@ -1249,9 +1244,7 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_ignore_shield': // 奧沙利文-準進
-                    // Direct damage ignoring shield
-                    defender.hp -= effect.value;
-                    GameState.addLog(`${defender.name} 受到 ${effect.value} 穿透傷害`, 'damage');
+                    await this.applyDamage(attacker, defender, effect.value || 20, { ignoresShield: true });
                     break;
                 case 'damage_ignore_dodge': // 日本人-偷襲
                     await this.applyDamage(attacker, defender, effect.value, { ignoresDodge: true });
@@ -1544,11 +1537,6 @@ const BattleSystem = {
                 case 'damage_reduction':
                     attacker.statusEffects.push({ type: 'damage_reduction', name: '減傷', value: effect.value, hits: effect.hits, turns: effect.turns });
                     GameState.addLog(`${attacker.name} 獲得減傷 ${effect.value}%`, 'skill');
-                    if (attacker.name === '塔盾玩家' && effect.value === 90) {
-                        attacker.maxHp += 50;
-                        attacker.hp += 50;
-                        GameState.addLog(`塔盾玩家最大生命值 +50！`, 'skill');
-                    }
                     break;
                 case 'damage_reduction_chance': // 扁彿俠-高科技
                     if (await Animations.probabilityRoll(effect.chance, '減傷判定')) {
@@ -2264,9 +2252,9 @@ const BattleSystem = {
                     if (effect.atk !== undefined) { attacker.atk = effect.atk; }
                     GameState.addLog(`${attacker.name} 轉換型態`, 'skill');
                     break;
-                case 'immune_enemy_actions':
-                    attacker.statusEffects.push({ type: 'immunity_all', name: '無敵', turns: effect.turns });
-                    GameState.addLog(`${attacker.name} 進入無敵狀態`, 'skill');
+                case 'immune_enemy_actions': // 悖論-矛盾
+                    attacker.statusEffects.push({ type: 'immunity_all', name: '矛盾 (無敵2次)', hits: effect.hits || 2 });
+                    GameState.addLog(`${attacker.name} 發動「矛盾」！接下來免疫對方 2 次行動！`, 'skill');
                     break;
                 case 'shield_decay':
                     attacker.shield += effect.shield;
@@ -2286,12 +2274,13 @@ const BattleSystem = {
                     attacker.nextAttackLifesteal = effect.percent;
                     GameState.addLog(`${attacker.name} 下次攻擊吸血`, 'skill');
                     break;
-                case 'damage_max_hp_chance':
-                    await this.applyDamage(attacker, defender, effect.damage || 0);
+                case 'damage_max_hp_chance': // 骨骸-骸
+                    await this.applyDamage(attacker, defender, effect.damage || 30);
                     if (await Animations.probabilityRoll(effect.chance || 70, '骨骸-骸最大生命判定')) {
                         const healVal = effect.max_hp || 40;
                         attacker.maxHp += healVal;
                         attacker.hp += healVal;
+                        if (window.Animations) Animations.showHeal(Animations.getCardEl(attacker), healVal);
                         GameState.addLog(`${attacker.name} 最大生命值與生命值上升了 ${healVal} 點！`, 'skill');
                     }
                     break;
@@ -2540,10 +2529,11 @@ const BattleSystem = {
                     attacker.resources.burden = 0;
                     GameState.addLog(`引爆了所有壓力`, 'skill');
                     break;
-                case 'buff_next_attack_ignore_dodge':
-                    attacker.nextAttackMult = (attacker.nextAttackMult || 0) + effect.mult;
+                case 'buff_next_attack_ignore_dodge': // 黃蓋-騙術
+                    attacker.nextAttackMult = (attacker.nextAttackMult || 0) + (effect.mult || 100);
                     attacker.nextAttackIgnoresDodge = true;
-                    GameState.addLog(`下次攻擊必中且加倍`, 'skill');
+                    attacker.statusEffects.push({ type: 'buff_next', name: '騙術 (必中×2)', value: effect.mult || 100, turns: 99 });
+                    GameState.addLog(`${attacker.name} 使用騙術！下次攻擊必中且傷害×2`, 'skill');
                     break;
                 case 'stack_damage_reduction':
                     attacker.resources.defense_stacks = (attacker.resources.defense_stacks || 0) + effect.reduction;
@@ -2666,9 +2656,13 @@ const BattleSystem = {
                     break;
 
                 case 'buff_atk_and_reduction': // 巔峰-全盛時期
-                    attacker.atk += effect.atk || 0;
-                    attacker.statusEffects.push({ type: 'damage_reduction', name: '全盛', value: effect.reduction || 15, turns: effect.turns || 3 });
-                    GameState.addLog(`${attacker.name} 進入全盛狀態！ATK +${effect.atk}，減傷 ${effect.reduction}%`, 'skill');
+                    const atkBuffVal = effect.atk || 20;
+                    const redBuffVal = effect.reduction || 15;
+                    const durTurns = effect.turns || 3;
+                    attacker.atk += atkBuffVal;
+                    attacker.statusEffects.push({ type: 'buff_atk_temp', name: '全盛 (攻擊)', value: atkBuffVal, turns: durTurns });
+                    attacker.statusEffects.push({ type: 'damage_reduction', name: '全盛 (減傷)', value: redBuffVal, turns: durTurns });
+                    GameState.addLog(`${attacker.name} 進入全盛狀態！ATK +${atkBuffVal}，減傷 ${redBuffVal}%（持續 ${durTurns} 回合）`, 'skill');
                     break;
 
                 case 'damage_summon_specific': // 堯冥-打籃球
@@ -3012,22 +3006,37 @@ const BattleSystem = {
         const oldHp = card.hp;
         const oldAtk = card.atk;
         const oldResources = { ...card.resources };
+        const oldStatusEffects = [...(card.statusEffects || [])];
+        const oldShield = card.shield || 0;
+        const oldCooldowns = { ...(card.cooldowns || {}) };
+
+        const isJetSwitch = (oldName === 'K型戰機' && targetName === 'L型戰機') || (oldName === 'L型戰機' && targetName === 'K型戰機');
 
         // Transform card
         card.name = targetData.name;
         card.maxHp = targetData.hp;
-        card.hp = targetData.hp;
         card.atk = targetData.atk;
         card.skills = JSON.parse(JSON.stringify(targetData.skills || []));
         card.passive = targetData.passive ? JSON.parse(JSON.stringify(targetData.passive)) : null;
 
-        // Reset status to full state (Clear abnormal statuses and shields)
-        card.statusEffects = [];
-        card.shield = 0;
+        if (isJetSwitch) {
+            // L型戰機與K型戰機由於是互相搭配的角色，兩者的血量與受到效果是共用的，而非每次切換都滿血
+            card.hp = Math.min(card.maxHp, oldHp);
+            card.statusEffects = oldStatusEffects;
+            card.shield = oldShield;
+            card.cooldowns = oldCooldowns;
+            GameState.addLog(`${oldName} 切換型態為 ${targetName}！（血量與狀態共用）`, 'skill');
+        } else {
+            card.hp = targetData.hp;
+            // Reset status to full state (Clear abnormal statuses and shields)
+            card.statusEffects = [];
+            card.shield = 0;
 
-        // Reset cooldowns
-        card.cooldowns = {};
-        card.skills.forEach((_, i) => card.cooldowns[i] = 0);
+            // Reset cooldowns
+            card.cooldowns = {};
+            card.skills.forEach((_, i) => card.cooldowns[i] = 0);
+            GameState.addLog(`${oldName} 進化為 ${targetName}！`, 'skill');
+        }
 
         // Special handling for specific evolutions
         if (targetName === '賈伯斯max' && options.leftoverApples) {
@@ -3045,7 +3054,6 @@ const BattleSystem = {
             card.resources.special_count = oldResources.special_count || 0;
         }
 
-        GameState.addLog(`${oldName} 進化為 ${targetName}！`, 'skill');
         return true;
     }
 };

@@ -1,10 +1,10 @@
 {
-  "version": "2.7.0",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.0/app-debug.apk",
+  "version": "2.7.1",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.1/app-debug.apk",
   "notes": [
-    "移除訪客登入模式：全面強制使用 Google 帳號登入，保障雲端存檔與對戰資料安全。",
-    "優化登入頁面排版視覺與操作流暢度。",
-    "遊戲系統與連線邏輯穩定性提升。"
+    "修復 13 個角色技能、被動與動畫異常（巔峰、塔盾玩家、骨骸、天才少年、小資、老黑、盾哥、黃蓋、悖論、K/L型戰機、奧沙利文、火車）。",
+    "優化連線模式中回合開始被動死亡同步機制與狀態繼承。",
+    "修復 3D 骰子動畫點數旋轉顯示問題。"
   ]
 }
 

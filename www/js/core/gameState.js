@@ -534,6 +534,46 @@ const GameState = {
         // Process passive on_turn_start effects
         await this.processPassive(card, 'on_turn_start');
 
+        // Check if card died during start of turn (e.g. 天才少年, 作弊者, 越野摩托車)
+        if (card.hp <= 0) {
+            const playerKey = this.currentPlayer === 1 ? 'player1' : 'player2';
+            const died = await this.handleDeath(playerKey);
+            if (died) {
+                this.addLog(`${card.name} 被擊敗！`, 'damage');
+                if (typeof window.updateUI === 'function') window.updateUI();
+                if (typeof window.updateBattleLog === 'function') window.updateBattleLog();
+                if (this.checkWin()) {
+                    if (window.Animations && window.Animations.victory) {
+                        await window.Animations.victory(this.winner === 1 ? '玩家1' : '玩家2');
+                    }
+                    return;
+                }
+                if (player.standbyCards.length > 0 && typeof window.promptReplacement === 'function') {
+                    if (this.mode === 'online') {
+                        const isLocalPlayer = (window.NetManager && window.NetManager.isHost && playerKey === 'player1') || (window.NetManager && !window.NetManager.isHost && playerKey === 'player2');
+                        if (isLocalPlayer) {
+                            await window.promptReplacement(playerKey);
+                        } else {
+                            if (window.showRemoteWaitingOverlay) window.showRemoteWaitingOverlay();
+                            await new Promise(r => { window.resolveRemoteReplacement = r; });
+                            const overlay = document.getElementById('networkWaitingOverlay');
+                            if (overlay) { overlay.classList.remove('active'); overlay.classList.add('hidden'); }
+                        }
+                    } else if (this.mode === 'pve' && playerKey === 'player2') {
+                        const p2 = this.player2;
+                        if (p2.standbyCards.length > 0) {
+                            p2.battleCard = p2.standbyCards.shift();
+                            this.addLog(`${p2.name} 派遣 ${p2.battleCard.name} 上場！`, 'status');
+                            if (typeof window.updateUI === 'function') window.updateUI();
+                        }
+                    } else {
+                        await window.promptReplacement(playerKey);
+                    }
+                }
+            }
+            return;
+        }
+
         // Process general passives (e.g. conditional stats)
         await this.processPassive(card, 'passive');
 
@@ -1054,9 +1094,15 @@ const GameState = {
                         card.resources.dodge = effect.initial_dodge || 99;
                         card.resources.dodge_inited = true;
                     }
-                    if (window.GameRandom() * 100 < (effect.chance || 50)) {
+                    let isDead = false;
+                    if (window.Animations && window.Animations.probabilityRoll) {
+                        isDead = await window.Animations.probabilityRoll(effect.chance || 50, `${card.name} 外掛檢測判定`);
+                    } else {
+                        isDead = (window.GameRandom() * 100 < (effect.chance || 50));
+                    }
+                    if (isDead) {
                         card.hp = 0;
-                        this.addLog(`${card.name} 被動觸發：突然死亡！`, 'damage');
+                        this.addLog(`${card.name} 被動觸發：外掛被封禁，突然死亡！`, 'damage');
                     }
                 }
                 break;
@@ -1143,10 +1189,16 @@ const GameState = {
                     if (!effect.skill || skName === effect.skill) {
                         const ck = `skill_count_${effect.skill || 'all'}`;
                         card.resources[ck] = (card.resources[ck] || 0) + 1;
+                        if (card.resources.skill_counts) {
+                            card.resources.skill_counts[effect.skill || 'all'] = card.resources[ck];
+                        }
                         if (card.resources[ck] >= effect.count) {
                             card.resources[ck] = 0;
+                            if (card.resources.skill_counts) card.resources.skill_counts[effect.skill || 'all'] = 0;
                             card.cooldowns = {};
-                            card.skills.forEach((_, i) => card.cooldowns[i] = 0);
+                            if (card.skills) {
+                                card.skills.forEach((_, i) => card.cooldowns[i] = 0);
+                            }
                             this.addLog(`${card.name} 被動 [${card.passive.name}]：所有技能冷卻重置！`, 'skill');
                         }
                     }
@@ -1184,7 +1236,13 @@ const GameState = {
                     if (args.skillName === '舉盾抵抗') {
                         card.maxHp += (effect.hp_per_use || 50);
                         card.hp += (effect.hp_per_use || 50);
-                        this.addLog(`${card.name} 舉盾抵抗！最大生命值 +${effect.hp_per_use || 50}`, 'skill');
+                        if (card.maxHp >= (effect.dodge_lose_threshold || 1400)) {
+                            if (!card.resources) card.resources = {};
+                            card.resources.dodge = 0;
+                            this.addLog(`${card.name} 舉盾抵抗！最大生命值 +${effect.hp_per_use || 50} (生命值達 ${card.maxHp}，閃避率歸零)`, 'skill');
+                        } else {
+                            this.addLog(`${card.name} 舉盾抵抗！最大生命值 +${effect.hp_per_use || 50}`, 'skill');
+                        }
                     }
                 } else if (trigger === 'passive') {
                     if (!card.resources) card.resources = {};

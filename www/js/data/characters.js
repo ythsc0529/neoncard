@@ -78,7 +78,7 @@ const BALLS = ['籃球', '足球', '排球', '羽球', '高爾夫球', '撞球']
 const PLANETS = ['冥王星', '水星', '金星', '地球', '火星', '木星', '土星', '天王星', '海王星', '北極星', '太陽'];
 const TEAS = ['梅子綠茶', '檸檬紅茶', '水果茶', '台茶18號', '多多綠茶', '烏龍茶', '採茶員'];
 const MOTORCYCLES = ['越野摩托車', '重型摩托車', '水上摩托車', '狗狗肉摩托車'];
-const VEHICLES = ['越野摩托車', '重型摩托車', '水上摩托車', '狗狗肉摩托車', '高鐵', '托你使坦克', '虎式坦克'];
+const VEHICLES = ['捷運', '火箭', '輪胎', '單車', '火車', '越野摩托車', '重型摩托車', '水上摩托車', '狗狗肉摩托車', '高鐵', '托你使坦克', '虎式坦克', 'K型戰機', '超級坦克'];
 
 function getRandomFromCategory(category) {
     let list;
@@ -137,6 +137,10 @@ function createCharacterInstance(character) {
         }
         if (pEff.action === 'set_damage_reduction') {
             instance.resources.defense_stacks = (instance.resources.defense_stacks || 0) + (pEff.value || 0);
+        }
+        if (pEff.action === 'tower_shield_player_passive') {
+            instance.resources.dodge = pEff.initial_dodge || 10;
+            instance.resources.dodge_inited = true;
         }
     }
 
