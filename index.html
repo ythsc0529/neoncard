@@ -15,7 +15,7 @@
     
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.7.1";
+        window.APP_VERSION = "2.7.2";
 
         // ── Service Worker 更新管理 ──
         if ('serviceWorker' in navigator) {
@@ -1518,7 +1518,7 @@
         <div class="update-modal">
             <div style="font-size:3rem;margin-bottom:8px;">🚀</div>
             <div class="update-title" style="font-size:1.6rem;font-weight:900;color:var(--comic-orange);-webkit-text-stroke:1px #0A0A0A;">發現新版本</div>
-            <div class="update-subtitle" style="font-size:0.9rem;font-weight:600;color:#555555;margin:6px 0 16px;">為了確保遊戲穩定性與戰鬥數據同步，請更新至最新版本以繼續。</div>
+            <div class="update-subtitle" style="font-size:0.9rem;font-weight:600;color:#555555;margin:6px 0 16px;">為了確保遊戲穩定性與戰鬥數據同步，請前往商店更新至最新版本。</div>
 
             <div class="update-notes-container" style="background:var(--comic-paper);border:2px solid #0A0A0A;padding:12px 16px;text-align:left;">
                 <div class="update-notes-title" style="font-weight:900;font-size:0.85rem;margin-bottom:6px;">📋 更新內容：</div>
@@ -1528,27 +1528,8 @@
                 </ul>
             </div>
 
-            <div class="update-progress-container hidden" id="updateProgressContainer" style="margin-top:16px; text-align: left;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.85rem;font-weight:800;color:#0A0A0A;">
-                    <span id="updateProgressStatus">等待下載...</span>
-                    <span id="updateProgressRemaining" style="color:var(--comic-blue);"></span>
-                    <span id="updateProgressPercent">0%</span>
-                </div>
-                <div style="width:100%;height:14px;background:var(--comic-paper-dark);border:2px solid #0A0A0A;overflow:hidden;">
-                    <div id="updateProgressBar" style="width:0%;height:100%;background:var(--comic-orange);transition:width 0.3s;"></div>
-                </div>
-            </div>
-
-            <div id="updateDownloadWarning" class="hidden" style="margin-top:12px;padding:10px 14px;background:#FFF0E8;border:2px solid var(--comic-orange);text-align:left;display:flex;align-items:flex-start;gap:8px;">
-                <span style="font-size:1.2rem;">⚠️</span>
-                <div>
-                    <div style="color:var(--comic-orange);font-weight:900;font-size:0.85rem;">下載進行中，請勿退出或切換 App</div>
-                    <div style="color:#666666;font-size:0.75rem;">切換至其他應用程式可能導致下載中斷，請保持此畫面開啟。</div>
-                </div>
-            </div>
-
-            <button class="btn btn-primary" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.startDownloadFlow();" style="margin-top:18px; width:100%;">立即更新並安裝</button>
-            <div class="update-footer" id="versionDisplay" style="margin-top:10px;font-size:0.75rem;color:#888888;font-weight:800;">Current Version: 2.5.1</div>
+            <button class="btn btn-primary" id="mainUpdateBtn" onclick="event.preventDefault(); Updater.openStore();" style="margin-top:18px; width:100%;">🚀 前往 Google Play 商店更新</button>
+            <div class="update-footer" id="versionDisplay" style="margin-top:10px;font-size:0.75rem;color:#888888;font-weight:800;">Current Version: 2.7.1</div>
         </div>
     </div>
 

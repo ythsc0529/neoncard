@@ -106,54 +106,63 @@
 <body>
     <div class="container">
         <h1>霓虹牌 (NeonCard) 隱私權政策</h1>
-        <div class="update-date">最後更新日期：2026 年 8 月 16 日</div>
+        <div class="update-date">最後更新日期：2026 年 8 月 17 日</div>
 
-        <p>歡迎遊玩「霓虹牌」（以下簡稱「本遊戲」或「我們」）。我們非常重視您的隱私權，並致力於保護您的個人資料。本隱私權政策旨在向您說明我們如何收集、使用、儲存及保護您的資訊。</p>
+        <p>歡迎遊玩「霓虹牌」（以下簡稱「本遊戲」或「我們」）。我們非常重視您的隱私權，並致力於保護您的個人資料。本隱私權政策旨在向您說明我們如何收集、使用、儲存、保護以及如何申請刪除您的資訊。</p>
 
-        <h2>一、我們收集的資料類型</h2>
+        <h2>一、我們收集的資料類型與用途</h2>
         <p>當您使用本遊戲時，我們可能會收集並處理以下資訊：</p>
         <ul>
-            <li><strong>帳號認證資訊：</strong>當您使用 Google 登入時，我們透過 Google Firebase Authentication 取得您的不重複使用者識別碼（User ID, UID）、電子郵件地址與公開暱稱/個人頭像。</li>
-            <li><strong>遊戲進度與戰績：</strong>您的玩家等級、卡牌收藏、對戰紀錄、成就、通行證進度、好友列表及商店購買紀錄，此資料儲存於 Google Cloud Firestore。</li>
-            <li><strong>連線對戰狀態：</strong>於多人配對與即時連線對局期間，我們會透過 Firebase Realtime Database 暫存即時遊戲房間狀態、連線狀態與出牌操作。</li>
+            <li><strong>帳號認證資訊（Google 登入）：</strong>當您透過 Google 帳號登入時，我們透過 Google Firebase Authentication 取得您的不重複使用者識別碼（User ID, UID）、電子郵件地址（用於帳號識別與資料綁定）與公開暱稱/頭像。</li>
+            <li><strong>遊戲進度與個人存檔：</strong>您的玩家等級、卡牌收藏、對戰戰績、天梯階級、成就、通行證進度、好友列表及商店虛擬物品持有紀錄，此資料安全儲存於 Google Cloud Firestore。</li>
+            <li><strong>多人連線對戰狀態：</strong>於即時連線對局期間，我們會透過 Firebase Realtime Database 暫存即時房間狀態、連線狀態與出牌操作，以完成對戰同步。</li>
         </ul>
 
-        <h2>二、裝置權限使用說明（相機權限）</h2>
+        <h2>二、裝置權限使用說明</h2>
         <div class="highlight-box">
-            <p><strong>相機（Camera）權限聲明：</strong></p>
-            <p>本遊戲申請裝置之相機使用權限，<strong>唯一目的係用於好友功能之「掃描好友 QR Code」以快速新增遊戲好友</strong>。</p>
+            <p><strong>1. 相機（Camera）權限：</strong></p>
+            <p>本遊戲申請相機權限之<strong>唯一目的係用於好友功能之「掃描好友 QR Code」以快速新增遊戲好友</strong>。</p>
             <ul>
                 <li>我們<strong>不會</strong>拍攝、儲存、側錄或上傳任何照片、影片或相機畫面至伺服器。</li>
-                <li>相機畫面僅在您主動開啟掃描器時於本機即時辨識 QR Code 字串，辨識完成後即刻釋放關閉相機。</li>
-                <li>您可自由隨時透過裝置系統設定開啟或拒絕此權限；若拒絕，您仍可透過輸入好友代碼等替代方式進行好友新增。</li>
+                <li>畫面僅在開啟掃描功能時於本機端即時解析 QR Code 字串，辨識完成後立即關閉釋放相機資源。</li>
+                <li>您可自由選擇是否授予相機權限；若拒絕，您仍可手動輸入好友代碼進行新增。</li>
+            </ul>
+            <p style="margin-top: 10px;"><strong>2. 震動（Vibrate）與通知（Notification）權限：</strong></p>
+            <ul>
+                <li><strong>震動：</strong>用於戰鬥中受到傷害或特殊效果時提供觸覺回饋，可於遊戲內設定隨時關閉。</li>
+                <li><strong>通知：</strong>用於每日任務刷新提醒或遊戲重要公告。</li>
             </ul>
         </div>
 
         <h2>三、第三方服務與技術</h2>
         <p>本遊戲整合了以下第三方服務以提供穩定的遊戲運作：</p>
         <ul>
-            <li><strong>Google Firebase（包含 Auth, Cloud Firestore, Realtime Database, App Check / Play Integrity）：</strong>用於帳號身分驗證、遊戲資料同步備份、多人即時連線以及防止未授權惡意存取之安全防護。相關服務遵守 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 隱私權政策</a>。</li>
+            <li><strong>Google Firebase / Google Play 服務：</strong>包含 Firebase Authentication、Cloud Firestore、Realtime Database 及 Play Integrity / App Check，用於身分驗證、雲端資料同步、防作弊與伺服器安全防護。相關資料處理遵循 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 隱私權政策</a>。</li>
         </ul>
 
-        <h2>四、資料安全與保護</h2>
-        <p>我們採用業界標準的加密傳輸技術（HTTPS / TLS）與嚴格的雲端安全存取規則（Firebase Security Rules）保護您的資料，並透過 Firebase App Check 機制防止未經授權的第三方程式存取或偽造請求。</p>
+        <h2>四、資料安全與加密傳輸</h2>
+        <p>我們採用業界標準的加密通訊協定（HTTPS / TLS）進行所有網路資料傳輸，並透過 Firebase 雲端安全規則（Security Rules）與 App Check 嚴格限制存取權限，防止未經授權的存取、竄改或洩漏。</p>
 
-        <h2>五、資料保留與刪除權利</h2>
-        <p>您對您的個人資料享有以下權利：</p>
+        <h2>五、帳號與個人資料刪除權利 (Account & Data Deletion)</h2>
+        <p>我們充分尊重使用者的資料自主權利：</p>
         <ul>
-            <li>您可以隨時於遊戲內檢視您的個人資料與遊戲統計數據。</li>
-            <li><strong>要求刪除帳號：</strong>若您欲刪除遊戲帳號及所有關聯之雲端存檔資料，您可以透過遊戲內設定或聯絡開發者提出請求，我們將在驗證身分後於 30 日內自伺服器完全清除您的所有資料。</li>
+            <li><strong>如何申請刪除：</strong>若您欲永久刪除遊戲帳號與所有關聯之存檔資料，請透過電子郵件寄信至 <a href="mailto:hsc0529.work@gmail.com">hsc0529.work@gmail.com</a>，主旨註明「【霓虹牌】申請刪除帳號與資料」，並提供您的遊戲暱稱或 Google 登入信箱。</li>
+            <li><strong>資料刪除範圍：</strong>收到申請並完成身分確認後，我們將於 7 個工作日內自 Firebase 伺服器中永久刪除您的 User ID、Email 記錄、Firestore 個人存檔（卡牌、戰績、好友等全部數據），且無法復原。</li>
         </ul>
 
-        <h2>六、隱私權政策之修改</h2>
-        <p>我們可能會不定期修訂本隱私權政策。重大變更將於本遊戲官方頁面或遊戲內公告。建議您定期檢視以保障自身權益。</p>
+        <h2>六、兒童隱私保護 (Children's Privacy)</h2>
+        <p>本遊戲並非專門針對未滿 13 歲之兒童設計，我們不會在知情的情況下主動收集未滿 13 歲兒童的個人識別資訊。若法定監護人發現其子女在未經同意下提供了個人資訊，請聯絡我們，我們將迅速採取措施予以刪除。</p>
 
-        <h2>七、聯絡我們</h2>
-        <p>若您對本隱私權政策或個人資料處理有任何疑問、建議或刪除請求，請透過以下方式與我們聯繫：</p>
+        <h2>七、隱私權政策之修改</h2>
+        <p>我們可能會適時修訂本隱私權政策。重大變更將於本遊戲官方網站公告。建議您定期檢視以保障自身權益。</p>
+
+        <h2>八、聯絡我們</h2>
+        <p>若您對本隱私權政策或個人資料處理有任何疑問、建議或帳號刪除請求，歡迎透過以下方式與開發團隊聯繫：</p>
         <ul>
             <li>開發團隊：霓虹牌開發團隊 (NeonCard Team)</li>
-            <li>電子郵件：hsc0529.work@gmail.com</li>
-            <li>官方網站：<a href="https://app.netlify.uptocard.twa" target="_blank" rel="noopener">https://app.netlify.uptocard.twa</a></li>
+            <li>電子郵件：<a href="mailto:hsc0529.work@gmail.com">hsc0529.work@gmail.com</a></li>
+            <li>官方網站：<a href="https://uptocard.netlify.app" target="_blank" rel="noopener">https://uptocard.netlify.app</a></li>
+            <li>隱私權政策網址：<a href="https://uptocard.netlify.app/privacy.html" target="_blank" rel="noopener">https://uptocard.netlify.app/privacy.html</a></li>
         </ul>
 
         <div class="footer">

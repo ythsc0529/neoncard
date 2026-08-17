@@ -1,5 +1,5 @@
 {
-  "version": "2.7.1",
+  "version": "2.7.2",
   "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.1/app-debug.apk",
   "notes": [
     "修復 13 個角色技能、被動與動畫異常（巔峰、塔盾玩家、骨骸、天才少年、小資、老黑、盾哥、黃蓋、悖論、K/L型戰機、奧沙利文、火車）。",
