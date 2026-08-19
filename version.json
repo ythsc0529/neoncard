@@ -1,10 +1,9 @@
 {
-  "version": "2.7.2",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.1/app-debug.apk",
+  "version": "2.7.3",
+  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.3/app-debug.apk",
   "notes": [
-    "修復 13 個角色技能、被動與動畫異常（巔峰、塔盾玩家、骨骸、天才少年、小資、老黑、盾哥、黃蓋、悖論、K/L型戰機、奧沙利文、火車）。",
-    "優化連線模式中回合開始被動死亡同步機制與狀態繼承。",
-    "修復 3D 骰子動畫點數旋轉顯示問題。"
+    "升級 Android 目標 API 級別至 Android 16 (API 36)。",
+    "優化 Google 登入驗證流程與雙層降級容錯機制。"
   ]
 }
 

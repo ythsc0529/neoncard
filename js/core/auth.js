@@ -73,9 +73,21 @@ const AuthManager = (() => {
                     return;
                 }
 
-                const result = await FirebaseAuthentication.signInWithGoogle();
+                let result = null;
+                try {
+                    // 優先使用 Credential Manager 登入
+                    result = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: true });
+                } catch (credErr) {
+                    console.warn("[Auth] CredentialManager 失敗，降級切換至傳統 Google 登入:", credErr);
+                    // 若 CredentialManager 失敗（例如 No credentials available），降級至傳統 GoogleSignInClient
+                    try {
+                        result = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+                    } catch (fallbackErr) {
+                        throw fallbackErr || credErr;
+                    }
+                }
 
-                if (result.credential && result.credential.idToken) {
+                if (result && result.credential && result.credential.idToken) {
                     const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
                     return _auth.signInWithCredential(credential);
                 } else {
@@ -83,7 +95,13 @@ const AuthManager = (() => {
                 }
             } catch (error) {
                 console.error("[Auth] 原生登入失敗:", error);
-                alert("原生登入失敗代碼: " + JSON.stringify(error));
+                const errMsg = error.message || error.code || (typeof error === 'string' ? error : JSON.stringify(error));
+                // 如果是使用者自行取消登入，不需彈出錯誤警告
+                if (errMsg && (errMsg.includes('canceled') || errMsg.includes('Canceled') || errMsg.includes('12501') || errMsg.includes('16'))) {
+                    console.log("[Auth] 使用者取消登入");
+                    return;
+                }
+                alert("原生登入失敗: " + errMsg);
                 throw error;
             }
         } else {
