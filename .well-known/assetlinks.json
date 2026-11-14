@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "app.netlify.uptocard.twa",
       "sha256_cert_fingerprints": [
-        "02:7D:41:61:FA:D6:42:96:DA:FB:D9:AD:B8:65:6C:B5:8E:FC:2A:EB:6A:E6:27:AA:FA:F8:73:46:29:64:91:2B"
+        "02:7D:41:61:FA:D6:42:96:DA:FB:D9:AD:B8:65:6C:B5:8E:FC:2A:EB:6A:E6:27:AA:FA:F8:73:46:29:64:91:2B",
+        "C8:BB:B5:43:3E:61:9C:BB:00:2F:AD:86:67:1F:6D:36:24:DD:64:06:EF:7B:EA:C0:4F:FF:EA:C0:AE:CA:7C:12"
       ]
     }
   }
