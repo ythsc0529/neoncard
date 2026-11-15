@@ -212,9 +212,12 @@
             letter-spacing: 1px;
         }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink1">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink1">
+    <script src="js/ui/comicMotion.js?v=ink1"></script>
 </head>
 
-<body>
+<body data-page="team">
     <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);background-image:var(--comic-halftone);background-size:20px 20px;display:flex;align-items:center;justify-content:center;z-index:9999;">
         <div style="text-align:center;">
             <div style="font-family:var(--font-heading);font-size:2rem;font-weight:900;color:var(--text-primary);-webkit-text-stroke:1px var(--nb-border);margin-bottom:16px;animation:pulse 1.5s infinite;">霓虹牌</div>
@@ -235,6 +238,7 @@
             <div class="stats-bar" id="collectionStats">收集度: 0 / 0 (0%)</div>
         </div>
 
+        <label class="ink-collection-search">搜尋收藏<input id="collectionSearch" type="search" placeholder="輸入角色名稱或技能" oninput="renderCollection()"></label>
         <div class="filters-bar">
             <span class="filter-label">篩選：</span>
             <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
@@ -247,7 +251,42 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="collectionDetailModal" onclick="if(event.target===this)closeCollectionDetail()">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionDetailTitle">
+            <span class="ink-eyebrow">CHARACTER / 角色檔案</span>
+            <h2 id="collectionDetailTitle"></h2>
+            <p id="collectionDetailStatus" class="ink-detail-status"></p>
+            <div id="collectionDetailSkills"></div>
+            <button id="collectionDetailClose" class="btn btn-primary" onclick="closeCollectionDetail()" style="margin-top:24px;width:100%">返回收藏</button>
+        </div>
+    </div>
     <script>
+        let collectionReturnFocus = null;
+        function closeCollectionDetail() {
+            document.getElementById('collectionDetailModal').classList.remove('active');
+            collectionReturnFocus?.focus();
+        }
+        function showCollectionDetail(c, isOwned, hp, atk, origin) {
+            collectionReturnFocus = origin;
+            document.getElementById('collectionDetailTitle').textContent = c.name;
+            document.getElementById('collectionDetailStatus').textContent = (isOwned ? '已收藏' : '尚未收藏') + ' / HP ' + hp + ' / ATK ' + atk;
+            const list = document.getElementById('collectionDetailSkills');
+            list.replaceChildren();
+            for (const skill of [...(c.skills || []), ...(c.passive ? [{...c.passive, name: '被動 · ' + c.passive.name}] : [])]) {
+                const section = document.createElement('section');section.className = 'ink-detail-skill';
+                const title = document.createElement('h3');title.textContent = skill.name + (skill.cd !== undefined ? ' / CD ' + skill.cd : '');
+                const desc = document.createElement('p');desc.textContent = skill.desc || '無額外說明';
+                section.append(title, desc);list.append(section);
+            }
+            if (!list.children.length) list.textContent = '此角色沒有主動技能。';
+            document.getElementById('collectionDetailModal').classList.add('active');
+            document.getElementById('collectionDetailClose').focus();
+        }
+        document.addEventListener('keydown', e => {
+            if (!document.getElementById('collectionDetailModal').classList.contains('active')) return;
+            if (e.key === 'Escape') closeCollectionDetail();
+            if (e.key === 'Tab') { e.preventDefault(); document.getElementById('collectionDetailClose').focus(); }
+        });
         let myProfile = null;
         let allChars = [];
         let currentFilter = 'all';
@@ -279,9 +318,11 @@
             const ownedNames = myProfile.unlockedCharacters || [];
             document.getElementById('collectionStats').textContent = `收集度: ${ownedNames.length} / ${allChars.length} (${Math.round(ownedNames.length / allChars.length * 100)}%)`;
             
-            let displayList = allChars;
+            let displayList = [...allChars];
             if(currentFilter === 'owned') displayList = displayList.filter(c => ownedNames.includes(c.name));
             if(currentFilter === 'unowned') displayList = displayList.filter(c => !ownedNames.includes(c.name));
+            const query = document.getElementById('collectionSearch').value.trim().toLowerCase();
+            if (query) displayList = displayList.filter(c => [c.name, ...(c.skills || []).map(s=>s.name)].join(' ').toLowerCase().includes(query));
             
             if (displayList.length === 0) {
                 grid.innerHTML = `<div class="empty-state-nb"><div class="icon">🃏</div><p>此篩選條件下沒有角色</p></div>`;
@@ -334,14 +375,12 @@
                     </div>
                 `;
                 
-                card.onclick = () => {
-                    if(isOwned) {
-                        const skillList = (c.skills || []).map(s => `• ${s.name}: ${s.desc}`).join('\n');
-                        alert(`【${c.name}】\nHP: ${hpVal} | ATK: ${atkVal}\n\n技能:\n${skillList || '無'}`);
-                    } else {
-                        alert(`尚未解鎖【${c.name}】！`);
-                    }
-                };
+                card.tabIndex = 0;
+                card.setAttribute('role', 'button');
+                card.setAttribute('aria-label', c.name + (isOwned ? '，已收藏' : '，未收藏'));
+                card.onclick = () => showCollectionDetail(c, isOwned, hpVal, atkVal, card);
+                card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } };
+                const ownership = document.createElement('div');ownership.className = 'ink-ownership';ownership.textContent = isOwned ? '已收藏 / 查看技能 →' : '未收藏 / 查看技能 →';card.append(ownership);
                 
                 grid.appendChild(card);
             });

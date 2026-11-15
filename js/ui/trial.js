@@ -66,7 +66,7 @@ AuthManager.onAuthChanged(async (user) => {
         // Auto-scroll on initial load
         if (!hasAutoScrolled) {
             setTimeout(() => {
-                scrollToCurrentLevel();
+                // Keep the progress summary visible on entry.
                 hasAutoScrolled = true;
             }, 250);
         }
@@ -248,6 +248,12 @@ function renderTrial() {
 
         if (!rewardsHtml) {
             rewardsHtml = `<span style="color:#6B7280; font-size:0.85rem; font-weight:700;">✨ 達成榮譽階級 (無額外道具)</span>`;
+        }
+
+        const rewardCount = data.chars.length + Object.keys(data.items).length + (data.title ? 1 : 0) + (data.note ? 1 : 0);
+        if (rewardCount > 3) {
+            const headline = data.title ? '稱號「' + data.title + '」' : data.chars.length ? data.chars[0] + '等角色' : '成長補給';
+            rewardsHtml = '<details class="milestone-details"><summary>' + headline + ' · 共 ' + rewardCount + ' 項獎勵 · 展開查看</summary><div class="milestone-detail-rewards">' + rewardsHtml + '</div></details>';
         }
 
         // Action Button HTML

@@ -132,26 +132,29 @@
             font-weight: 600;
         }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink1">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink1">
+    <script src="js/ui/comicMotion.js?v=ink1"></script>
 </head>
 
-<body>
+<body data-page="characters">
     <!-- Theme Toggle Removed -->
     <a href="index.html" class="btn back-btn">← 返回</a>
 
     <div class="character-list-container">
         <div class="page-header">
-            <h1 class="page-title">角色列表</h1>
+            <h1 class="page-title">角色圖鑑</h1>
             <p class="char-count">共 <span id="charCount">0</span> 個角色</p>
         </div>
 
         <div class="search-container">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋角色名稱、技能或被動..."
+            <input type="text" class="search-input" id="searchInput" aria-label="搜尋角色" placeholder="🔍 搜尋角色名稱、技能或被動..."
                 oninput="filterCharacters()">
         </div>
 
         <div class="filter-container" id="filterContainer">
             <button class="filter-btn active" onclick="setFilter('all')" data-filter="all"
-                style="color: #fff;">全部</button>
+                >全部</button>
             <button class="filter-btn rarity-common" onclick="setFilter('COMMON')" data-filter="COMMON">一般</button>
             <button class="filter-btn rarity-rare" onclick="setFilter('RARE')" data-filter="RARE">稀有</button>
             <button class="filter-btn rarity-epic" onclick="setFilter('EPIC')" data-filter="EPIC">史詩</button>
@@ -191,6 +194,9 @@
                 const card = document.createElement('div');
                 card.className = `character-card glass ${getRarityClass(char.rarity)}`;
                 card.onclick = () => showDetail(char);
+                card.tabIndex = 0; card.setAttribute('role', 'button');
+                card.setAttribute('aria-label', '查看' + char.name + '的角色資料');
+                card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); card.click(); } };
 
                 const hpDisplay = typeof char.hp === 'object'
                     ? `${char.hp.min}~${char.hp.max}`

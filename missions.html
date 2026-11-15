@@ -136,9 +136,12 @@
         .m-rewards { display: flex; gap: 8px; flex-wrap: wrap; }
         .r-chip { background: var(--bg-secondary); padding: 4px 8px; border-radius: 2px; font-size: 0.8rem; color: var(--text-primary); border: 2px solid var(--nb-border); font-weight: 700; }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink1">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink1">
+    <script src="js/ui/comicMotion.js?v=ink1"></script>
 </head>
 
-<body>
+<body data-page="missions">
     <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);display:flex;align-items:center;justify-content:center;z-index:9999;">
         <div style="color:var(--color-primary);font-family:var(--font-heading);font-size:1.5rem;font-weight:900;animation:pulse 1.5s infinite;">載入中...</div>
     </div>
@@ -149,6 +152,7 @@
             <h1 style="margin:0;font-family:var(--font-heading);font-weight:900;text-transform:uppercase;letter-spacing:-1px;color:var(--text-primary);-webkit-text-stroke:1px var(--nb-border);">📜 任務系統</h1>
         </div>
 
+        <div class="edition-heading"><small>DAILY / MISSIONS</small><h1>今天，也往前一步。</h1><p>完成任務、累積資源，讓每一場對戰都有收穫。</p></div>
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('novice')" id="tab-novice">新手任務</button>
             <button class="tab-btn" onclick="switchTab('daily')" id="tab-daily">每日任務</button>

@@ -7,6 +7,9 @@ const CACHE_NAME = 'neoncard-v2.7.9';
 const CORE_ASSETS = [
     '/manifest.json',
     '/css/styles.css',
+    '/css/comic-ui.css?v=ink1',
+    '/css/comic-motion.css?v=ink1',
+    '/js/ui/comicMotion.js?v=ink1',
     '/js/theme.js',
     '/logo/nenocard512512.png'
 ];

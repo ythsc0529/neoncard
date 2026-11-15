@@ -1457,9 +1457,12 @@
             line-height: 1.4;
         }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink1">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink1">
+    <script src="js/ui/comicMotion.js?v=ink1"></script>
 </head>
 
-<body>
+<body data-page="index">
     <!-- ① Resource Preloader -->
     <div class="preloader-container" id="resourcePreloader">
         <div class="preloader-box">
@@ -1549,6 +1552,7 @@
          TOP BAR HEADER (Fixed Floating Top)
     ══════════════════════════════════════════════════════════════ -->
     <header class="comic-topbar" id="comicTopBar">
+        <a class="ink-wordmark" href="index.html" aria-label="霓虹牌首頁">NEON<span> / </span>CARD.</a>
         <!-- Left: Quick Actions -->
         <div class="topbar-left" id="topLeftActions">
             <div class="notify-wrapper" data-notification="missions">
@@ -1594,16 +1598,20 @@
     ══════════════════════════════════════════════════════════════ -->
     <main class="home-page-container" id="mainMenu" style="display:none;">
         
-        <!-- Hero Comic Brand Title -->
-        <section class="hero-brand-section">
-            <div class="brand-badge-wrap">
-                <span class="brand-pill">CYBER CARD BATTLE ARENA</span>
+        <div class="ink-masthead"><span>霓虹牌 / THE CARD BATTLE COMIC</span><span>YOUR TURN. YOUR STORY.</span></div>
+        <section class="ink-cover" aria-label="開始你的對戰篇章">
+            <div class="ink-cover-copy">
+                <span class="ink-eyebrow">NEXT CHAPTER / 由你出牌</span>
+                <h1>每次出牌，<br>都是<em>名場面。</em></h1>
+                <p>集結你的角色，翻轉下一回合。<br>用一副牌，寫下屬於你的戰鬥篇章。</p>
+                <button class="ink-start" onclick="showModeSelection()">開始對戰 <span aria-hidden="true">↗</span></button>
             </div>
-            <h1 class="comic-logo-title">
-                <span class="neon-glow">NEON</span>
-                <span class="card-glow">CARD</span>
-            </h1>
-            <div class="comic-logo-sub">霓 虹 牌</div>
+            <div class="ink-cover-art" aria-hidden="true">
+                <div class="ink-art-card"><img src="pic/001戰士.png" alt=""><b>01 / 戰士</b></div>
+                <div class="ink-art-card"><img src="pic/003伊魯帕恩.png" alt=""><b>03 / 伊魯帕恩</b></div>
+                <span class="ink-art-burst">VS!</span>
+                <span class="ink-art-caption">ONE CARD CAN CHANGE EVERYTHING.</span>
+            </div>
         </section>
 
         <!-- Player Quick Status Card (Shown when logged in) -->
@@ -1628,169 +1636,21 @@
         <!-- ══════════════════════════════════════════════════════════
              COMIC ACTION CARDS GRID
         ══════════════════════════════════════════════════════════ -->
-        <div class="comic-menu-grid">
-            
-            <!-- ① 💥 開始遊戲 (Battle Start - PvE / PvP / Online) -->
-            <div class="comic-action-card card-battle-primary" onclick="showModeSelection()">
-                <div class="card-corner-sticker sticker-orange">HOT PLAY</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">⚔️</div>
-                    <div>
-                        <div class="card-heading-title" style="color:var(--comic-orange);">開始遊戲・對戰</div>
-                        <div class="card-subtext">單人挑戰電腦・本地雙人同屏・自訂連線對決</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">選擇模式 BATTLE START</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ② 🏆 排位賽 / 競技大廳 (Ranked Arena) -->
-            <div class="comic-action-card card-ranked-gold" id="tournamentBtn" onclick="showTournamentMenu()">
-                <div class="card-corner-sticker">S1 ACTIVE</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">🏆</div>
-                    <div>
-                        <div class="card-heading-title" style="color:#0A0A0A;">排位 / 一般匹配</div>
-                        <div class="card-subtext">全球自動配對・衝擊段位・賽季專屬獎勵</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">進入競技大廳 ENTER</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ③ ⚔️ 試煉之路 (Path of Trials) -->
-            <div class="comic-action-card card-col-4 card-trials" onclick="location.href='trial.html'">
-                <div class="card-corner-sticker sticker-cyan">TOWER</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">⚡</div>
-                    <div>
-                        <div class="card-heading-title">試煉之路</div>
-                        <div class="card-subtext">爬塔層級挑戰・解鎖專屬頭像</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">開始試煉</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ④ 🎫 賽季通行證 (Battle Pass) -->
-            <div class="comic-action-card card-col-4 card-pass notify-wrapper" data-notification="pass" onclick="location.href='pass.html'" style="display:flex;">
-                <div class="notify-dot"></div>
-                <div class="card-corner-sticker sticker-purple">SEASON PASS</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">🎫</div>
-                    <div>
-                        <div class="card-heading-title">賽季通行證</div>
-                        <div class="card-subtext">對戰累積經驗・解鎖豐富獎勵</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">查看進度</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑤ 🛍️ 商店 & 抽卡 (Shop & Gacha) -->
-            <div class="comic-action-card card-col-4 card-shop notify-wrapper" data-notification="shop" onclick="location.href='shop.html'" style="display:flex;">
-                <div class="notify-dot"></div>
-                <div class="card-corner-sticker sticker-green">FREE PULL</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">🎰</div>
-                    <div>
-                        <div class="card-heading-title">商店 / 抽卡</div>
-                        <div class="card-subtext">角色招募・天天免費抽・造型購買</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">前往商店</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑥ 📖 劇情模式 (Story Mode) -->
-            <div class="comic-action-card card-col-4 card-story" onclick="location.href='story_menu.html'">
-                <div class="card-corner-sticker">CAMPAIGN</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">📜</div>
-                    <div>
-                        <div class="card-heading-title">劇情模式</div>
-                        <div class="card-subtext">世界觀故事・沉浸式章節對決</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">冒險篇章</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑦ 👥 隊伍配置 (Deck Builder) -->
-            <div class="comic-action-card card-col-4 card-team" onclick="location.href='team.html'">
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">🃏</div>
-                    <div>
-                        <div class="card-heading-title">隊伍配置</div>
-                        <div class="card-subtext">自訂專屬陣容・技能連攜搭配</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">調整牌組</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑧ 📚 角色圖鑑 (Characters Gallery) -->
-            <div class="comic-action-card card-col-4 card-characters" onclick="location.href='characters.html'">
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">👥</div>
-                    <div>
-                        <div class="card-heading-title">角色圖鑑</div>
-                        <div class="card-subtext">全英雄數值・專屬技能資料庫</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">檢視圖鑑</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑨ 🎮 娛樂模式 (Entertainment Modal) -->
-            <div class="comic-action-card card-col-6 card-entertainment" onclick="showEntertainmentMenu()">
-                <div class="card-corner-sticker">ARCADE</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">🔮</div>
-                    <div>
-                        <div class="card-heading-title">娛樂模式</div>
-                        <div class="card-subtext">神話亂鬥・全明星對決・趣味特殊玩法</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">娛樂專區</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
-            <!-- ⑩ 📖 攻略專區 (Strategy Guide) -->
-            <div class="comic-action-card card-col-6 card-strategy" onclick="location.href='strategy.html'">
-                <div class="card-corner-sticker">GUIDE</div>
-                <div class="card-icon-title-wrap">
-                    <div class="card-big-emoji">💡</div>
-                    <div>
-                        <div class="card-heading-title">攻略專區</div>
-                        <div class="card-subtext">進階技巧・陣容推薦・機制詳解</div>
-                    </div>
-                </div>
-                <div class="card-bottom-action">
-                    <span class="card-btn-text">閱讀攻略</span>
-                    <div class="card-arrow-pill">→</div>
-                </div>
-            </div>
-
+        <div class="ink-section-label"><h2>選擇你的戰場</h2><span>01 / PLAY</span></div>
+        <div class="ink-play-grid">
+            <button class="ink-nav-card rank" id="tournamentBtn" onclick="showTournamentMenu()"><small>RANKED / 競技</small><strong>競技大廳</strong><p>排位衝分・一般匹配</p><span class="ink-arrow">↗</span></button>
+            <a class="ink-nav-card story" href="story_menu.html"><small>STORY / 劇情</small><strong>踏入編年史</strong><p>主傳與外傳，展開新的故事</p><span class="ink-arrow">↗</span></a>
+            <button class="ink-nav-card arcade" onclick="showEntertainmentMenu()"><small>ARCADE / 娛樂</small><strong>來點不一樣的</strong><p>神話亂鬥・全明星對決</p><span class="ink-arrow">↗</span></button>
         </div>
+        <div class="ink-section-label"><h2>成長與收藏</h2><span>02 / COLLECTION</span></div>
+        <div class="ink-progress-grid">
+            <a class="ink-nav-card" href="trial.html"><small>LEVEL REWARDS</small><strong>試煉之路</strong><p>累積對戰經驗，領取等級獎勵</p><span class="ink-arrow">→</span></a>
+            <a class="ink-nav-card notify-wrapper" data-notification="pass" href="pass.html"><div class="notify-dot"></div><small>BATTLE PASS</small><strong>賽季通行證</strong><p>每場對戰，離下一階更近一步</p><span class="ink-arrow">→</span></a>
+            <a class="ink-nav-card notify-wrapper" data-notification="shop" href="shop.html"><div class="notify-dot"></div><small>SHOP & RECRUIT</small><strong>招募補給站</strong><p>抽取角色・補充資源</p><span class="ink-arrow">→</span></a>
+        </div>
+        <nav class="ink-library" aria-label="遊戲資料與收藏">
+            <a href="team.html">隊伍配置 ↗</a><a href="characters.html">角色圖鑑 ↗</a><a href="strategy.html">戰術攻略 ↗</a>
+        </nav>
 
         <!-- ── Bottom Footer Utility Bar ── -->
         <footer class="comic-footer-bar">
@@ -1799,7 +1659,7 @@
                 <button class="footer-link-btn" onclick="showUpdateLog()">📜 版本日誌</button>
                 <button class="footer-link-btn hidden" id="profileMenuBtn" onclick="location.href='profile.html'">👤 個人檔案</button>
             </div>
-            <div class="footer-version-tag">NEON CARD・v2.5.1</div>
+            <div class="footer-version-tag">NEON CARD / INK EDITION</div>
         </footer>
 
     </main>
@@ -2037,6 +1897,7 @@
             </div>
 
             <!-- Music Volume -->
+            <label class="ink-motion-control">動畫演出 <select data-motion-select aria-label="動畫演出"><option value="system">跟隨裝置設定</option><option value="full">完整漫畫演出</option><option value="reduced">精簡動態</option></select></label>
             <div class="settings-row">
                 <div class="settings-label">
                     <span>🎵</span>
@@ -2575,9 +2436,16 @@
                 }
                 await AuthManager.signInWithGoogle();
             } catch (e) {
-                if (e.code !== 'auth/popup-closed-by-user') {
-                    alert('登入失敗：' + e.message);
+                const errMsg = e?.message || e?.code || (typeof e === 'string' ? e : JSON.stringify(e));
+                const isCancel = e?.code === 'auth/popup-closed-by-user' ||
+                    errMsg.includes('canceled') || errMsg.includes('Canceled') ||
+                    errMsg.includes('cancelled') || errMsg.includes('Cancelled') ||
+                    errMsg.includes('12501') || errMsg.includes('1001') ||
+                    errMsg.includes('CancellationException');
+                if (!isCancel) {
+                    alert('登入失敗：' + (e.message || errMsg));
                 }
+            } finally {
                 if (btn) {
                     btn.disabled = false;
                     btn.classList.remove('is-loading');

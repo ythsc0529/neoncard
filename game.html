@@ -320,9 +320,12 @@
         }
         .stl-continue-btn { margin-top: 8px; padding: 12px 36px; min-width: 140px; }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink1">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink1">
+    <script src="js/ui/comicMotion.js?v=ink1"></script>
 </head>
 
-<body>
+<body data-page="game">
     <!-- Theme Toggle Removed -->
 
     <!-- Animation Overlay -->
@@ -475,7 +478,9 @@
                 <span class="turn-badge hidden" id="p1TurnBadge">你的回合</span>
             </div>
 
-            <div class="battle-card glass" id="p1BattleCard">
+            <div class="battle-card glass" id="p1BattleCard" tabindex="0"
+                title="點擊查看角色技能與冷卻" onclick="openBattleCardDetails('player1', event)"
+                onkeydown="handleBattleCardDetailsKeydown('player1', event)">
                 <div class="battle-card-header">
                     <span class="battle-char-name" id="p1CharName">-</span>
                     <span class="battle-char-rarity" id="p1CharRarity">-</span>
@@ -548,7 +553,9 @@
                 <span class="turn-badge hidden" id="p2TurnBadge">你的回合</span>
             </div>
 
-            <div class="battle-card glass" id="p2BattleCard">
+            <div class="battle-card glass" id="p2BattleCard" tabindex="0"
+                title="點擊查看角色技能與冷卻" onclick="openBattleCardDetails('player2', event)"
+                onkeydown="handleBattleCardDetailsKeydown('player2', event)">
                 <div class="battle-card-header">
                     <span class="battle-char-name" id="p2CharName">-</span>
                     <span class="battle-char-rarity" id="p2CharRarity">-</span>
@@ -733,8 +740,8 @@
     <script src="js/data/characters.js"></script>
     <script src="js/core/tutorialSystem.js?v=4"></script>
     <script src="js/core/gameState.js?v=4"></script>
-    <script src="js/core/battleSystem.js?v=3"></script>
-    <script src="js/ui/animations.js?v=5"></script>
+    <script src="js/core/battleSystem.js?v=ink1"></script>
+    <script src="js/ui/animations.js?v=ink1"></script>
     <script src="js/ui/musicManager.js"></script>
     <script src="js/ui/soundManager.js"></script>
     <script src="js/ui/settlement.js?v=2"></script>
@@ -2004,6 +2011,10 @@
             }
         }
 
+        function getRemainingSkillCooldown(card, skillIndex) {
+            return Math.max(0, Number(card.cooldowns?.[skillIndex]) || 0);
+        }
+
         function openViewSkillModal(playerKey) {
             const player = GameState[playerKey];
             const card = player.battleCard;
@@ -2022,14 +2033,14 @@
                     btn.className = 'skill-btn-modal';
                     btn.disabled = true; // Always disabled, view only
 
-                    const onCooldown = card.cooldowns[idx] > 0;
+                    const remainingCooldown = getRemainingSkillCooldown(card, idx);
                     const isSilenced = card.statusEffects.some(e => e.type === 'silence');
 
                     btn.innerHTML = `
                         <div class="skill-name-modal">${skill.name}</div>
                         <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
                         <div class="skill-footer-modal">
-                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            <span class="skill-cd-modal">剩餘冷卻：${remainingCooldown} 回合（技能 CD：${skill.cd} 回合）</span>
                             ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
                         </div>
                     `;
@@ -2535,11 +2546,12 @@
             let skillsHtml = '';
             if (card.skills && card.skills.length > 0) {
                 skillsHtml = '<div style="margin-top: 15px; text-align: left;">';
-                card.skills.forEach(skill => {
+                card.skills.forEach((skill, idx) => {
                     skillsHtml += `
                         <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-                            <div style="color: var(--neon-cyan); font-weight: bold;">${skill.name} <span style="font-size: 0.8rem; color: #888;">(CD: ${skill.cd})</span></div>
+                            <div style="color: var(--neon-cyan); font-weight: bold;">${skill.name}</div>
                             <div style="font-size: 0.9rem; color: #ddd; margin-top: 3px;">${skill.desc || '無描述'}</div>
+                            <div style="font-size: 0.8rem; color: #ff6b6b; margin-top: 5px;">剩餘冷卻：${getRemainingSkillCooldown(card, idx)} 回合（技能 CD：${skill.cd} 回合）</div>
                         </div>`;
                 });
                 skillsHtml += '</div>';
@@ -2563,6 +2575,18 @@
             `;
 
             modal.classList.add('active');
+        }
+
+        function openBattleCardDetails(playerKey, event) {
+            if (event.target.closest('.action-buttons')) return;
+            const card = GameState[playerKey]?.battleCard;
+            if (card) showCardDetails(card);
+        }
+
+        function handleBattleCardDetailsKeydown(playerKey, event) {
+            if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            openBattleCardDetails(playerKey, event);
         }
 
         // Close modal on outside click

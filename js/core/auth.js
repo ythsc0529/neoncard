@@ -37,8 +37,18 @@ const AuthManager = (() => {
             requestNativePermissions();
         }
 
-        // [核心] 監聽登入狀態變化（Popup 模式不需要 getRedirectResult）
+        // [核心] 監聽登入狀態變化與 Redirect 結果
         if (_auth) {
+            if (typeof _auth.getRedirectResult === 'function') {
+                _auth.getRedirectResult().then(result => {
+                    if (result && result.user) {
+                        console.log("[Auth] Redirect 登入成功:", result.user);
+                    }
+                }).catch(err => {
+                    console.warn("[Auth] getRedirectResult 狀態:", err);
+                });
+            }
+
             _auth.onAuthStateChanged(user => {
                 _currentUser = user;
                 _onAuthCallbacks.forEach(cb => cb(user));
@@ -58,58 +68,126 @@ const AuthManager = (() => {
         }
     }
 
+    function isUserCancel(err) {
+        if (!err) return false;
+        const msg = (typeof err === 'string') ? err : (err.message || err.code || err.errorMessage || JSON.stringify(err));
+        return (
+            msg.includes("canceled") ||
+            msg.includes("Canceled") ||
+            msg.includes("cancelled") ||
+            msg.includes("Cancelled") ||
+            msg.includes("12501") ||
+            msg.includes("1001") ||
+            msg.includes("popup-closed-by-user") ||
+            msg.includes("CancellationException") ||
+            msg.includes("user canceled") ||
+            msg.includes("Activity was cancelled") ||
+            msg.includes("Caller has been cancelled")
+        );
+    }
+
     async function signInWithGoogle() {
         if (!_auth) init();
 
         const platform = (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : "unknown";
         console.log("[Auth] 當前偵測平台:", platform);
 
-        // 如果是 android 或是 ios，我們強制只走原生路徑
+        // ── 1. Android / iOS：原生 Google 登入（嚴禁在 App 內走 Web OAuth 彈窗）──
         if (platform === 'android' || platform === 'ios') {
-            try {
-                const { FirebaseAuthentication } = window.Capacitor.Plugins;
-                if (!FirebaseAuthentication) {
-                    alert("錯誤：App 尚未載入 FirebaseAuthentication 插件！請確認是否有執行 npx cap sync");
-                    return;
-                }
+            const { FirebaseAuthentication } = window.Capacitor.Plugins || {};
 
-                let result = null;
+            if (!FirebaseAuthentication) {
+                const err = new Error("App 尚未載入 FirebaseAuthentication 原生插件，請確認已執行 npx cap sync 並重新打包。");
+                alert(err.message);
+                throw err;
+            }
+
+            let result = null;
+
+            if (platform === 'android') {
                 try {
-                    // 優先使用 Credential Manager 登入
-                    result = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: true });
+                    console.log("[Auth] 優先嘗試使用 Credential Manager 登入...");
+                    result = await FirebaseAuthentication.signInWithGoogle({
+                        useCredentialManager: true
+                    });
+                    console.log("[Auth] Credential Manager 登入結果:", result);
                 } catch (credErr) {
-                    console.warn("[Auth] CredentialManager 失敗，降級切換至傳統 Google 登入:", credErr);
-                    // 若 CredentialManager 失敗（例如 No credentials available），降級至傳統 GoogleSignInClient
+                    if (isUserCancel(credErr)) {
+                        console.log("[Auth] 使用者在 Credential Manager 取消 Google 登入");
+                        return;
+                    }
+                    console.warn("[Auth] Credential Manager 無可用憑證或失敗，自動降級切換至傳統 Google 登入 (GoogleSignInClient):", credErr);
                     try {
-                        result = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+                        result = await FirebaseAuthentication.signInWithGoogle({
+                            useCredentialManager: false
+                        });
+                        console.log("[Auth] 降級傳統 Google 登入成功:", result);
                     } catch (fallbackErr) {
-                        throw fallbackErr || credErr;
+                        if (isUserCancel(fallbackErr)) {
+                            console.log("[Auth] 使用者在降級 Google 登入取消");
+                            return;
+                        }
+                        console.error("[Auth] 傳統 Google 登入也失敗:", fallbackErr);
+                        const fallbackMsg =
+                            fallbackErr?.message ||
+                            fallbackErr?.code ||
+                            fallbackErr?.errorMessage ||
+                            (typeof fallbackErr === 'string' ? fallbackErr : JSON.stringify(fallbackErr));
+                        throw new Error(fallbackMsg);
                     }
                 }
-
-                if (result && result.credential && result.credential.idToken) {
-                    const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
-                    return _auth.signInWithCredential(credential);
-                } else {
-                    throw new Error("無法從 Google 取得憑證 (idToken missing)");
+            } else {
+                try {
+                    result = await FirebaseAuthentication.signInWithGoogle();
+                } catch (iosErr) {
+                    if (isUserCancel(iosErr)) {
+                        console.log("[Auth] 使用者取消 iOS Google 登入");
+                        return;
+                    }
+                    throw iosErr;
                 }
-            } catch (error) {
-                console.error("[Auth] 原生登入失敗:", error);
-                const errMsg = error.message || error.code || (typeof error === 'string' ? error : JSON.stringify(error));
-                // 如果是使用者自行取消登入，不需彈出錯誤警告
-                if (errMsg && (errMsg.includes('canceled') || errMsg.includes('Canceled') || errMsg.includes('12501') || errMsg.includes('16'))) {
-                    console.log("[Auth] 使用者取消登入");
-                    return;
-                }
-                alert("原生登入失敗: " + errMsg);
-                throw error;
             }
-        } else {
-            // 網頁版使用 Popup 登入，避免現代瀏覽器封鎖跨域 Cookie 導致 Redirect 後登入狀態傳遞失敗
+
+            if (!result) {
+                // 使用者取消返回
+                return;
+            }
+
+            const googleIdToken = result?.credential?.idToken;
+
+            if (!googleIdToken) {
+                console.error("[Auth] Google 登入成功但沒有回傳 Google idToken:", result);
+                throw new Error("Google 登入成功但沒有取得 idToken，無法同步 Firebase Web SDK。");
+            }
+
+            try {
+                const credential = firebase.auth.GoogleAuthProvider.credential(googleIdToken);
+                await _auth.signInWithCredential(credential);
+                console.log("[Auth] Google 登入並同步 Web SDK 成功");
+                return;
+            } catch (syncErr) {
+                console.error("[Auth] Google idToken 同步 Firebase Web SDK 失敗:", syncErr);
+                throw syncErr;
+            }
+        }
+
+        // ── 2. 純 Web 瀏覽器環境：Web Google 授權模式（Popup 優先，被阻擋則轉 Redirect）──
+        try {
             await _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
-            return _auth.signInWithPopup(provider);
+            return await _auth.signInWithPopup(provider);
+        } catch (webError) {
+            console.warn("[Auth] Web Popup 失敗，嘗試 Redirect 模式:", webError);
+            if (webError.code === 'auth/popup-blocked' || webError.code === 'auth/cancelled-popup-request') {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                return await _auth.signInWithRedirect(provider);
+            }
+            if (webError.code !== 'auth/popup-closed-by-user' && !isUserCancel(webError)) {
+                alert("Google 登入失敗: " + (webError.message || webError.code || webError));
+            }
+            throw webError;
         }
     }
 

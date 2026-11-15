@@ -3,7 +3,7 @@
  * Fix notes:
  * - Rarity strings UPPERCASE matching ALL_CHARACTERS
  * - Fixed try/catch scope: all pull logic now inside the same try block
- * - Redesigned gacha animation: horizontal scrollable reveal with glow effects
+ * - Session-owned manga timeline, cancellable anticipation and sequential reveals
  */
 
 let myProfile = null;
@@ -480,68 +480,62 @@ async function performPull(times) {
 
 // ── Animation: Cinematic Gacha Reveal ─────────────────────────────────────────
 function showGachaModal(results) {
+    if (!results?.length) { isAnimating = false; toggleUIButtons(false); return; }
     const modal = document.getElementById('gachaAnimModal');
     const stage = document.getElementById('gachaStage');
     const container = document.getElementById('gachaResults');
-    const title = document.getElementById('gachaAnimTitle');
-    const hint = document.getElementById('gachaAnimHint');
-    const skipBtn = document.getElementById('btnSkipAnim');
-    const revealBtn = document.getElementById('btnRevealAll');
-    if (!modal || !stage || !container) return;
-
+    if (!modal || !stage || !container) { isAnimating = false; toggleUIButtons(false); return; }
+    const previousFocus = gachaAnimState?.previousFocus || document.activeElement;
+    const previousOverflow = gachaAnimState?.previousOverflow ?? document.body.style.overflow;
+    gachaAnimState?.timeline.cancel();
     const rarityRank = { MYTHIC:5, LEGENDARY:4, EPIC:3, RARE:2, COMMON:1, SPECIAL:3 };
     const sorted = [...results].sort((a,b) => (rarityRank[a.rarity]||1) - (rarityRank[b.rarity]||1));
-    const best = sorted.reduce((top, r) => (rarityRank[r.rarity] || 1) > (rarityRank[top.rarity] || 1) ? r : top, sorted[0]);
-    const bestInfo = RARITY_INFO[best?.rarity] || RARITY_INFO.COMMON;
-
-    clearTimeout(gachaAnimState?.autoOpenTimer);
+    gachaAnimState = { total: sorted.length, revealed: 0, opened: false, completed: false,
+        phase: 'ready', cards: [], timeline: new ComicMotion.Timeline(), previousFocus, previousOverflow };
+    isAnimating = true;
     resetGachaFooter();
     container.innerHTML = '';
     container.classList.add('is-hidden');
     stage.className = 'gacha-stage';
-    stage.style.setProperty('--gacha-best', bestInfo.color);
-    stage.style.setProperty('--gacha-glow', bestInfo.glow);
-    stage.innerHTML = buildGachaStageMarkup(sorted.length, bestInfo);
-    if (title) title.textContent = sorted.length > 1 ? 'PULL!!' : 'GO!!';
-    if (hint) hint.textContent = '點擊啟動，讓命運決定！';
-    if (skipBtn) skipBtn.textContent = '▶ 啟動抽獎';
-    if (revealBtn) revealBtn.style.visibility = 'hidden';
-
-    gachaAnimState = {
-        total: sorted.length,
-        revealed: 0,
-        opened: false,
-        completed: false,
-        cards: [],
-        autoOpenTimer: null
-    };
-
-    sorted.forEach((r, idx) => {
-        const card = createGachaCard(r, idx);
+    stage.innerHTML = buildGachaStageMarkup(sorted.length);
+    document.getElementById('gachaAnimTitle').textContent = '命運，正在翻頁。';
+    document.getElementById('gachaAnimHint').textContent = '準備開啟你的招募篇章';
+    document.getElementById('btnSkipAnim').textContent = '跳過演出 →';
+    document.getElementById('btnRevealAll').style.visibility = 'hidden';
+    document.getElementById('btnRevealAll').hidden = true;
+    sorted.forEach((result, index) => {
+        const card = createGachaCard(result, index);
         container.appendChild(card);
         gachaAnimState.cards.push(card);
     });
-
-    stage.addEventListener('click', beginGachaReveal, { once: true });
-    gachaAnimState.autoOpenTimer = setTimeout(beginGachaReveal, 1400);
     modal.style.display = 'flex';
-    container.scrollLeft = 0;
-    triggerHaptic('Light');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'gachaAnimTitle');
+    document.getElementById('gachaAnimHint').setAttribute('aria-live', 'polite');
+    document.body.style.overflow = 'hidden';
+    modal.onkeydown = trapGachaFocus;
+    document.getElementById('btnSkipAnim').focus();
+    beginGachaReveal();
 }
 
-function buildGachaStageMarkup(total, bestInfo) {
-    const label = total > 1 ? `${total} DRAW COMBO` : 'SINGLE DRAW';
-    return `
-        <div class="comic-launch-frame" role="button" aria-label="啟動抽獎">
-            <div class="comic-boom-text" data-label="${label}">
-                ${ total > 1 ? 'PULL!!' : 'GO!!'}
-            </div>
-            <div class="comic-draw-count">${total > 1 ? `${total} 連抜` : '單次抽取'}</div>
-            <button class="comic-tap-btn">▶ TAP TO DRAW</button>
-            <!-- BOOM overlay -->
-            <div class="comic-explode-overlay">BOOM!!</div>
-        </div>
-    `;
+function trapGachaFocus(event) {
+    if (event.key !== 'Tab') return;
+    const controls = [...event.currentTarget.querySelectorAll('button, [tabindex="0"]')]
+        .filter(el => !el.disabled && getComputedStyle(el).visibility !== 'hidden' && el.getClientRects().length);
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+}
+
+function buildGachaStageMarkup(total) {
+    return '<div class="ink-draw-page">' +
+        '<span class="ink-draw-issue">NEON CARD / RECRUIT ISSUE</span>' +
+        '<div class="ink-draw-pack"><small>TURN THE PAGE</small><b>NEON<br>CARD.</b><span>' + total + ' 張命運之牌</span></div>' +
+        '<span class="ink-draw-sfx">ドドド…</span>' +
+        '<div class="ink-draw-panel left"><small>01 / THE SIGNAL</small><b>感應到了！</b></div>' +
+        '<div class="ink-draw-panel right"><small>02 / THE MOMENT</small><b>就是現在。</b></div>' +
+        '<span class="ink-draw-caption">一張卡，開啟另一種可能。</span><div class="ink-draw-meter"></div></div>';
 }
 
 function createGachaCard(r, idx) {
@@ -550,14 +544,17 @@ function createGachaCard(r, idx) {
     const el = document.createElement('div');
     el.className = 'gc-card';
     el.dataset.rarity = r.rarity;
+    el.dataset.rewardType = r.type;
+    el.dataset.resultLabel = info.label + ' ' + r.name + (r.isDupe ? '，重複獎勵' : '，新獲得');
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', '揭曉第 ' + (idx + 1) + ' 張卡牌');
+    el.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); revealGachaCard(el); }
+    });
 
     // Random slight tilt for comic feel
     const tilt = (Math.random() * 6 - 3).toFixed(1);
-
-    const rarityBackIcon = {
-        MYTHIC: '◆', LEGENDARY: '✦', EPIC: '✧',
-        RARE: '◇', COMMON: '·', SPECIAL: '✣'
-    }[r.rarity] || '✦';
 
     const dupeText = r.type === 'char'
         ? `+${EXP_CONVERSION[r.rarity] || 30} EXP`
@@ -570,11 +567,11 @@ function createGachaCard(r, idx) {
     `;
 
     el.innerHTML = `
-        <div class="gc-card-inner">
+        <div class="gc-card-inner" aria-hidden="true">
             <div class="gc-card-back" style="border-color:${info.color}">
                 <div class="gc-card-back-pattern"></div>
-                <div class="gc-card-back-icon">${rarityBackIcon}</div>
-                <div class="gc-card-back-label">${info.label}</div>
+                <div class="gc-card-back-icon">?</div>
+                <div class="gc-card-back-label">NEON / CARD</div>
             </div>
             <div class="gc-card-front">
                 <div class="gc-rarity-band">${rarityLabel}</div>
@@ -591,46 +588,56 @@ function createGachaCard(r, idx) {
 }
 
 function beginGachaReveal() {
-    if (!gachaAnimState || gachaAnimState.opened) return;
-    gachaAnimState.opened = true;
-    clearTimeout(gachaAnimState.autoOpenTimer);
-
+    const state = gachaAnimState;
+    if (!state || state.phase !== 'ready') return;
+    if (ComicMotion.reducedMotion()) { showGachaCards(true); return; }
     const stage = document.getElementById('gachaStage');
-    const container = document.getElementById('gachaResults');
-    const title = document.getElementById('gachaAnimTitle');
-    const hint = document.getElementById('gachaAnimHint');
-    const skipBtn = document.getElementById('btnSkipAnim');
-    const revealBtn = document.getElementById('btnRevealAll');
+    const phase = (name, hint, sfx) => {
+        state.phase = name;
+        stage.className = 'gacha-stage phase-' + name;
+        document.getElementById('gachaAnimHint').textContent = hint;
+        stage.querySelector('.ink-draw-sfx').textContent = sfx;
+    };
+    phase('charge', '01 / 集結 · 命運的訊號正在靠近', 'ドドド…');
+    state.timeline.after(1800, () => phase('panels', '02 / 共鳴 · 未知的力量正在回應', 'ザワ…'));
+    state.timeline.after(3600, () => phase('seal', '03 / 蓄勢 · 下一頁，由你揭曉', 'READY?'));
+    state.timeline.after(4900, () => { phase('burst', '04 / 破封 · 新的篇章，開場！', 'DRAW!!'); triggerHaptic('Heavy'); });
+    state.timeline.after(6200, () => showGachaCards(false));
+}
 
-    // Trigger BOOM explosion overlay
-    if (stage) stage.classList.add('is-opening');
-    if (title) title.textContent = 'FLIP IT!!';
-    if (hint) hint.textContent = '點擊卡片翻開。稀有獎勵會有漫畫間點效果。';
-    if (skipBtn) skipBtn.textContent = '▶ 翻開全部';
-    triggerHaptic('Medium');
-
-    setTimeout(() => {
-        if (stage) stage.classList.add('is-hidden');
-        if (container) container.classList.remove('is-hidden');
-        if (revealBtn) revealBtn.style.visibility = 'visible';
-        if (gachaAnimState.total === 1 && gachaAnimState.cards[0]) {
-            setTimeout(() => revealGachaCard(gachaAnimState.cards[0]), 480);
-        }
-    }, 500);
+function showGachaCards(immediate = false) {
+    const state = gachaAnimState;
+    if (!state || state.opened) return;
+    state.timeline.cancel();
+    state.timeline = new ComicMotion.Timeline();
+    state.opened = true;
+    state.phase = 'cards';
+    document.getElementById('gachaStage').classList.add('is-hidden');
+    document.getElementById('gachaResults').classList.remove('is-hidden');
+    document.getElementById('gachaAnimTitle').textContent = '你的新篇章。';
+    document.getElementById('gachaAnimHint').textContent = '逐張揭曉中，也可以點擊卡牌或立即翻開全部。';
+    document.getElementById('btnSkipAnim').textContent = '立即揭曉全部 →';
+    document.getElementById('btnRevealAll').style.visibility = 'visible';
+    document.getElementById('btnRevealAll').hidden = false;
+    let delay = immediate ? 0 : 500;
+    state.cards.forEach(card => {
+        state.timeline.after(delay, () => revealGachaCard(card));
+        delay += immediate ? 0 : ['MYTHIC','LEGENDARY'].includes(card.dataset.rarity) ? 1050 : 650;
+    });
 }
 
 function revealGachaCard(cardEl) {
-    if (!gachaAnimState || !gachaAnimState.opened || !cardEl || cardEl.classList.contains('revealed')) return;
+    const state = gachaAnimState;
+    if (!state || !state.opened || !state.cards.includes(cardEl) || cardEl.classList.contains('revealed')) return;
     const info = RARITY_INFO[cardEl.dataset.rarity] || RARITY_INFO.COMMON;
     const isDupe = cardEl.querySelector('.gc-status.is-dupe') !== null;
     cardEl.classList.add('revealed');
-    gachaAnimState.revealed++;
-    spawnComicPop(cardEl, info, isDupe, cardEl.dataset.rarity);
+    cardEl.setAttribute('aria-label', cardEl.dataset.resultLabel);
+    state.revealed++;
+    if (!ComicMotion.reducedMotion()) spawnComicPop(cardEl, info, isDupe, cardEl.dataset.rarity);
     triggerHaptic(['MYTHIC', 'LEGENDARY'].includes(cardEl.dataset.rarity) ? 'Heavy' : 'Light');
-
-    if (gachaAnimState.revealed >= gachaAnimState.total) {
-        markGachaComplete();
-    }
+    document.getElementById('gachaAnimHint').textContent = '已揭曉 ' + state.revealed + ' / ' + state.total + ' 張';
+    if (state.revealed === state.total) state.timeline.after(ComicMotion.reducedMotion() ? 0 : 700, markGachaComplete);
 }
 
 function spawnComicPop(cardEl, info, isDupe, rarity) {
@@ -643,7 +650,7 @@ function spawnComicPop(cardEl, info, isDupe, rarity) {
     bubble.className = 'comic-pop-bubble';
     if (isDupe) {
         bubble.classList.add('is-dupe');
-        bubble.textContent = `+${EXP_CONVERSION[rarity] || 30} EXP`;
+        bubble.textContent = cardEl.dataset.rewardType === 'title' ? '重複稱號' : `+${EXP_CONVERSION[rarity] || 30} EXP`;
     } else if (['MYTHIC', 'LEGENDARY'].includes(rarity)) {
         bubble.classList.add('is-mythic');
         bubble.textContent = rarity === 'MYTHIC' ? '\u795e\u8a71\u51fa\u73fe!!' : '\u50b3\u8aaa\u964d\u81e8!!';
@@ -685,32 +692,23 @@ function spawnComicPop(cardEl, info, isDupe, rarity) {
 }
 
 function revealAll() {
-    if (!gachaAnimState) return;
-    if (!gachaAnimState.opened) {
-        beginGachaReveal();
-    }
-    let delay = 0;
-    gachaAnimState.cards.forEach(card => {
-        if (!card.classList.contains('revealed')) {
-            setTimeout(() => revealGachaCard(card), delay);
-            delay += 70;
-        }
-    });
+    const state = gachaAnimState;
+    if (!state || state.completed) return;
+    if (!state.opened) { showGachaCards(true); return; }
+    // Repeated clicks are idempotent; existing reveal timers remain session-owned.
+    state.cards.forEach(revealGachaCard);
 }
 
 function markGachaComplete() {
-    if (!gachaAnimState || gachaAnimState.completed) return;
+    if (!gachaAnimState || gachaAnimState.completed || gachaAnimState.revealed !== gachaAnimState.total) return;
     gachaAnimState.completed = true;
+    gachaAnimState.phase = 'complete';
     const btn = document.getElementById('btnSkipAnim');
-    const hint = document.getElementById('gachaAnimHint');
-    if (btn) {
-        btn.textContent = '✓ 確認領取';
-        btn.style.background = 'rgba(0,255,104,0.15)';
-        btn.style.borderColor = 'var(--neon-green)';
-        btn.style.color = 'var(--neon-green)';
-        btn.style.boxShadow = '0 0 20px rgba(0,255,104,0.3)';
-    }
-    if (hint) hint.textContent = '獎勵已全部揭曉';
+    btn.textContent = '完成 · 返回補給站';
+    btn.classList.add('is-done');
+    document.getElementById('btnRevealAll').style.visibility = 'hidden';
+    document.getElementById('btnRevealAll').hidden = true;
+    document.getElementById('gachaAnimHint').textContent = '全部 ' + gachaAnimState.total + ' 項獎勵已加入收藏。';
 }
 
 function resetGachaFooter() {
@@ -718,38 +716,31 @@ function resetGachaFooter() {
     if (!btn) return;
     btn.classList.remove('is-done');
     btn.style.cssText = '';
-    btn.textContent = '\u25b6 \u555f\u52d5\u62bd\u734e';
 }
 
 function closeGachaModal() {
+    const state = gachaAnimState;
+    state?.timeline.cancel();
     const modal = document.getElementById('gachaAnimModal');
-    if (modal) modal.style.display = 'none';
-    clearTimeout(gachaAnimState?.autoOpenTimer);
+    if (modal) { modal.style.display = 'none'; modal.onkeydown = null; }
+    document.body.style.overflow = state?.previousOverflow ?? '';
     gachaAnimState = null;
     isAnimating = false;
     toggleUIButtons(false);
+    state?.previousFocus?.focus();
 }
 
 function skipAnim() {
-    if (!gachaAnimState) {
-        closeGachaModal();
-        selectPool(activePoolId);
-        return;
-    }
-
-    if (!gachaAnimState.opened) {
-        beginGachaReveal();
-        return;
-    }
-
-    if (!gachaAnimState.completed) {
-        revealAll();
-        return;
-    }
-
+    if (!gachaAnimState) return;
+    if (!gachaAnimState.opened) { showGachaCards(true); return; }
+    if (!gachaAnimState.completed) { revealAll(); return; }
     closeGachaModal();
     selectPool(activePoolId);
 }
+
+window.addEventListener('pagehide', () => {
+    gachaAnimState?.timeline.cancel();
+});
 
 function triggerHaptic(style = 'Light') {
     try {
