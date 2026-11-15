@@ -87,6 +87,11 @@ const GameSettlement = (() => {
         // 步驟1：勝敗 (所有模式)
         steps.push({ type: 'result', mode });
 
+        if (mode === 'tutorial') {
+            steps.push({ type: 'tutorial_action' });
+            return steps;
+        }
+
         // 步驟2：經驗值 (所有模式)
         steps.push({ type: 'exp' });
 
@@ -130,6 +135,7 @@ const GameSettlement = (() => {
             case 'pve_action':     return _htmlPveAction();
             case 'casual_action':  return _htmlCasualAction();
             case 'ranked_action':  return _htmlRankedAction();
+            case 'tutorial_action': return _htmlTutorialAction();
             default: return '<div>Unknown step</div>';
         }
     }
@@ -337,6 +343,22 @@ const GameSettlement = (() => {
                 <div class="stl-action-title">對局結束</div>
                 <div class="stl-action-btns">
                     <button class="btn btn-gold" onclick="GameSettlement._exitToLobby()">🏠 退出</button>
+                </div>
+            </div>`;
+    }
+
+    function _htmlTutorialAction() {
+        const completed = _context.opts.iWon && typeof TutorialSystem !== 'undefined' && TutorialSystem.completedThisBattle;
+        return `
+            <div class="stl-action-wrap">
+                <div class="stl-action-title">${completed ? '教學完成！' : '再練一次'}</div>
+                <p style="line-height:1.7;text-align:left;">
+                    ${completed ? '你已親手完成一場對戰。' : '照著提示再試一次，直到擊敗對手全部角色。'}
+                    記住：每回合選普攻、技能或撤退；技能要等冷卻；對手的戰鬥區和備戰區都清空才算勝利。
+                </p>
+                <div class="stl-action-btns">
+                    <button class="btn btn-gold" onclick="location.reload()">🔄 重玩教學</button>
+                    <button class="btn" onclick="GameSettlement._exitToLobby()">🏠 回大廳${completed ? '開始人機練習' : ''}</button>
                 </div>
             </div>`;
     }

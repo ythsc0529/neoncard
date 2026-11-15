@@ -855,6 +855,7 @@ const Animations = {
             const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
             const isCompetitive = localStorage.getItem('fromCompetitiveMode') === 'true';
             const gMode = localStorage.getItem('gameMode');
+            if (gMode === 'tutorial') return 'tutorial';
             if (isRanked) return 'ranked';
             if (isBotRanked) return 'ranked_bot';
             if (isCompetitive) return 'casual';

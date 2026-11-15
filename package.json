@@ -4,7 +4,7 @@
   "description": "![Game Status](https://img.shields.io/badge/Status-Active%20Development-00f3ff?style=for-the-badge) ![Tech Stack](https://img.shields.io/badge/Tech-Vanilla%20JS%20|%20Firebase%20|%20PeerJS-purple?style=for-the-badge)",
   "main": "sw.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",

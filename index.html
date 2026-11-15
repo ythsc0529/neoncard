@@ -15,7 +15,7 @@
     
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.7.3";
+        window.APP_VERSION = "2.7.9";
 
         // ── Service Worker 更新管理 ──
         if ('serviceWorker' in navigator) {
@@ -2631,7 +2631,7 @@
                 document.getElementById('nameSetupModal').classList.remove('active');
                 isFirstTimeSetup = false;
                 
-                if (confirm('歡迎來到霓虹牌！\n\n是否要進行新手教學，快速學習核心玩法？')) {
+                if (confirm('歡迎來到霓虹牌！\n\n新手教學會帶你選牌、使用普攻與技能、撤退換人，最後親手打贏一場練習賽。現在開始嗎？')) {
                     startGame('tutorial');
                 } else {
                     showMain(firstTimeUser, profile);

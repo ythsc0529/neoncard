@@ -7,7 +7,7 @@
     <title>霓虹牌 - 對戰</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=tutorial2">
     <script src="js/theme.js"></script>
     <script src="js/ui/musicManager.js"></script>
     <style>
@@ -731,13 +731,13 @@
     <script src="js/data/characters_part5.js"></script>
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
-    <script src="js/core/tutorialSystem.js?v=3"></script>
-    <script src="js/core/gameState.js?v=3"></script>
+    <script src="js/core/tutorialSystem.js?v=4"></script>
+    <script src="js/core/gameState.js?v=4"></script>
     <script src="js/core/battleSystem.js?v=3"></script>
-    <script src="js/ui/animations.js?v=4"></script>
+    <script src="js/ui/animations.js?v=5"></script>
     <script src="js/ui/musicManager.js"></script>
     <script src="js/ui/soundManager.js"></script>
-    <script src="js/ui/settlement.js?v=1"></script>
+    <script src="js/ui/settlement.js?v=2"></script>
     <script>
         // ── Music & Vibration initialization ──────────
         MusicManager.init();
@@ -871,7 +871,11 @@
                 // Initialize NPC specifically for tutorial
                 GameState.player2.name = '教學機器人';
                 GameState.setDeckForPlayer('player1', TutorialSystem.tutorialDeck);
-                GameState.setDeckForPlayer('player2', TutorialSystem.enemyDeck);
+                GameState.setDeckForPlayer('player2', TutorialSystem.enemyDeck, {
+                    '小混混': { hp: 75, maxHp: 75, atk: 8 },
+                    '戰士': { hp: 65, maxHp: 65, atk: 10 },
+                    '醫生': { hp: 60, maxHp: 60, atk: 8 }
+                });
                 
                 // Always player 1 starts first in tutorial
                 GameState.firstPlayer = 1;
@@ -1286,16 +1290,14 @@
             document.getElementById('selectionTitle').textContent =
                 playerKey === 'player1' ? (GameState.player1.name + ' 抽牌階段') : (GameState.player2.name + ' 抽牌階段');
 
-            // Tutorial hook
-            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
-                TutorialSystem.checkTrigger('onSelectionPhase');
-            }
-
             // Show card draw animation
             await Animations.drawCards(cards);
 
             // Show selection UI
             renderSelectionCards(playerKey, cards);
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                TutorialSystem.checkTrigger('onSelectionPhase');
+            }
         }
 
         function renderSelectionCards(playerKey, cards) {
@@ -1315,6 +1317,11 @@
         }
 
         function selectCard(playerKey, idx) {
+            if (GameState.mode === 'tutorial' && TutorialSystem.isActive &&
+                TutorialSystem.steps[TutorialSystem.currentStepIndex]?.action === 'select_warrior' && idx !== 0) {
+                TutorialSystem.showFeedback('這次先選第一張「戰士」，其他角色稍後會上場。');
+                return;
+            }
             const cards = document.querySelectorAll('.select-card');
             cards.forEach((c, i) => {
                 c.classList.remove('selected-battle');
@@ -1325,7 +1332,7 @@
             updateSelectionInfo();
 
             if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
-                TutorialSystem.onActionCompleted('click_card');
+                TutorialSystem.onActionCompleted('click_card', idx);
             }
         }
 
@@ -2128,6 +2135,7 @@
 
                 // Check win
                 if (GameState.checkWin()) {
+                    if (GameState.mode === 'tutorial') TutorialSystem.onBattleFinished();
                     await Animations.victory(GameState.winner === 1 ? '玩家1' : '玩家2');
                     return;
                 }
@@ -2154,6 +2162,14 @@
         // --- NPC AI Logic ---
         async function playAITurn() {
             if (GameState.winner !== null || GameState.currentPlayer !== 2) return;
+
+            // Keep the practice match predictable while players learn the turn loop.
+            if (GameState.mode === 'tutorial') {
+                setTimeout(() => {
+                    if (GameState.currentPlayer === 2 && GameState.winner === null) doAction('attack');
+                }, 900);
+                return;
+            }
 
             const card = GameState.player2.battleCard;
             if (!card) return; // Should not happen if replacement works
@@ -2468,8 +2484,13 @@
                 div.innerHTML = renderCardInfo(card);
 
                 div.onclick = async () => {
+                    if (GameState.mode === 'tutorial' && TutorialSystem.isActive &&
+                        TutorialSystem.steps[TutorialSystem.currentStepIndex]?.action === 'choose_hette' && idx !== 0) {
+                        TutorialSystem.showFeedback('這次先選第一張「赫特」，觀察換人的效果。');
+                        return;
+                    }
                     if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
-                        TutorialSystem.onActionCompleted('click_retreat_option');
+                        TutorialSystem.onActionCompleted('click_retreat_option', idx);
                     }
                     if (GameState.mode === 'online') {
                         NetManager.sendAction({
