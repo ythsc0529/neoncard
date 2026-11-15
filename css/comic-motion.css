@@ -18,12 +18,10 @@
 .ink-combat--guard .ink-combat-impact i { inset: calc(var(--i)*10%); width: auto; height: auto; border: 5px solid var(--fx); background: #305bc712; transform: rotate(45deg); animation-name: ink-impact; }
 .ink-combat--summon .ink-combat-impact i { width: 65px; height: 100px; left: calc(5% + var(--i)*30%); top: 25%; border: 3px solid #191919; background: #e3d9ec; animation-name: ink-rise; }
 .ink-combat--power .ink-combat-impact i { width: 140px; height: 140px; top: 8%; left: 20%; border: 5px solid var(--fx); background: none; animation-name: ink-impact; }
-.ink-combat.is-reduced::before, .ink-combat.is-reduced .ink-combat-impact { display: none; }
-.ink-combat.is-reduced .ink-combat-banner { animation: none; transform: none; }
-.ink-combat.is-skill:not(.is-reduced) .ink-combat-banner { animation-duration: 1.5s; }
-.ink-combat.is-skill:not(.is-reduced)::before { animation-duration: 1.5s; }
-.ink-combat.is-skill:not(.is-reduced) .ink-combat-word { animation-delay: .75s; }
-.ink-combat.is-skill:not(.is-reduced) .ink-combat-impact i { animation-delay: calc(.7s + var(--i)*.08s); }
+.ink-combat.is-skill .ink-combat-banner { animation-duration: 1.5s; }
+.ink-combat.is-skill::before { animation-duration: 1.5s; }
+.ink-combat.is-skill .ink-combat-word { animation-delay: .75s; }
+.ink-combat.is-skill .ink-combat-impact i { animation-delay: calc(.7s + var(--i)*.08s); }
 @keyframes ink-cutin { 0% { transform: translateX(-110%) rotate(-4deg); opacity: 0; } 18%,75% { transform: translateX(0) rotate(-4deg); opacity: 1; } 100% { transform: translateX(-15%) rotate(-4deg); opacity: 0; } }
 @keyframes ink-lines { 0%,100% { opacity: 0; } 30%,72% { opacity: 1; } }
 @keyframes ink-slash { 0% { clip-path: inset(0 100% 0 0); opacity: 0; } 25%,70% { clip-path: inset(0); opacity: 1; } 100% { clip-path: inset(0 0 0 100%); opacity: 0; } }
@@ -97,7 +95,4 @@
   .gacha-modal-footer { bottom: auto; }
   .ink-combat-word { font-size: 46px; }
   .ink-combat-banner { padding: 12px 20px; }
-}
-@media(prefers-reduced-motion: reduce) {
-  html:not([data-motion="full"]) .ink-combat *, html:not([data-motion="full"]) .ink-combat::before, html:not([data-motion="full"]) .ink-draw-page *, html:not([data-motion="full"]) .gc-card { animation: none !important; transition: none !important; }
 }

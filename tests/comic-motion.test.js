@@ -106,11 +106,40 @@ test('closing during anticipation cancels all callbacks and restores focus and s
     assert.equal(document.activeElement, original); assert.equal(document.body.style.overflow, 'auto');
 });
 
-test('reduced motion immediately reveals results and empty results never lock the shop', () => {
+test('system reduced-motion setting still plays the full recruit sequence', () => {
     const {context:c,clock} = setup(true);
     c.showGachaModal([]); assert.equal(c.getLocked(), false);
-    c.showGachaModal(rewards(1)); clock.tick(0);
+    c.showGachaModal(rewards(1)); clock.tick(6199);
+    assert.equal(c.getState().opened, false);
+    clock.tick(1); assert.equal(c.getState().opened, true);
+    clock.tick(1200);
     assert.equal(c.getState().completed, true); assert.equal(c.getState().revealed, 1);
+});
+
+test('each visible pool roster uses the same characters as its draw filter', () => {
+    const context = vm.createContext({});
+    for (let part = 1; part <= 6; part++) vm.runInContext(read(`js/data/characters_part${part}.js`), context);
+    vm.runInContext(read('js/data/characters.js'), context);
+    const shop = read('js/ui/shop.js');
+    vm.runInContext(`${shop.slice(shop.indexOf('const STAR_POOL_CHARS'), shop.indexOf('// ── Init'))}
+        let allCharacters = ALL_CHARACTERS;
+        ${shop.slice(shop.indexOf('function getPoolContents'), shop.indexOf('function renderPoolContents'))}
+        ${shop.slice(shop.indexOf('function filterCharPool'), shop.indexOf('async function performPull'))}
+        globalThis.roster = getPoolContents;
+        globalThis.drawFilter = filterCharPool;`, context);
+    for (const id of ['general', 'science', 'star']) {
+        const roster = context.roster(id);
+        assert.ok(roster.length > 0, `${id} has drawable characters`);
+        assert.ok(roster.every(char => char.rarity !== 'SPECIAL'));
+        for (const rarity of ['MYTHIC', 'LEGENDARY', 'EPIC', 'RARE', 'COMMON']) {
+            assert.equal(
+                context.drawFilter({id}, rarity).map(char => char.name).sort().join('|'),
+                roster.filter(char => char.rarity === rarity).map(char => char.name).sort().join('|')
+            );
+        }
+    }
+    assert.ok(context.roster('evo').every(char => ['MYTHIC', 'LEGENDARY'].includes(char.rarity)));
+    assert.ok(context.roster('titles').every(item => item.type === 'title'));
 });
 
 test('skill visuals distinguish damage, restoration, protection, summons and utility', () => {
@@ -134,11 +163,16 @@ test('combat effects queue in order and remove their overlays when finished', as
     assert.equal(completed,2); assert.equal(document.body.children[1].removed,true);
 });
 
-test('explicit full-motion preference overrides the system and can be reset', () => {
-    const {context:c} = setup(true);
-    assert.equal(c.ComicMotion.reducedMotion(), true);
-    c.ComicMotion.setPreference('full'); assert.equal(c.ComicMotion.reducedMotion(), false);
-    c.ComicMotion.setPreference('system'); assert.equal(c.ComicMotion.reducedMotion(), true);
+test('system reduced-motion setting still plays the full combat duration', async () => {
+    const {context:c,clock,document} = setup(true);
+    let finished = false;
+    const action = c.ComicMotion.combat({attacker:{name:'戰士'}}).then(() => { finished = true; });
+    await new Promise(setImmediate);
+    assert.equal(document.body.children[0].className.includes('is-reduced'), false);
+    clock.tick(1049); await new Promise(setImmediate);
+    assert.equal(finished, false);
+    clock.tick(1); await action;
+    assert.equal(finished, true);
 });
 
 test('normal attacks and valid skills await motion before resolving; invalid skills do not animate', async () => {

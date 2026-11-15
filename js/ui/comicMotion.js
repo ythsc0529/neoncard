@@ -18,24 +18,6 @@
         }
     }
 
-    let preference = 'system';
-    try { preference = global.localStorage?.getItem('neoncard_motion') || 'system'; } catch (_) { /* Private browsing */ }
-    if (!['system', 'full', 'reduced'].includes(preference)) preference = 'system';
-    document.documentElement?.setAttribute('data-motion', preference);
-    const reducedMotion = () => preference === 'reduced' || (preference === 'system' && !!global.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
-    const setPreference = value => {
-        if (!['system', 'full', 'reduced'].includes(value)) return;
-        preference = value;
-        document.documentElement?.setAttribute('data-motion', value);
-        try { global.localStorage?.setItem('neoncard_motion', value); } catch (_) { /* Session preference still applies */ }
-        document.querySelectorAll('[data-motion-select]').forEach(el => { el.value = value; });
-    };
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('[data-motion-select]').forEach(el => {
-            el.value = preference;
-            el.addEventListener('change', () => setPreference(el.value));
-        });
-    });
     const text = (tag, className, value) => {
         const el = document.createElement(tag);
         el.className = className;
@@ -57,7 +39,7 @@
     async function performCombat({ attacker, defender, skill, kind = 'attack', source, target }) {
         const style = kind === 'attack' ? 'strike' : classifySkill(skill);
         const layer = document.createElement('div');
-        layer.className = `ink-combat ink-combat--${style}${kind === 'skill' ? ' is-skill' : ''}${reducedMotion() ? ' is-reduced' : ''}`;
+        layer.className = `ink-combat ink-combat--${style}${kind === 'skill' ? ' is-skill' : ''}`;
         layer.setAttribute('aria-hidden', 'true');
         const banner = document.createElement('div');
         banner.className = 'ink-combat-banner';
@@ -82,10 +64,10 @@
         }
         layer.append(impact);
         const animations = [];
-        const duration = reducedMotion() ? 200 : kind === 'attack' ? 1050 : 1550;
+        const duration = kind === 'attack' ? 1050 : 1550;
         try {
             document.body.append(layer);
-            if (!reducedMotion() && source?.animate) {
+            if (source?.animate) {
                 const from = source.getBoundingClientRect();
                 const to = target?.getBoundingClientRect();
                 const dx = style === 'strike' && to ? Math.sign(to.left - from.left) * 24 : 0;
@@ -104,7 +86,7 @@
         }
     }
     global.ComicMotion = {
-        Timeline: ComicTimeline, reducedMotion, classifySkill, setPreference,
+        Timeline: ComicTimeline, classifySkill,
         combat(options) {
             const run = () => performCombat(options).catch(error => console.warn('[Comic motion]', error));
             queue = queue.then(run, run);

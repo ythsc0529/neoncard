@@ -508,7 +508,7 @@ const Animations = {
         num.style.top = (rect.top + rect.height * 0.25) + 'px';
 
         document.body.appendChild(num);
-        if (element.animate && !window.ComicMotion?.reducedMotion()) {
+        if (element.animate) {
             element.animate(isHeal ? [
                 { outline: '0px solid #43885c' },
                 { outline: '6px solid #43885c', offset: .4 },

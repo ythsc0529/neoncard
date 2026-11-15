@@ -13,6 +13,7 @@ let activePoolId = 'general';
 let isAnimating = false;
 let isProcessingBuy = false; // New flag for shop purchases
 let gachaAnimState = null;
+let activePoolContents = [];
 
 function toggleUIButtons(disabled) {
     const pull1 = document.getElementById('btnPull1');
@@ -56,8 +57,7 @@ const EXCLUDED_GENERAL = ['開發者', '作弊者'];
 // ── Rates — UPPERCASE keys matching ALL_CHARACTERS.rarity ───────────────────
 const RATES = {
     general: { MYTHIC: 0.02, LEGENDARY: 0.08, EPIC: 0.17, RARE: 0.34, COMMON: 0.39 },
-    star:    { MYTHIC: 0.06, LEGENDARY: 0.14, EPIC: 0.22, RARE: 0.58, COMMON: 0 },
-    evo:     { MYTHIC: 0.40, LEGENDARY: 0.60, EPIC: 0, RARE: 0, COMMON: 0 }
+    star:    { MYTHIC: 0.06, LEGENDARY: 0.14, EPIC: 0.22, RARE: 0.58, COMMON: 0 }
 };
 
 // EXP on duplicate — UPPERCASE keys
@@ -276,7 +276,8 @@ function selectPool(id) {
     document.getElementById('poolBanner').textContent = pool.name;
     document.getElementById('poolBanner').style.background = pool.bg;
     document.getElementById('poolDesc').innerHTML =
-        `<strong>[卡池特色]</strong><br>${pool.desc.replace(/\n/g,'<br>')}<br><br><strong>[機率與規則]</strong><br>${pool.ratesHtml}`;
+        `<strong>[卡池特色]</strong><br>${pool.desc.replace(/\n/g,'<br>')}<br><br><strong>[機率與規則]</strong><br>${pool.ratesHtml}` +
+        (['general', 'science', 'star'].includes(id) ? '<br>十連第 10 抽有 90% 機會為史詩以上。' : '');
     document.getElementById('poolActions').style.display = 'flex';
 
     const costType = pool.costType;
@@ -287,36 +288,47 @@ function selectPool(id) {
     document.getElementById('costPull1').innerHTML  = cost1;
     document.getElementById('costPull10').innerHTML = `消耗: 10 ${costIconHtml}`;
 
-    // ── Update Pool Content Preview ──────────────────────────────────────────
-    const contentList = document.getElementById('poolContent');
-    contentList.innerHTML = '';
-    
-    let contents = [];
-    if (id === 'titles') {
-        contents = TITLES_POOL.map(t => ({ name: t, rarity: 'EPIC', type: 'title' }));
-    } else if (id === 'evo') {
-        contents = allCharacters.filter(c => c.rarity === 'MYTHIC' || c.rarity === 'LEGENDARY');
-    } else if (id === 'science') {
-        contents = allCharacters.filter(c => SCI_POOL_CHARS.includes(c.name));
-    } else if (id === 'star') {
-        contents = allCharacters.filter(c => STAR_POOL_CHARS.includes(c.name));
-    } else {
-        // general
-        contents = allCharacters.filter(c => c.rarity !== 'SPECIAL' && !EXCLUDED_GENERAL.includes(c.name));
-    }
+    activePoolContents = getPoolContents(id);
+    document.getElementById('poolRosterTitle').textContent = id === 'titles' ? '本池可獲得稱號' : '本池可獲得角色';
+    document.getElementById('poolContentSearch').value = '';
+    renderPoolContents();
+}
 
-    // Sort contents by rarity for better display
+function getPoolContents(id) {
+    if (id === 'titles') return TITLES_POOL.map(name => ({ name, rarity: 'EPIC', type: 'title' }));
+    if (id === 'evo') return allCharacters.filter(c => c.rarity === 'MYTHIC' || c.rarity === 'LEGENDARY');
+    let contents = allCharacters.filter(c => c.rarity !== 'SPECIAL' && !EXCLUDED_GENERAL.includes(c.name));
+    if (id === 'science') contents = contents.filter(c => SCI_POOL_CHARS.includes(c.name));
+    if (id === 'star') contents = contents.filter(c => STAR_POOL_CHARS.includes(c.name));
+    return contents;
+}
+
+function renderPoolContents() {
+    const contentList = document.getElementById('poolContent');
+    const query = document.getElementById('poolContentSearch').value.trim().toLocaleLowerCase();
+    const contents = activePoolContents.filter(c => c.name.toLocaleLowerCase().includes(query));
+    document.getElementById('poolContentCount').textContent = query
+        ? `找到 ${contents.length} / ${activePoolContents.length} 項`
+        : `共 ${contents.length} 項 · 下方可捲動查看全部`;
+    contentList.replaceChildren();
     const rarityRank = { MYTHIC: 5, LEGENDARY: 4, EPIC: 3, RARE: 2, COMMON: 1, SPECIAL: 0 };
     contents.sort((a,b) => (rarityRank[b.rarity]||0) - (rarityRank[a.rarity]||0) || a.name.localeCompare(b.name));
-
+    let previousRarity = null;
     contents.forEach(c => {
+        if (c.rarity !== previousRarity) {
+            const heading = document.createElement('div');
+            heading.className = 'pool-rarity-heading';
+            heading.textContent = `${RARITY_INFO[c.rarity]?.label || c.rarity} · ${contents.filter(item => item.rarity === c.rarity).length}`;
+            contentList.appendChild(heading);
+            previousRarity = c.rarity;
+        }
         const chip = document.createElement('div');
         chip.className = 'content-chip';
         chip.dataset.rarity = c.rarity;
-        const icon = c.type === 'title' ? '🎖️' : '🃏';
-        chip.innerHTML = `<span>${icon}</span> ${c.name}`;
+        chip.textContent = `${c.type === 'title' ? '🎖️' : '🃏'} ${c.name}`;
         contentList.appendChild(chip);
     });
+    if (!contents.length) contentList.textContent = '沒有符合的角色或稱號';
 }
 
 // ── Gacha Logic ───────────────────────────────────────────────────────────────
@@ -340,11 +352,7 @@ function pickRarity(ratesMap, isTenth) {
 }
 
 function filterCharPool(poolDef, rarity) {
-    let pool = allCharacters.filter(c => c.rarity === rarity && c.rarity !== 'SPECIAL');
-    if (['general','science','star'].includes(poolDef.id)) pool = pool.filter(c => !EXCLUDED_GENERAL.includes(c.name));
-    if (poolDef.id === 'star')    pool = pool.filter(c => STAR_POOL_CHARS.includes(c.name));
-    if (poolDef.id === 'science') pool = pool.filter(c => SCI_POOL_CHARS.includes(c.name));
-    return pool;
+    return getPoolContents(poolDef.id).filter(c => c.rarity === rarity);
 }
 
 async function performPull(times) {
@@ -390,7 +398,7 @@ async function performPull(times) {
 
         // ── 2. Generate pull results ────────────────────────────────────────
         const results = [];
-        const rateKey = activePoolId === 'star' ? 'star' : (activePoolId === 'evo' ? 'evo' : 'general');
+        const rateKey = activePoolId === 'star' ? 'star' : 'general';
         const baseRates = RATES[rateKey] || RATES.general;
 
         if (activePoolId === 'titles') {
@@ -425,7 +433,8 @@ async function performPull(times) {
                 const candidates = filterCharPool(pool, r);
                 let picked;
                 if (candidates.length === 0) {
-                    const fallback = allCharacters.filter(c => c.rarity !== 'SPECIAL' && !EXCLUDED_GENERAL.includes(c.name));
+                    const fallback = getPoolContents(pool.id);
+                    if (!fallback.length) throw new Error('獎池目前沒有可抽取角色');
                     picked = fallback[Math.floor(Math.random()*fallback.length)];
                 } else {
                     picked = candidates[Math.floor(Math.random()*candidates.length)];
@@ -590,7 +599,6 @@ function createGachaCard(r, idx) {
 function beginGachaReveal() {
     const state = gachaAnimState;
     if (!state || state.phase !== 'ready') return;
-    if (ComicMotion.reducedMotion()) { showGachaCards(true); return; }
     const stage = document.getElementById('gachaStage');
     const phase = (name, hint, sfx) => {
         state.phase = name;
@@ -634,10 +642,10 @@ function revealGachaCard(cardEl) {
     cardEl.classList.add('revealed');
     cardEl.setAttribute('aria-label', cardEl.dataset.resultLabel);
     state.revealed++;
-    if (!ComicMotion.reducedMotion()) spawnComicPop(cardEl, info, isDupe, cardEl.dataset.rarity);
+    spawnComicPop(cardEl, info, isDupe, cardEl.dataset.rarity);
     triggerHaptic(['MYTHIC', 'LEGENDARY'].includes(cardEl.dataset.rarity) ? 'Heavy' : 'Light');
     document.getElementById('gachaAnimHint').textContent = '已揭曉 ' + state.revealed + ' / ' + state.total + ' 張';
-    if (state.revealed === state.total) state.timeline.after(ComicMotion.reducedMotion() ? 0 : 700, markGachaComplete);
+    if (state.revealed === state.total) state.timeline.after(700, markGachaComplete);
 }
 
 function spawnComicPop(cardEl, info, isDupe, rarity) {

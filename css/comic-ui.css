@@ -76,8 +76,6 @@ h1, h2, .page-title, .page-heading, .manga-title {
 }
 .edition-heading h1 { font-size: clamp(28px,4vw,44px); margin: 0 0 8px; line-height: 1.2; }
 .edition-heading p { color: var(--text-secondary); font-size: 14px; }
-.ink-motion-control { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin: 12px 0 20px; font-size: 12px; }
-.ink-motion-control select, [data-motion-select] { padding: 8px 12px; min-height: 42px; }
 .shop-page, .trial-page, .pass-container, .profile-page, .team-page,
 .character-list-container, .story-menu-container, .strategy-container, .missions-page, .player-page {
   max-width: 1180px; width: calc(100% - 48px); margin: 0 auto; padding: 32px 0 56px;
@@ -228,9 +226,14 @@ h1, h2, .page-title, .page-heading, .manga-title {
 .gacha-display { border: 2px solid var(--ink); border-radius: 0; background: var(--surface); box-shadow: 5px 5px 0 var(--ink); overflow: hidden; }
 .gacha-banner { background: var(--yellow) !important; color: var(--ink); border-bottom: 2px solid var(--ink); text-shadow: none; min-height: 130px; }
 .gacha-rates { color: var(--text-secondary); font-size: 13px; background: var(--paper); }
-.gacha-content-list { max-height: 260px; }
-.pool-disclosure { border-top: 2px solid var(--ink); margin-top: 18px; }
-.pool-disclosure summary { padding: 14px 0; font-size: 13px; font-weight: 700; cursor: pointer; }
+.pool-roster { border-top: 2px solid var(--ink); padding: 16px 20px 0; }
+.pool-roster-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+.pool-roster-heading h3 { color: var(--ink); font-size: 18px; font-weight: 900; margin: 0; }
+.pool-roster-heading span { color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.pool-roster-search { display: block; margin: 12px 0 0; color: var(--text-secondary); font-size: 11px; font-weight: 700; }
+.pool-roster-search input { display: block; width: 100%; min-height: 42px; margin-top: 6px; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 0; background: var(--surface); color: var(--ink); }
+.pool-roster .gacha-content-list { height: 260px; max-height: 260px; margin: 0 0 20px; border: 2px solid var(--ink); background: var(--paper); }
+.pool-rarity-heading { flex: 0 0 100%; color: var(--ink); font-size: 12px; font-weight: 900; border-bottom: 1px solid #19191944; padding: 7px 0 4px; }
 .milestone-details { width: 100%; }
 .milestone-details summary { cursor: pointer; font-size: 13px; font-weight: 700; }
 .milestone-details .milestone-detail-rewards { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -331,9 +334,9 @@ body[data-page="privacy"] .container { background: var(--surface); border: 2px s
   .grand-prize-content { margin: 0; }
   .hero-showcase-grid .grand-action-badge { margin-top: 4px; padding-top: 8px; }
   .gacha-container { grid-template-columns: 1fr; }
-  .pool-list { display: flex; overflow-x: auto; padding: 0 4px 6px 0; }
+  .pool-list { display: flex; flex-direction: row; overflow-x: auto; padding: 0 4px 6px 0; }
   .pool-card { min-width: 160px; flex: 1; }
-  .pool-btn { min-width: 160px; flex: 1 0 160px; }
+  .pool-btn { min-width: 160px; flex: 0 0 160px; }
   .track-grid-layout { grid-template-columns: 78px minmax(0,1fr); }
   .lane-header-cell { padding: 10px 8px; }
   .lane-title { font-size: 13px; }
@@ -365,7 +368,3 @@ body[data-page="privacy"] .container { background: var(--surface); border: 2px s
   .milestone-action-box { width: 100%; }
   .page-header, .header-row, .trial-header, .pass-header { gap: 12px; }
 }
-@media(prefers-reduced-motion: reduce) {
-  html:not([data-motion="full"]) *, html:not([data-motion="full"]) *::before, html:not([data-motion="full"]) *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-}
-html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
