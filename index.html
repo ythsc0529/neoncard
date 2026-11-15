@@ -1457,10 +1457,9 @@
             line-height: 1.4;
         }
     </style>
-    <link rel="stylesheet" href="css/comic-edition.css">
 </head>
 
-<body data-page="index">
+<body>
     <!-- ① Resource Preloader -->
     <div class="preloader-container" id="resourcePreloader">
         <div class="preloader-box">
@@ -1595,26 +1594,16 @@
     ══════════════════════════════════════════════════════════════ -->
     <main class="home-page-container" id="mainMenu" style="display:none;">
         
-        <!-- Main feature: one clear way into battle, with the rest of the game below. -->
+        <!-- Hero Comic Brand Title -->
         <section class="hero-brand-section">
-            <div class="hero-copy">
-                <div class="brand-badge-wrap"><span class="brand-pill">ISSUE 01 / THE ARENA IS LIVE</span></div>
-                <p class="hero-eyebrow">每一手，都是主角登場。</p>
-                <h1 class="comic-logo-title"><span class="neon-glow">NEON</span><span class="card-glow">CARD</span></h1>
-                <div class="comic-logo-sub">霓虹牌 · 漫畫卡牌對戰</div>
-                <p class="hero-description">抽出角色、組好陣容，下一格就由你決定勝負。</p>
-                <div class="hero-actions">
-                    <button class="hero-play-btn" type="button" onclick="showModeSelection()">開始對戰 <span aria-hidden="true">↗</span></button>
-                    <button class="hero-side-btn" type="button" onclick="location.href='team.html'">編輯隊伍</button>
-                </div>
+            <div class="brand-badge-wrap">
+                <span class="brand-pill">CYBER CARD BATTLE ARENA</span>
             </div>
-            <div class="hero-art" aria-hidden="true">
-                <div class="hero-art-kicker">NEXT PANEL</div>
-                <div class="hero-art-orbit orbit-one"></div><div class="hero-art-orbit orbit-two"></div>
-                <div class="hero-art-card hero-art-card-back"></div>
-                <div class="hero-art-card hero-art-card-front"><span>01</span><strong>出牌！</strong><small>DRAW · FIGHT · WIN</small></div>
-                <div class="hero-art-burst">BAM!</div>
-            </div>
+            <h1 class="comic-logo-title">
+                <span class="neon-glow">NEON</span>
+                <span class="card-glow">CARD</span>
+            </h1>
+            <div class="comic-logo-sub">霓 虹 牌</div>
         </section>
 
         <!-- Player Quick Status Card (Shown when logged in) -->
@@ -1639,7 +1628,6 @@
         <!-- ══════════════════════════════════════════════════════════
              COMIC ACTION CARDS GRID
         ══════════════════════════════════════════════════════════ -->
-        <div class="home-section-heading"><span>02 / 探索遊戲</span><h2>選擇下一格</h2><p>挑戰、招募與故事，從這裡展開。</p></div>
         <div class="comic-menu-grid">
             
             <!-- ① 💥 開始遊戲 (Battle Start - PvE / PvP / Online) -->

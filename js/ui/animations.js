@@ -484,38 +484,11 @@ const Animations = {
 
     // Show damage number floating above a card element
     // elementOrId: a DOM element or an element ID string (e.g., 'p1BattleCard')
-    playMangaHit(element, kind = 'damage', amount = 0) {
-        if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        // Multi-hit skills can fire rapidly. Keep each cut-in readable without stacking overlays.
-        const now = performance.now();
-        if (now - (this.lastHitCutInAt || 0) < 230) return;
-        this.lastHitCutInAt = now;
-
-        const rect = element.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        const fx = document.createElement('div');
-        fx.className = `manga-hit-fx is-${kind}${amount >= 100 ? ' is-heavy' : ''}`;
-        fx.style.setProperty('--hit-x', `${Math.max(12, Math.min(88, (rect.left + rect.width / 2) / innerWidth * 100))}%`);
-        fx.style.setProperty('--hit-y', `${Math.max(18, Math.min(80, (rect.top + rect.height / 2) / innerHeight * 100))}%`);
-        const slash = document.createElement('div');
-        slash.className = 'manga-hit-slash';
-        const mark = document.createElement('div');
-        mark.className = 'manga-hit-mark';
-        mark.textContent = kind === 'heal' ? '回復！' : kind === 'shield' ? '防禦！' : amount >= 100 ? '重擊！' : '砰！';
-        fx.append(slash, mark);
-        document.body.appendChild(fx);
-        element.classList.remove('manga-target-hit');
-        void element.offsetWidth;
-        element.classList.add('manga-target-hit');
-        setTimeout(() => { fx.remove(); element.classList.remove('manga-target-hit'); }, 540);
-    },
-
     showDamage(elementOrId, damage, isHeal = false) {
         const element = typeof elementOrId === 'string'
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element || !damage) return;
-        this.playMangaHit(element, isHeal ? 'heal' : 'damage', Math.abs(damage));
 
         const num = document.createElement('div');
         num.className = `floating-number ${isHeal ? 'heal' : 'damage'}`;
@@ -540,7 +513,6 @@ const Animations = {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element || !amount) return;
-        this.playMangaHit(element, 'shield', amount);
         const num = document.createElement('div');
         num.className = 'floating-number shield';
         num.textContent = '🛡+' + amount;
@@ -579,9 +551,7 @@ const Animations = {
         return new Promise(resolve => {
             this.show();
 
-            let html = `<div class="manga-draw-scene">
-                <div class="manga-draw-heading"><span>NEW PANEL / 角色登場</span><strong>命運之手</strong><small>翻開 ${cards.length} 張卡牌</small></div>
-                <div class="card-draw-area">`;
+            let html = '<div class="card-draw-area">';
             cards.forEach((card, i) => {
                 html += `
                     <div class="draw-card ${getRarityClass(card.rarity)}" data-card-index="${i}">
@@ -595,7 +565,8 @@ const Animations = {
                     </div>
                 `;
             });
-            html += '</div><p class="manga-draw-hint">點擊畫面，進入下一格 ↗</p></div>';
+            html += '</div>';
+            html += '<p style="text-align: center; margin-top: 30px; color: var(--text-secondary);">點擊關閉</p>';
 
             this.container.innerHTML = html;
 
