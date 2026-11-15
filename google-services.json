@@ -15,11 +15,35 @@
       },
       "oauth_client": [
         {
-          "client_id": "757364529881-dhhorted52m051tjivo3qdaietjcj9sr.apps.googleusercontent.com",
+          "client_id": "757364529881-89gvn8qobmtmf089cl0qgh5jsp5nc99v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "app.netlify.uptocard.twa",
-            "certificate_hash": "70938f2862284c7bea03de8d0b30b6e78b5887a6"
+            "certificate_hash": "9308f02ee4f5e6a7ea254b6b2c61139b70ecd5db"
+          }
+        },
+        {
+          "client_id": "757364529881-9cqbrs6me8dhaf9k1oprj3a8nrefl51l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.netlify.uptocard.twa",
+            "certificate_hash": "c6279190e571a3c9e2a849d3598e9acef17d6270"
+          }
+        },
+        {
+          "client_id": "757364529881-n4520g3m9knu1ggqmqodnvg34cpe21sk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.netlify.uptocard.twa",
+            "certificate_hash": "4947f64e188bbd98d2743c6bd32eba8e5122e34e"
+          }
+        },
+        {
+          "client_id": "757364529881-qldc0olr7auerlbitupk4354c8917fqd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.netlify.uptocard.twa",
+            "certificate_hash": "54f09e96fdf8d6dadbd6f74fcc9add405f79f212"
           }
         },
         {
