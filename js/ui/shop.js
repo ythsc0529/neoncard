@@ -522,8 +522,17 @@ function showGachaModal(results) {
         gachaAnimState.cards.push(card);
     });
 
-    stage.addEventListener('click', beginGachaReveal, { once: true });
-    gachaAnimState.autoOpenTimer = setTimeout(beginGachaReveal, 1400);
+    stage.onclick = beginGachaReveal;
+    stage.tabIndex = 0;
+    stage.setAttribute('role', 'button');
+    stage.setAttribute('aria-label', '啟動抽獎動畫');
+    stage.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            beginGachaReveal();
+        }
+    };
+    gachaAnimState.autoOpenTimer = setTimeout(beginGachaReveal, 2200);
     modal.style.display = 'flex';
     container.scrollLeft = 0;
     triggerHaptic('Light');
@@ -532,12 +541,18 @@ function showGachaModal(results) {
 function buildGachaStageMarkup(total, bestInfo) {
     const label = total > 1 ? `${total} DRAW COMBO` : 'SINGLE DRAW';
     return `
-        <div class="comic-launch-frame" role="button" aria-label="啟動抽獎">
+        <div class="comic-launch-frame">
+            <div class="draw-issue-line"><span>NEON CARD / ISSUE 02</span><span>抽獎分鏡</span></div>
+            <div class="draw-panel-sequence" aria-hidden="true">
+                <div class="draw-sequence-panel"><span>01</span><strong>集結</strong></div>
+                <div class="draw-sequence-panel"><span>02</span><strong>出牌</strong></div>
+                <div class="draw-sequence-panel"><span>03</span><strong>揭曉</strong></div>
+            </div>
             <div class="comic-boom-text" data-label="${label}">
                 ${ total > 1 ? 'PULL!!' : 'GO!!'}
             </div>
-            <div class="comic-draw-count">${total > 1 ? `${total} 連抜` : '單次抽取'}</div>
-            <button class="comic-tap-btn">▶ TAP TO DRAW</button>
+            <div class="comic-draw-count">${total > 1 ? `${total} 連抽` : '單次抽取'}</div>
+            <button class="comic-tap-btn" type="button">翻開命運 ↗</button>
             <!-- BOOM overlay -->
             <div class="comic-explode-overlay">BOOM!!</div>
         </div>
@@ -605,7 +620,7 @@ function beginGachaReveal() {
     // Trigger BOOM explosion overlay
     if (stage) stage.classList.add('is-opening');
     if (title) title.textContent = 'FLIP IT!!';
-    if (hint) hint.textContent = '點擊卡片翻開。稀有獎勵會有漫畫間點效果。';
+    if (hint) hint.textContent = '點擊卡片，逐格揭曉獎勵';
     if (skipBtn) skipBtn.textContent = '▶ 翻開全部';
     triggerHaptic('Medium');
 
@@ -616,7 +631,7 @@ function beginGachaReveal() {
         if (gachaAnimState.total === 1 && gachaAnimState.cards[0]) {
             setTimeout(() => revealGachaCard(gachaAnimState.cards[0]), 480);
         }
-    }, 500);
+    }, 620);
 }
 
 function revealGachaCard(cardEl) {
@@ -705,10 +720,7 @@ function markGachaComplete() {
     const hint = document.getElementById('gachaAnimHint');
     if (btn) {
         btn.textContent = '✓ 確認領取';
-        btn.style.background = 'rgba(0,255,104,0.15)';
-        btn.style.borderColor = 'var(--neon-green)';
-        btn.style.color = 'var(--neon-green)';
-        btn.style.boxShadow = '0 0 20px rgba(0,255,104,0.3)';
+        btn.classList.add('is-done');
     }
     if (hint) hint.textContent = '獎勵已全部揭曉';
 }
