@@ -1411,9 +1411,12 @@
             gap: 8px;
         }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
+    <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
-<body>
+<body data-page="pass">
     <!-- ── Loading Overlay ── -->
     <div id="pageLoading">
         <div class="loading-box">
@@ -1497,6 +1500,9 @@
                 </div>
             </div>
 
+        </section>
+
+        <details class="ink-disclosure"><summary>進階通行證 · 查看特權與啟用方式</summary>
             <!-- 3. Premium Pass Unlock Panel -->
             <div class="hero-card hero-card-premium" id="premiumPanel">
                 <div class="comic-sticker" style="background:var(--comic-purple);color:#FFF;">VIP PASS</div>
@@ -1510,7 +1516,7 @@
                     <!-- Injected via pass.js -->
                 </div>
             </div>
-        </section>
+        </details>
 
         <!-- Smart Action & Control Bar -->
         <section class="pass-action-bar">

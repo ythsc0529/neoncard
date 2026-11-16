@@ -368,3 +368,46 @@ body[data-page="privacy"] .container { background: var(--surface); border: 2px s
   .milestone-action-box { width: 100%; }
   .page-header, .header-row, .trial-header, .pass-header { gap: 12px; }
 }
+
+/* Battle information stays legible on the paper palette. */
+body[data-page="game"] .status-badge { color: #191919; background: #fffdf7; border: 2px solid #191919; box-shadow: 2px 2px 0 #191919; line-height: 1.35; text-transform: none; overflow-wrap: anywhere; }
+body[data-page="game"] .status-badge.resource { color: #142d58; background: #d5e5fa; }
+body[data-page="game"] .status-badge.poison { color: #532377; background: #eee0fa; }
+body[data-page="game"] .status-badge.burn { color: #853312; background: #ffe3cc; }
+body[data-page="game"] .status-badge.stun { color: #684000; background: #fff0b2; }
+body[data-page="game"] .status-badge.dodge, body[data-page="game"] .status-badge.shield_dot { color: #174487; background: #d5e5fa; }
+.battle-passive-note { margin: 7px 0; padding: 8px 10px; text-align: left; color: #191919; background: #fff0b2; border: 2px solid #191919; box-shadow: 2px 2px 0 #191919; line-height: 1.45; }
+.battle-passive-note strong,.battle-passive-note span { display: block; font-size: 12px; }
+.battle-passive-note strong { margin-bottom: 3px; font-weight: 900; }
+body[data-page="game"] .skill-readonly { opacity: 1; cursor: default; filter: none; color: #191919; background: #fffdf7; }
+body[data-page="game"] .skill-readonly .skill-name-modal { color: #a43220; }
+body[data-page="game"] .skill-readonly .skill-desc-modal { color: #35332e; }
+body[data-page="game"] .skill-readonly .skill-cd-modal { color: #46443d; }
+body[data-page="game"] .skill-btn-modal:disabled { opacity: 1; filter: none; background: #e8e4da; color: #191919; }
+body[data-page="game"] .skill-btn-modal:disabled .skill-desc-modal { color: #35332e; }
+#cardDetailsContent { width: min(92vw, 660px); max-width: 660px; padding: 0 0 18px; overflow-x: hidden; background: #fffdf7; color: #191919; text-align: left; }
+.card-detail-issue { display: flex; justify-content: space-between; gap: 10px; padding: 7px 16px; background: #191919; color: #fffdf7; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.card-detail-heading { padding: 14px 20px 10px; background: #f7ce46; border-bottom: 3px solid #191919; }
+.card-detail-heading small { display: inline-block; padding: 2px 9px; background: #fffdf7; border: 2px solid #191919; font-weight: 900; }
+.card-detail-heading h2 { margin: 7px 0 0; font-size: clamp(27px, 6vw, 42px); line-height: 1.2; color: #191919; overflow-wrap: anywhere; }
+.card-detail-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 16px 20px; }
+.card-detail-stats > div { min-width: 0; padding: 10px 12px; border: 3px solid #191919; background: #d5e5fa; box-shadow: 3px 3px 0 #191919; }
+.card-detail-stats > div:nth-child(2) { background: #ffe3cc; }
+.card-detail-stats small,.card-detail-stats strong { display: block; }.card-detail-stats small { font-size: 11px; font-weight: 900; }.card-detail-stats strong { font-size: clamp(18px,4vw,27px); overflow-wrap: anywhere; }
+.card-detail-passive { margin: 0 20px 14px; padding: 11px 14px; border: 3px solid #191919; background: #fff0b2; }
+.card-detail-passive strong { font-size: 15px; }.card-detail-passive p { margin: 5px 0 0; color: #35332e; line-height: 1.6; }
+.card-detail-section-title { margin: 0 20px 10px; padding-bottom: 5px; border-bottom: 3px solid #191919; font-size: 13px; font-weight: 900; letter-spacing: .08em; }
+.card-detail-skill { margin: 0 20px 10px; padding: 12px 14px; border: 2px solid #191919; background: #f3f0e7; box-shadow: 3px 3px 0 #191919; }
+.card-detail-skill-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }.card-detail-skill-head strong { color: #a43220; font-size: 17px; }.card-detail-skill-head span { flex: none; padding: 2px 7px; border: 2px solid #191919; background: #fffdf7; font-weight: 900; font-size: 11px; }
+.card-detail-skill p { margin: 6px 0; color: #35332e; line-height: 1.6; }.card-detail-skill small { color: #5a3b09; font-weight: 800; }
+.card-detail-empty { margin: 0 20px; }.card-detail-close { display: block; width: calc(100% - 40px); margin: 18px 20px 0; }
+.summon-preview { margin-top: 10px; padding: 9px; border: 2px solid #191919; background: #d5e5fa; color: #191919; text-align: left; }
+.summon-preview > strong { display: block; margin-bottom: 7px; font-size: 12px; }.summon-preview-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; }
+.summon-preview-btn { padding: 4px 9px; border: 2px solid #191919; border-radius: 0; background: #fffdf7; color: #191919; box-shadow: 2px 2px 0 #191919; font-size: 12px; font-weight: 900; cursor: pointer; }
+.summon-preview-btn:hover { background: #f7ce46; }
+.battle-select-meta { display: flex; justify-content: space-between; gap: 8px; color: #494840; font-size: 11px; font-weight: 900; }
+.battle-select-name { margin: 5px 0; color: #191919; font-size: 20px; font-weight: 900; overflow-wrap: anywhere; }
+.battle-select-stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 6px 8px; border: 2px solid #191919; background: #d5e5fa; color: #191919; font-size: 12px; font-weight: 900; }
+.battle-select-skill-title { margin: 10px 0 4px; border-bottom: 2px solid #191919; color: #191919; text-align: left; font-size: 11px; font-weight: 900; }
+.battle-select-skill { padding: 6px 0; border-bottom: 1px solid #aaa69d; color: #191919; text-align: left; line-height: 1.45; }
+.battle-select-skill strong,.battle-select-skill span { display: block; font-size: 12px; }.battle-select-skill strong { color: #a43220; }.battle-select-skill small { color: #494840; }

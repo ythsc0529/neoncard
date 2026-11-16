@@ -320,9 +320,9 @@
         }
         .stl-continue-btn { margin-top: 8px; padding: 12px 36px; min-width: 140px; }
     </style>
-    <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
-    <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
-    <script src="js/ui/comicMotion.js?v=ink2"></script>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <script src="js/ui/comicMotion.js?v=ink3"></script>
 </head>
 
 <body data-page="game">
@@ -789,36 +789,16 @@
         }
 
         function renderCardInfo(card) {
-            let skillsHtml = '';
-            if (card.skills && card.skills.length > 0) {
-                skillsHtml = '<div style="margin-top: 10px; flex-grow: 1; overflow-y: auto; text-align: left;">';
-                card.skills.forEach(skill => {
-                    skillsHtml += `<div class="skill-preview" style="margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
-                        <div style="color: var(--neon-cyan); font-weight: bold;">• ${skill.name} <span style="font-size: 0.7rem; color: #888;">(CD:${skill.cd})</span></div>
-                        <div style="font-size: 0.8rem; color: #ddd; margin-top: 2px; line-height: 1.3;">${skill.desc || '無描述'}</div>
-                    </div>`;
-                });
-                skillsHtml += '</div>';
-            }
-
-            return `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary);">#${card.id}</span>
-                    <span class="${getRarityClass(card.rarity)}" style="font-size: 0.75rem;">${getRarityName(card.rarity)}</span>
-                </div>
-                <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: var(--text-primary); ">${card.name}</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
-                    <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
-                    <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
-                </div>
-                ${card.passive ? `
-                    <div style="font-size: 0.8rem; color: var(--neon-gold); margin-bottom: 8px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 5px; border-radius: 4px;">
-                        <div style="font-weight: bold;">被動: ${card.passive.name}</div>
-                        <div style="margin-top: 2px; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
-                    </div>` : ''}
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px; border-bottom: 1px solid var(--text-secondary);">技能:</div>
-                ${skillsHtml}
-            `;
+            const skillsHtml = (card.skills || []).map(skill => `<div class="battle-select-skill">
+                <strong>${escapeBattleHtml(skill.name)} <small>CD ${escapeBattleHtml(skill.cd)}</small></strong>
+                <span>${escapeBattleHtml(skill.desc || '無描述')}</span>
+            </div>`).join('');
+            const hp = card.maxHp === undefined ? formatCardStat(card.hp) : `${formatCardStat(card.hp)}/${formatCardStat(card.maxHp)}`;
+            return `<div class="battle-select-meta"><span>#${escapeBattleHtml(card.id)}</span><span>${escapeBattleHtml(getRarityName(card.rarity))}</span></div>
+                <div class="battle-select-name">${escapeBattleHtml(card.name)}</div>
+                <div class="battle-select-stats"><span>HP ${hp}</span><span>ATK ${formatCardStat(card.atk)}</span></div>
+                ${card.passive ? `<div class="battle-passive-note"><strong>被動：${escapeBattleHtml(card.passive.name)}</strong><span>${escapeBattleHtml(card.passive.desc || '無描述')}</span></div>` : ''}
+                <div class="battle-select-skill-title">技能 / SKILLS</div>${skillsHtml}`;
         }
 
         async function initGame() {
@@ -1414,6 +1394,8 @@
                 doAction(action.actionType, action.skillIdx, true);
             } else if (action.type === 'retreat') {
                 applyRemoteTurnAnchor(action);
+                const retreating = GameState[opponentKey];
+                await ComicMotion.swap({ outgoing: retreating.battleCard, incoming: retreating.standbyCards[action.skillIdx], opponent: true });
                 BattleSystem.retreat(opponentKey, action.skillIdx);
                 updateUI();
                 await GameState.endTurn();
@@ -1901,9 +1883,10 @@
                 Object.entries(card.resources).forEach(([key, value]) => {
                     const badge = document.createElement('span');
                     badge.className = 'status-badge resource';
-                    badge.style.background = 'rgba(0, 255, 255, 0.2)';
-                    badge.style.color = '#fff';
-                    badge.textContent = `${key}: ${value}`;
+                    const resourceValue = value && typeof value === 'object'
+                        ? Object.entries(value).map(([name, amount]) => `${name} ${amount}`).join('、')
+                        : value;
+                    badge.textContent = `${key}: ${resourceValue}`;
                     statusDiv.appendChild(badge);
                 });
             }
@@ -1911,10 +1894,9 @@
             // Passive
             const passiveDiv = document.getElementById(`${prefix}Passive`);
             if (card.passive) {
-                passiveDiv.innerHTML = `
-                <div style="font-size: 0.8rem; color: var(--neon-gold); margin: 5px 0; text-align: left; padding: 5px; background: rgba(255, 215, 0, 0.1); border-radius: 4px;">
-                    <div style="font-weight: bold; margin-bottom: 2px;">被動: ${card.passive.name}</div>
-                    <div style="color: #ddd; line-height: 1.2;">${card.passive.desc || '無描述'}</div>
+                passiveDiv.innerHTML = `<div class="battle-passive-note">
+                    <strong>被動：${escapeBattleHtml(card.passive.name)}</strong>
+                    <span>${escapeBattleHtml(card.passive.desc || '無描述')}</span>
                 </div>`;
             } else {
                 passiveDiv.innerHTML = '';
@@ -1990,6 +1972,8 @@
                         await doAction('skill', idx);
                     };
                     options.appendChild(btn);
+                    const summons = renderSummonTargets(skill);
+                    if (summons) options.insertAdjacentHTML('beforeend', summons);
                 });
             }
             modal.classList.add('active');
@@ -2029,9 +2013,8 @@
 
             if (card.skills) {
                 card.skills.forEach((skill, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'skill-btn-modal';
-                    btn.disabled = true; // Always disabled, view only
+                    const btn = document.createElement('div');
+                    btn.className = 'skill-btn-modal skill-readonly';
 
                     const remainingCooldown = getRemainingSkillCooldown(card, idx);
                     const isSilenced = card.statusEffects.some(e => e.type === 'silence');
@@ -2046,6 +2029,8 @@
                     `;
 
                     options.appendChild(btn);
+                    const summons = renderSummonTargets(skill);
+                    if (summons) options.insertAdjacentHTML('beforeend', summons);
                 });
             }
             modal.classList.add('active');
@@ -2375,6 +2360,7 @@
 
                 setTimeout(async () => {
                     if (actionType === 'retreat') {
+                        await ComicMotion.swap({ outgoing: GameState.player2.battleCard, incoming: GameState.player2.standbyCards[skillIdx], opponent: true });
                         BattleSystem.retreat('player2', skillIdx);
                         updateUI();
                         await GameState.endTurn();
@@ -2512,12 +2498,16 @@
                         });
                     }
 
-                    BattleSystem.retreat(playerKey, idx);
                     closeRetreatModal();
-                    updateUI();
-                    updateBattleLog();
-                    await GameState.endTurn();
-                    updateUI();
+                    isProcessing = true;
+                    try {
+                        await ComicMotion.swap({ outgoing: player.battleCard, incoming: player.standbyCards[idx] });
+                        BattleSystem.retreat(playerKey, idx);
+                        updateUI();
+                        updateBattleLog();
+                        await GameState.endTurn();
+                        updateUI();
+                    } finally { isProcessing = false; }
 
                     // Trigger AI if it's Player 2's turn in story mode or PvE
                     if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
@@ -2539,41 +2529,60 @@
             document.getElementById('retreatModal').classList.remove('active');
         }
 
+        function escapeBattleHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+        }
+
+        function getSummonTargetNames(skill) {
+            const effects = Array.isArray(skill.effects) ? skill.effects : (skill.effect ? [skill.effect] : []);
+            const names = [];
+            effects.forEach(effect => {
+                if (!String(effect.type || '').includes('summon')) return;
+                if (effect.target) names.push(effect.target);
+                if (Array.isArray(effect.targets)) names.push(...effect.targets);
+                const categories = { ball: BALLS, planet: PLANETS, tea: TEAS, motorcycle: MOTORCYCLES, vehicle: VEHICLES };
+                const category = effect.category || (effect.type === 'summon_random_ball' ? 'ball' : null);
+                if (category) names.push(...(categories[category] || getCharactersByTag(category).map(char => char.name)));
+            });
+            return [...new Set(names)].filter(name => getCharacterByName(name));
+        }
+
+        function renderSummonTargets(skill) {
+            const names = getSummonTargetNames(skill);
+            if (!names.length) return '';
+            return `<div class="summon-preview"><strong>召喚角色數值預覽</strong><div class="summon-preview-list">${names.map(name =>
+                `<button type="button" class="summon-preview-btn" data-summon-name="${escapeBattleHtml(name)}" onclick="showSummonDetails(this)">${escapeBattleHtml(name)} →</button>`
+            ).join('')}</div></div>`;
+        }
+
+        function showSummonDetails(button) {
+            const character = getCharacterByName(button.dataset.summonName);
+            if (character) showCardDetails(character);
+        }
+
+        function formatCardStat(value) {
+            return value && typeof value === 'object' ? `${value.min}–${value.max}` : String(value ?? '—');
+        }
+
         function showCardDetails(card) {
             const modal = document.getElementById('cardDetailsModal');
             const content = document.getElementById('cardDetailsContent');
-
-            let skillsHtml = '';
-            if (card.skills && card.skills.length > 0) {
-                skillsHtml = '<div style="margin-top: 15px; text-align: left;">';
-                card.skills.forEach((skill, idx) => {
-                    skillsHtml += `
-                        <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-                            <div style="color: var(--neon-cyan); font-weight: bold;">${skill.name}</div>
-                            <div style="font-size: 0.9rem; color: #ddd; margin-top: 3px;">${skill.desc || '無描述'}</div>
-                            <div style="font-size: 0.8rem; color: #ff6b6b; margin-top: 5px;">剩餘冷卻：${getRemainingSkillCooldown(card, idx)} 回合（技能 CD：${skill.cd} 回合）</div>
-                        </div>`;
-                });
-                skillsHtml += '</div>';
-            }
-
+            const skillsHtml = (card.skills || []).map((skill, idx) => `
+                <section class="card-detail-skill">
+                    <div class="card-detail-skill-head"><strong>${escapeBattleHtml(skill.name)}</strong><span>CD ${escapeBattleHtml(skill.cd)}</span></div>
+                    <p>${escapeBattleHtml(skill.desc || '無描述')}</p>
+                    ${card.cooldowns ? `<small>剩餘冷卻 ${getRemainingSkillCooldown(card, idx)} 回合</small>` : ''}
+                    ${renderSummonTargets(skill)}
+                </section>`).join('');
+            const hp = card.maxHp === undefined ? formatCardStat(card.hp) : `${formatCardStat(card.hp)} / ${formatCardStat(card.maxHp)}`;
             content.innerHTML = `
-                <div class="battle-card-header" style="justify-content: center; margin-bottom: 20px;">
-                    <span class="battle-char-name" style="font-size: 2rem;">${card.name}</span>
-                </div>
-                <div style="display: flex; justify-content: center; gap: 20px; font-size: 1.2rem; margin-bottom: 20px;">
-                    <span style="color: #ff6b6b;">HP: ${card.hp}/${card.maxHp}</span>
-                    <span style="color: #ffd93d;">ATK: ${typeof card.atk === 'object' ? `${card.atk.min}-${card.atk.max}` : card.atk}</span>
-                </div>
-                ${card.passive ? `
-                    <div style="margin-bottom: 15px; text-align: left; background: rgba(255, 215, 0, 0.1); padding: 10px; border-left: 3px solid var(--neon-gold); border-radius: 4px;">
-                        <div style="color: var(--neon-gold); font-weight: bold;">被動: ${card.passive.name}</div>
-                        <div style="font-size: 0.9rem; margin-top: 5px;">${card.passive.desc || '無描述'}</div>
-                    </div>` : ''}
-                ${skillsHtml}
-                <button class="btn" style="margin-top: 20px; width: 100%;" onclick="document.getElementById('cardDetailsModal').classList.remove('active')">關閉</button>
-            `;
-
+                <div class="card-detail-issue">NEON CARD / CHARACTER FILE <span>#${escapeBattleHtml(card.id || '—')}</span></div>
+                <div class="card-detail-heading"><small>${escapeBattleHtml(getRarityName(card.rarity))}</small><h2>${escapeBattleHtml(card.name)}</h2></div>
+                <div class="card-detail-stats"><div><small>生命 HP</small><strong>${hp}</strong></div><div><small>攻擊 ATK</small><strong>${formatCardStat(card.atk)}</strong></div></div>
+                ${card.passive ? `<section class="card-detail-passive"><strong>被動 / ${escapeBattleHtml(card.passive.name)}</strong><p>${escapeBattleHtml(card.passive.desc || '無描述')}</p></section>` : ''}
+                <div class="card-detail-section-title">技能 / SKILLS</div>
+                ${skillsHtml || '<p class="card-detail-empty">沒有技能</p>'}
+                <button class="btn card-detail-close" type="button" onclick="document.getElementById('cardDetailsModal').classList.remove('active')">關閉角色資料</button>`;
             modal.classList.add('active');
         }
 

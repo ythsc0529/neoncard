@@ -1,12 +1,15 @@
-// Neon Card Game - Service Worker (v2.7.3)
+// Neon Card Game - Service Worker (v2.8.1)
 // ⚠️ 每次發布新版本時，務必同步更新此版本號以清空舊快取
-const CACHE_NAME = 'neoncard-v2.7.3';
+const CACHE_NAME = 'neoncard-v2.8.1';
 
 
 // 核心靜態資源（不含 HTML 頁面，HTML 永遠走 network-first）
 const CORE_ASSETS = [
     '/manifest.json',
     '/css/styles.css',
+    '/css/comic-ui.css?v=ink3',
+    '/css/comic-motion.css?v=ink3',
+    '/js/ui/comicMotion.js?v=ink3',
     '/js/theme.js',
     '/logo/nenocard512512.png'
 ];

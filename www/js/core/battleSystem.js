@@ -22,6 +22,7 @@ const BattleSystem = {
             return false;
         }
 
+        await Animations.comicAction(attacker, defender, null);
         if (window.SoundManager) SoundManager.play('atk');
         let damage = attacker.atk;
 
@@ -574,6 +575,7 @@ const BattleSystem = {
         // Execute skill effect
         GameState.addLog(`${attacker.name} 使用 [${skill.name}]`, 'skill');
 
+        await Animations.comicAction(attacker, defender, skill);
         const result = await this.executeSkillEffect(attacker, defender, skill);
         // Handle on_skill passive (e.g., 水上摩托車-溺水)
         const onSkillPassive = attacker.passive?.effect;

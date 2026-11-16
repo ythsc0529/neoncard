@@ -111,6 +111,7 @@ const GameState = {
 
     // Get card count based on mode
     getCardCount() {
+        if (this.mode === 'tutorial') return 3;
         if (this.mode === 'online') {
             return this.onlineSubMode === 'quick' ? 3 : 7;
         }

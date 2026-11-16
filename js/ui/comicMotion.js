@@ -85,10 +85,40 @@
             layer.remove();
         }
     }
+    async function performSwap({ outgoing, incoming, opponent = false }) {
+        if (!outgoing || !incoming) return;
+        const layer = document.createElement('div');
+        layer.className = 'ink-swap';
+        layer.setAttribute('aria-hidden', 'true');
+        const caption = document.createElement('div');
+        caption.className = 'ink-swap-caption';
+        caption.append(text('small', '', opponent ? 'RIVAL / CHANGE' : 'PLAYER / CHANGE'));
+        caption.append(text('strong', '', opponent ? '對手撤退！' : '角色換手！'));
+        layer.append(caption);
+        const outgoingPanel = document.createElement('div');
+        outgoingPanel.className = 'ink-swap-panel ink-swap-panel--out';
+        outgoingPanel.append(text('small', '', '撤退 / EXIT'));
+        outgoingPanel.append(text('b', '', outgoing.name));
+        layer.append(outgoingPanel);
+        const incomingPanel = document.createElement('div');
+        incomingPanel.className = 'ink-swap-panel ink-swap-panel--in';
+        incomingPanel.append(text('small', '', '登場 / ENTRY'));
+        incomingPanel.append(text('b', '', incoming.name));
+        layer.append(incomingPanel);
+        layer.append(text('div', 'ink-swap-sfx', '換!'));
+        document.body.append(layer);
+        try { await new Promise(resolve => setTimeout(resolve, 1250)); }
+        finally { layer.remove(); }
+    }
     global.ComicMotion = {
         Timeline: ComicTimeline, classifySkill,
         combat(options) {
             const run = () => performCombat(options).catch(error => console.warn('[Comic motion]', error));
+            queue = queue.then(run, run);
+            return queue;
+        },
+        swap(options) {
+            const run = () => performSwap(options).catch(error => console.warn('[Comic swap]', error));
             queue = queue.then(run, run);
             return queue;
         }

@@ -3,6 +3,13 @@
 const Animations = {
     container: null,
 
+    async comicAction(attacker, defender, skill) {
+        if (!window.ComicMotion) return;
+        await window.ComicMotion.combat({ attacker, defender, skill,
+            kind: skill ? 'skill' : 'attack',
+            source: this.getCardEl(attacker), target: this.getCardEl(defender) });
+    },
+
     // Resolve a character object to its DOM battle-card element
     getCardEl(charObj) {
         if (!charObj || typeof GameState === 'undefined') return null;
@@ -501,6 +508,19 @@ const Animations = {
         num.style.top = (rect.top + rect.height * 0.25) + 'px';
 
         document.body.appendChild(num);
+        if (element.animate) {
+            element.animate(isHeal ? [
+                { outline: '0px solid #43885c' },
+                { outline: '6px solid #43885c', offset: .4 },
+                { outline: '0px solid #43885c' }
+            ] : [
+                { transform: 'translateX(0)' },
+                { transform: 'translateX(-7px)', offset: .2 },
+                { transform: 'translateX(6px)', offset: .4 },
+                { transform: 'translateX(-3px)', offset: .7 },
+                { transform: 'translateX(0)' }
+            ], { duration: 380 });
+        }
         setTimeout(() => num.remove(), 1200);
     },
 
@@ -855,6 +875,7 @@ const Animations = {
             const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
             const isCompetitive = localStorage.getItem('fromCompetitiveMode') === 'true';
             const gMode = localStorage.getItem('gameMode');
+            if (gMode === 'tutorial') return 'tutorial';
             if (isRanked) return 'ranked';
             if (isBotRanked) return 'ranked_bot';
             if (isCompetitive) return 'casual';

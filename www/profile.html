@@ -780,9 +780,12 @@
             white-space: nowrap;
         }
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
+    <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
-<body>
+<body data-page="profile">
     <!-- Loading -->
     <div id="pageLoading" style="position:fixed;inset:0;background:var(--bg-dark);background-image:var(--comic-halftone);background-size:20px 20px;display:flex;align-items:center;justify-content:center;z-index:9999;">
         <div style="text-align:center;">
@@ -886,7 +889,7 @@
                         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-secondary);border:var(--nb-border-width) solid var(--nb-border);border-radius:4px;">
                             <img id="profileTitleImg" src="" alt="title" style="height:30px;object-fit:contain;">
                             <span id="profileTitleName" style="font-family:var(--font-heading);font-size:0.9rem;font-weight:900;color:var(--text-primary);flex:1;"></span>
-                            <button class="btn btn-sm" style="font-size:0.72px;padding:5px 10px;" onclick="openTitlePicker()">更換</button>
+                            <button class="btn btn-sm" style="font-size:0.72rem;padding:5px 10px;" onclick="openTitlePicker()">更換</button>
                         </div>
                     </div>
 

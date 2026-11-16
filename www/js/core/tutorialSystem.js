@@ -1,283 +1,204 @@
-// ========== NEON CARD GAME - INTERACTIVE TUTORIAL SYSTEM ==========
-
+// Teach one decision at a time, then let the player finish the battle.
 const TutorialSystem = {
     isActive: false,
     currentStepIndex: 0,
-    overlayElement: null,
-    dialogElement: null,
-    highlightElement: null,
-    originalOnClick: null,
-
-    // Fixed deck for tutorial to ensure deterministic learning
-    tutorialDeck: ['戰士', '卡德', '赫特'],
-    enemyDeck: ['伊魯帕恩', '火車', '小混混'],
-
+    tutorialDeck: ['戰士', '赫特', '醫生'],
+    enemyDeck: ['小混混', '戰士', '醫生'],
     steps: [
-        {
-            text: "歡迎來到霓虹牌！首先，兩位玩家會各抽出3張角色牌。\\n請點擊上方的「點擊任意處關閉」或畫面任意處來繼續。",
-            trigger: "onDrawCards",
-            action: "click_close_draw",
-            highlight: "animationOverlay" // The draw cards overlay
-        },
-        {
-            text: "這就是你的手牌！請點擊一張你想要首發上場的角色牌。",
-            trigger: "onSelectionPhase",
-            action: "click_card",
-            highlight: "drawnCards" // the container of drawn cards
-        },
-        {
-            text: "太好了！選好角色後，點擊「確認選擇」將其放入戰鬥區。",
-            trigger: "onSelectionConfirm",
-            action: "click_confirm",
-            highlight: "confirmSelection"
-        },
-        {
-            text: "戰鬥開始！這是你的「戰鬥區」角色，下方是你的「備戰區」。\\n點擊「普攻」按鈕對敵人造成傷害！",
-            trigger: "onPlayerTurn",
-            action: "click_attack",
-            highlight: "p1Actions", // we can specifically target the attack button
-            targetClass: "attack-btn"
-        },
-        {
-            text: "敵方受到了傷害！現在換敵方回合。\\n(敵方會自動進行攻擊)",
-            trigger: "onEnemyTurn",
-            action: "auto",
-            delay: 2000
-        },
-        {
-            text: "又回到你的回合了。除了普攻，你也可以使用「技能」。\\n每個角色的技能都有獨特效果與冷卻時間，點擊「使用技能」。",
-            trigger: "onPlayerTurn",
-            action: "click_skill",
-            highlight: "p1SkillBtn"
-        },
-        {
-            text: "選擇你要施放的技能！",
-            trigger: "onSkillPanelOpen",
-            action: "click_skill_option",
-            highlight: "skillModalOptions"
-        },
-        {
-            text: "當你的角色血量不足或處於劣勢時，可以使用「撤退」來與備戰區角色交換。\\n點擊「撤退」。",
-            trigger: "onPlayerTurn",
-            action: "click_retreat",
-            highlight: "p1Actions",
-            targetClass: "retreat-btn"
-        },
-        {
-            text: "選擇你要換上場的備戰角色。",
-            trigger: "onRetreatPanelOpen",
-            action: "click_retreat_option",
-            highlight: "retreatOptions"
-        },
-        {
-            text: "非常好！你已經學會了所有基本操作。\\n戰鬥中，當一方的所有角色(包含備戰區)都被擊敗時，另一方即獲勝。\\n現在，擊敗對手吧！",
-            trigger: "onPlayerTurn",
-            action: "finish_tutorial"
-        }
+        { title: '先認識這場對戰', text: '你和對手各有 3 名角色。每次只有 1 名在戰鬥區，其餘待在備戰區。先看看抽到的角色，點擊畫面關閉抽牌結果。', trigger: 'onDrawCards', action: 'click_close_draw', target: '#animationOverlay' },
+        { title: '選擇首發角色', text: 'HP 是生命值，ATK 是普攻傷害。先點第一張「戰士」：他有 100 HP、20 ATK，技能「砍一刀」造成 30 傷害。其餘兩張會留在備戰區。', trigger: 'onSelectionPhase', action: 'select_warrior', target: '#drawnCards .select-card:first-child' },
+        { title: '讓戰士上場', text: '已選好的牌會有選取標記。按「確認選擇」後，戰士進入戰鬥區，赫特和醫生留在備戰區。', trigger: 'onSelectionPhase', action: 'click_confirm', target: '#confirmSelection' },
+        { title: '看懂你的戰鬥區', text: '這裡是你目前上場的角色。血條歸零時會退場；護盾會先承受傷害。每個回合只能選一種行動：普攻、技能或撤退。', trigger: 'onPlayerTurn', action: 'continue', target: '#p1BattleCard' },
+        { title: '看懂對手', text: '對手的戰鬥區顯示同樣的 HP、ATK 和護盾。攻擊會打向對手目前上場的角色。', trigger: 'onPlayerTurn', action: 'continue', target: '#p2BattleCard' },
+        { title: '備戰區是後援', text: '赫特和醫生還能上場。打倒對手目前的角色並不等於勝利；必須讓對手的戰鬥區和備戰區都沒有存活角色。', trigger: 'onPlayerTurn', action: 'continue', target: '#p1Standby' },
+        { title: '第一個回合：普攻', text: '點「普攻」讓戰士對對手造成傷害。行動完成後回合會交給對手。', trigger: 'onPlayerTurn', action: 'click_attack', target: '#p1Actions .attack-btn' },
+        { title: '觀察對手回合', text: '現在由教學機器人行動。注意雙方血量的變化；輪到你時，我們改用技能。', trigger: 'onEnemyTurn', action: 'wait' },
+        { title: '第二個回合：技能', text: '技能的效果和普攻不同。點「使用技能」，看看戰士能使用什麼招式。', trigger: 'onPlayerTurn', action: 'click_skill', target: '#p1SkillBtn' },
+        { title: '施放「砍一刀」', text: '選擇「砍一刀」造成 30 傷害。技能使用後會進入冷卻；冷卻數字歸零之前不能再次使用。', trigger: 'onSkillPanelOpen', action: 'click_skill_option', target: '#skillModalOptions .skill-btn-modal:not(:disabled)' },
+        { title: '觀察技能結果', text: '對照戰鬥紀錄和血量，確認技能的效果。下一回合看看如何換人。', trigger: 'onEnemyTurn', action: 'wait' },
+        { title: '第三個回合：撤退', text: '想保護受傷的戰士，或換一名更適合的角色時，按「撤退」。撤退也會用掉這個回合。', trigger: 'onPlayerTurn', action: 'click_retreat', target: '#p1Actions .retreat-btn' },
+        { title: '選一名隊友接手', text: '選擇赫特上場。原本的戰士會回到備戰區，仍可在之後再次出戰。赫特的「狙擊」能造成 50 傷害。', trigger: 'onRetreatPanelOpen', action: 'choose_hette', target: '#retreatOptions .select-card:first-child' },
+        { title: '換人後等對手行動', text: '撤退已完成。等機器人行動後，換你獨立判斷要普攻、使用技能，還是再次撤退。', trigger: 'onEnemyTurn', action: 'wait' },
+        { title: '確認勝利條件', text: '如果對手戰鬥區的角色倒下，但備戰區還有角色，接下來會發生什麼事？', trigger: 'onPlayerTurn', action: 'quiz', answers: [{ label: '立刻獲勝', correct: false }, { label: '對手派備戰角色上場，戰鬥繼續', correct: true }] },
+        { title: '換你完成這場對戰', text: '目標：擊敗對手全部 3 名角色。每回合選一種行動；技能冷卻時可普攻，血量危險時可撤退。真正贏下這場練習後，教學才算完成。', trigger: 'onPlayerTurn', action: 'practice' }
     ],
 
     init() {
         if (GameState.mode !== 'tutorial') return;
         this.isActive = true;
+        this.completedThisBattle = false;
         this.currentStepIndex = 0;
-
-        // Setup UI
-        this.createUI();
-        console.log('[Tutorial] System initialized.');
-    },
-
-    createUI() {
         this.overlayContainer = document.createElement('div');
-        this.overlayContainer.id = 'tutorialOverlayContainer';
-        this.overlayContainer.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 9998;
-            display: none;
-            pointer-events: none;
-        `;
-
-        this.overlayBlocks = Array.from({ length: 4 }).map(() => {
+        this.overlayContainer.className = 'tutorial-spotlight';
+        this.overlayBlocks = Array.from({ length: 4 }, () => {
             const block = document.createElement('div');
-            block.style.position = 'absolute';
-            block.style.background = 'rgba(0, 0, 0, 0.6)';
-            block.style.pointerEvents = 'auto'; // Block clicks outside the hole
+            block.className = 'tutorial-shade';
             this.overlayContainer.appendChild(block);
             return block;
         });
-
         document.body.appendChild(this.overlayContainer);
-
-        // Dialog box for NPC
-        this.dialogElement = document.createElement('div');
-        this.dialogElement.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(15, 15, 30, 0.95);
-            border: 2px solid var(--neon-magenta);
-            border-radius: 12px;
-            padding: 20px;
-            width: 90%;
-            max-width: 500px;
-            z-index: 9999;
-            color: white;
-            font-size: 1.1rem;
-            text-align: center;
-            display: none;
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
-            font-family: var(--font-main);
-            pointer-events: auto;
-        `;
+        this.dialogElement = document.createElement('section');
+        this.dialogElement.className = 'tutorial-guide';
+        this.dialogElement.setAttribute('role', 'status');
+        this.dialogElement.setAttribute('aria-live', 'polite');
         document.body.appendChild(this.dialogElement);
     },
 
-    // Triggered by game hooks
     checkTrigger(triggerName) {
         if (!this.isActive) return;
-        const currentStep = this.steps[this.currentStepIndex];
-        if (!currentStep) return;
-
-        if (currentStep.trigger === triggerName) {
-            this.showStep(currentStep);
+        const step = this.steps[this.currentStepIndex];
+        if (!step) return;
+        if (step.action === 'wait' && triggerName === 'onPlayerTurn') {
+            // endTurn emits its hook before the battle UI redraws.
+            setTimeout(() => {
+                if (this.isActive && this.steps[this.currentStepIndex] === step) this.nextStep();
+            }, 0);
+        } else if (step.action === 'practice' && this.dialogElement.style.display === 'block') {
+            // Keep the player's hint preference across later turns.
+            return;
+        } else if (step.trigger === triggerName) {
+            this.showStep(step);
         }
     },
 
     showStep(step) {
-        console.log('[Tutorial] Showing step:', step.text);
-
-        // Show dialog
-        this.dialogElement.innerHTML = `
-            <div style="color: var(--neon-cyan); margin-bottom: 8px; font-weight: bold;">教學引導</div>
-            <div>${step.text.replace(/\\n/g, '<br>')}</div>
-        `;
-        this.dialogElement.style.display = 'block';
-
         this.stopHighlightTracking();
-        this.highlightElement = null;
-
-        // Apply new highlight if specified
-        if (step.highlight) {
-            this.overlayContainer.style.display = 'block';
-            let el = document.getElementById(step.highlight);
-            if (step.targetClass && el) {
-                el = el.querySelector('.' + step.targetClass) || el;
-            }
-            if (el) {
-                this.highlightElement = el;
-                this.startHighlightTracking();
-            } else {
-                this.coverWholeScreen();
-            }
-        } else {
-            this.overlayContainer.style.display = 'block';
-            this.coverWholeScreen();
+        if (window.innerWidth <= 900) {
+            const battle = document.getElementById('battleContainer');
+            const showingOpponent = battle.classList.contains('show-opponent-mobile');
+            if (step.target === '#p2BattleCard' && !showingOpponent) toggleMobileView();
+            if (step.target?.startsWith('#p1') && showingOpponent) toggleMobileView();
         }
-
-        // Setup action listeners
-        if (step.action === 'auto') {
-            setTimeout(() => this.nextStep(), step.delay || 1000);
-        } else if (step.action === 'finish_tutorial') {
-            setTimeout(() => {
-                this.dialogElement.style.display = 'none';
-                this.overlayContainer.style.display = 'none';
-                this.isActive = false;
-                alert('教學結束！你現在可以自由發揮了！');
-            }, 5000);
+        this.dialogElement.replaceChildren();
+        const progress = document.createElement('div');
+        progress.className = 'tutorial-progress';
+        progress.textContent = `新手教學 ${this.currentStepIndex + 1} / ${this.steps.length}`;
+        const title = document.createElement('h2');
+        title.textContent = step.title;
+        const copy = document.createElement('p');
+        copy.textContent = step.text;
+        this.dialogElement.append(progress, title, copy);
+        if (step.action === 'continue') {
+            this.addButton('我懂了，繼續', () => this.nextStep());
+        } else if (step.action === 'quiz') {
+            const feedback = document.createElement('div');
+            feedback.className = 'tutorial-feedback';
+            step.answers.forEach(answer => this.addButton(answer.label, () => {
+                if (answer.correct) this.nextStep();
+                else feedback.textContent = '再想想：對手還有備戰角色可以上場。';
+            }));
+            this.dialogElement.appendChild(feedback);
+        } else if (step.action === 'practice') {
+            this.addButton('收起提示', () => {
+                this.dialogElement.classList.toggle('tutorial-collapsed');
+                this.dialogElement.querySelector('button').textContent = this.dialogElement.classList.contains('tutorial-collapsed') ? '顯示提示' : '收起提示';
+            });
         }
+        this.dialogElement.classList.toggle('tutorial-practice', step.action === 'practice');
+        this.dialogElement.classList.remove('tutorial-collapsed');
+        this.dialogElement.style.display = 'block';
+        this.overlayContainer.style.display = ['wait', 'practice'].includes(step.action) ? 'none' : 'block';
+        this.highlightElement = step.target ? document.querySelector(step.target) : null;
+        if (step.target && !this.highlightElement) this.overlayContainer.style.display = 'none';
+        else if (this.highlightElement) {
+            this.highlightElement.classList.add('tutorial-focus');
+            this.highlightElement.scrollIntoView({ block: 'center', behavior: 'auto' });
+            this.startHighlightTracking();
+        }
+        else if (!['wait', 'practice'].includes(step.action)) this.coverWholeScreen();
+    },
+
+    addButton(label, handler) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tutorial-guide-button';
+        button.textContent = label;
+        button.addEventListener('click', handler);
+        this.dialogElement.appendChild(button);
     },
 
     nextStep() {
         if (!this.isActive) return;
-
         this.stopHighlightTracking();
-        this.highlightElement = null;
         this.overlayContainer.style.display = 'none';
         this.dialogElement.style.display = 'none';
-
         this.currentStepIndex++;
-        console.log('[Tutorial] Advanced to step:', this.currentStepIndex);
+        const step = this.steps[this.currentStepIndex];
+        if (!step) return;
+        const currentTrigger = document.getElementById('skillPanelModal').classList.contains('active') ? 'onSkillPanelOpen'
+            : document.getElementById('retreatModal').classList.contains('active') ? 'onRetreatPanelOpen'
+            : !document.getElementById('selectionPhase').classList.contains('hidden') ? 'onSelectionPhase'
+            : GameState.currentPlayer === 1 ? 'onPlayerTurn' : 'onEnemyTurn';
+        if (step.trigger === currentTrigger) this.showStep(step);
+    },
 
-        // Check if next step triggers immediately on the same state
-        const nextStep = this.steps[this.currentStepIndex];
-        if (nextStep && nextStep.trigger === this.steps[this.currentStepIndex - 1].trigger) {
-            this.checkTrigger(nextStep.trigger);
+    onActionCompleted(actionName, detail) {
+        if (!this.isActive) return;
+        const step = this.steps[this.currentStepIndex];
+        if (!step) return;
+        if (step.action === 'select_warrior' && actionName === 'click_card') {
+            if (detail === 0) this.nextStep();
+            else this.showFeedback('這次先選第一張「戰士」，其他角色稍後會上場。');
+        } else if (step.action === 'choose_hette' && actionName === 'click_retreat_option') {
+            if (detail === 0) this.nextStep();
+            else this.showFeedback('這次先選第一張「赫特」，觀察換人的效果。');
+        } else if (step.action === actionName) this.nextStep();
+    },
+
+    showFeedback(message) {
+        let feedback = this.dialogElement.querySelector('.tutorial-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'tutorial-feedback';
+            this.dialogElement.appendChild(feedback);
         }
+        feedback.textContent = message;
+    },
+
+    onBattleFinished() {
+        if (!this.isActive) return;
+        if (GameState.winner === 1 && this.steps[this.currentStepIndex]?.action === 'practice') {
+            this.completedThisBattle = true;
+            localStorage.setItem('tutorialCompleted', 'true');
+        }
+        this.isActive = false;
+        this.stopHighlightTracking();
+        this.overlayContainer.remove();
+        this.dialogElement.remove();
     },
 
     startHighlightTracking() {
-        this.stopHighlightTracking();
         const track = () => {
-            if (this.isActive && this.highlightElement) {
-                this.updateHighlightPosition();
-                this.trackingFrame = requestAnimationFrame(track);
+            if (!this.isActive || !this.highlightElement) return;
+            const rect = this.highlightElement.getBoundingClientRect();
+            if (rect.width && rect.height) {
+                const pad = 6;
+                const top = Math.max(0, rect.top - pad);
+                const left = Math.max(0, rect.left - pad);
+                const right = Math.min(window.innerWidth, rect.right + pad);
+                const bottom = Math.min(window.innerHeight, rect.bottom + pad);
+                const blocks = this.overlayBlocks;
+                Object.assign(blocks[0].style, { top: '0px', left: '0px', width: '100%', height: `${top}px` });
+                Object.assign(blocks[1].style, { top: `${bottom}px`, left: '0px', width: '100%', height: `${window.innerHeight - bottom}px` });
+                Object.assign(blocks[2].style, { top: `${top}px`, left: '0px', width: `${left}px`, height: `${bottom - top}px` });
+                Object.assign(blocks[3].style, { top: `${top}px`, left: `${right}px`, width: `${window.innerWidth - right}px`, height: `${bottom - top}px` });
+                this.dialogElement.classList.toggle('tutorial-guide-top', rect.top + rect.height / 2 > window.innerHeight / 2);
             }
+            this.trackingFrame = requestAnimationFrame(track);
         };
         track();
     },
 
     stopHighlightTracking() {
-        if (this.trackingFrame) {
-            cancelAnimationFrame(this.trackingFrame);
-            this.trackingFrame = null;
-        }
-    },
-
-    updateHighlightPosition() {
-        if (!this.highlightElement) return;
-        const padding = 5;
-        const rect = this.highlightElement.getBoundingClientRect();
-
-        // If element is hidden (e.g. display: none), cover screen
-        if (rect.width === 0 && rect.height === 0) {
-            this.coverWholeScreen();
-            return;
-        }
-
-        const top = Math.max(0, rect.top - padding);
-        const left = Math.max(0, rect.left - padding);
-        const right = Math.min(window.innerWidth, rect.right + padding);
-        const bottom = Math.min(window.innerHeight, rect.bottom + padding);
-
-        this.overlayBlocks[0].style.top = '0px';
-        this.overlayBlocks[0].style.left = '0px';
-        this.overlayBlocks[0].style.width = '100%';
-        this.overlayBlocks[0].style.height = top + 'px';
-
-        this.overlayBlocks[1].style.top = bottom + 'px';
-        this.overlayBlocks[1].style.left = '0px';
-        this.overlayBlocks[1].style.width = '100%';
-        this.overlayBlocks[1].style.height = (window.innerHeight - bottom) + 'px';
-
-        this.overlayBlocks[2].style.top = top + 'px';
-        this.overlayBlocks[2].style.left = '0px';
-        this.overlayBlocks[2].style.width = left + 'px';
-        this.overlayBlocks[2].style.height = (bottom - top) + 'px';
-
-        this.overlayBlocks[3].style.top = top + 'px';
-        this.overlayBlocks[3].style.left = right + 'px';
-        this.overlayBlocks[3].style.width = (window.innerWidth - right) + 'px';
-        this.overlayBlocks[3].style.height = (bottom - top) + 'px';
+        if (this.trackingFrame) cancelAnimationFrame(this.trackingFrame);
+        this.trackingFrame = null;
+        this.highlightElement?.classList.remove('tutorial-focus');
+        this.dialogElement?.classList.remove('tutorial-guide-top');
     },
 
     coverWholeScreen() {
-        this.overlayBlocks[0].style.top = '0';
-        this.overlayBlocks[0].style.left = '0';
-        this.overlayBlocks[0].style.width = '100%';
-        this.overlayBlocks[0].style.height = '100%';
-
-        this.overlayBlocks[1].style.height = '0';
-        this.overlayBlocks[2].style.width = '0';
-        this.overlayBlocks[3].style.width = '0';
-    },
-
-    // Notify from UI interactions
-    onActionCompleted(actionName) {
-        if (!this.isActive) return;
-        const currentStep = this.steps[this.currentStepIndex];
-        if (currentStep && currentStep.action === actionName) {
-            this.nextStep();
-        }
+        Object.assign(this.overlayBlocks[0].style, { top: '0px', left: '0px', width: '100%', height: '100%' });
+        this.overlayBlocks.slice(1).forEach(block => Object.assign(block.style, { width: '0px', height: '0px' }));
     }
 };
 

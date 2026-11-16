@@ -1,9 +1,10 @@
 {
-  "version": "2.7.3",
-  "apk_url": "https://github.com/ythsc0529/neoncard/releases/download/v2.7.3/app-debug.apk",
+  "version": "2.8.1",
   "notes": [
-    "升級 Android 目標 API 級別至 Android 16 (API 36)。",
-    "優化 Google 登入驗證流程與雙層降級容錯機制。"
+    "配對畫面改為漫畫分鏡對峙動畫，對手撤退換角也有專屬演出。",
+    "改善戰鬥中被動、狀態與資源資訊的文字對比。",
+    "對手備戰角色詳情改用漫畫風卡面，召喚技能可查看目標角色數值。",
+    "Android 版加入 Google Play 原生更新檢查與更新提示。"
   ]
 }
 

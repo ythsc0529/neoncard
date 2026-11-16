@@ -15,7 +15,7 @@
     
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.8.0";
+        window.APP_VERSION = "2.8.1";
 
         // ── Service Worker 更新管理 ──
         if ('serviceWorker' in navigator) {
@@ -35,7 +35,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="capacitor.js"></script>
-    <script src="js/core/updater.js"></script>
+    <script src="js/core/updater.js?v=play1"></script>
     <script src="js/core/resourceManifest.js"></script>
     <script src="js/core/resourceLoader.js"></script>
     <script src="js/core/auth.js"></script>
@@ -1129,49 +1129,6 @@
             font-size: 0.85rem;
         }
 
-        /* ── Matchmaking Radar ── */
-        .radar-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 160px;
-            height: 160px;
-            margin: 20px auto;
-        }
-
-        .radar-ring {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            border: 3px solid var(--comic-orange);
-            border-radius: 50%;
-            animation: radar 1.8s ease-out infinite;
-        }
-
-        .radar-ring:nth-child(2) { animation-delay: 0.6s; }
-        .radar-ring:nth-child(3) { animation-delay: 1.2s; }
-
-        .radar-dot {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: var(--comic-yellow);
-            border: 3px solid #0A0A0A;
-            box-shadow: var(--comic-shadow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        @keyframes radar {
-            0% { transform: scale(0.5); opacity: 0.9; }
-            100% { transform: scale(2.1); opacity: 0; }
-        }
-
         .matchmaking-timer {
             font-size: 2.4rem;
             font-weight: 900;
@@ -1457,9 +1414,9 @@
             line-height: 1.4;
         }
     </style>
-    <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
-    <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
-    <script src="js/ui/comicMotion.js?v=ink2"></script>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <script src="js/ui/comicMotion.js?v=ink3"></script>
 </head>
 
 <body data-page="index">
@@ -1799,19 +1756,25 @@
         </div>
     </div>
 
-    <!-- ⑤ Matchmaking Modal -->
+    <!-- ⑤ Matchmaking comic sequence -->
     <div class="modal-overlay" id="matchmakingModal">
-        <div class="modal" style="text-align:center;">
-            <h2 style="color:var(--comic-orange);">尋找對手中</h2>
-            <div class="radar-container">
-                <div class="radar-ring"></div>
-                <div class="radar-ring"></div>
-                <div class="radar-ring"></div>
-                <div class="radar-dot">⚔️</div>
+        <div class="modal match-comic" role="dialog" aria-modal="true" aria-labelledby="matchComicTitle">
+            <div class="match-comic-masthead"><span>NEON CARD / MATCH FILE</span><span id="matchComicMode">自由對戰</span></div>
+            <h2 id="matchComicTitle">尋找對手中</h2>
+            <div class="match-comic-stage" aria-hidden="true">
+                <div class="match-comic-lines"></div>
+                <div class="match-comic-fighter match-comic-fighter--left"><span>PLAYER</span><b>01</b></div>
+                <div class="match-comic-fighter match-comic-fighter--right"><span>RIVAL</span><b>??</b></div>
+                <div class="match-comic-versus">VS</div>
+                <div class="match-comic-sfx">ドン!</div>
+                <div class="match-comic-panel match-comic-panel--one">訊號鎖定</div>
+                <div class="match-comic-panel match-comic-panel--two">對手搜尋中</div>
             </div>
-            <div id="matchmakingStatusText" style="color:#555555;font-weight:700;margin-bottom:8px;">正在為您配對實力相當的對手...</div>
-            <div class="matchmaking-timer" id="matchmakingTimer">0:00</div>
-            <button class="btn" onclick="cancelMatchmaking()" style="margin-top:12px;">取消匹配</button>
+            <div class="match-comic-bottom">
+                <div id="matchmakingStatusText" role="status" aria-live="polite">正在為您配對實力相當的對手...</div>
+                <div class="matchmaking-timer" id="matchmakingTimer">0:00</div>
+            </div>
+            <button class="btn match-comic-cancel" onclick="cancelMatchmaking()">取消配對</button>
         </div>
     </div>
 
@@ -2610,7 +2573,12 @@
             matchmakingSeconds = 0;
             document.getElementById('matchmakingTimer').textContent = '0:00';
             document.getElementById('matchmakingStatusText').textContent = isRanked ? '🏅 排位配對中，請稍候...' : '正在配對中，請稍候...';
-            document.getElementById('matchmakingModal').classList.add('active');
+            const matchModal = document.getElementById('matchmakingModal');
+            matchModal.classList.remove('is-matched');
+            document.getElementById('matchComicMode').textContent = isRanked ? '排位競技' : '自由對戰';
+            document.getElementById('matchComicTitle').textContent = '尋找對手中';
+            matchModal.querySelector('.match-comic-cancel').style.display = '';
+            matchModal.classList.add('active');
 
             matchmakingTimerInterval = setInterval(() => {
                 matchmakingSeconds++;
@@ -2627,10 +2595,14 @@
                 }
                 if (status === 'bot_match_start') {
                     document.getElementById('matchmakingStatusText').textContent = '✅ 找到對手！即將進入戰鬥...';
-                    const cancelBtn = document.querySelector('#matchmakingModal .btn');
+                    matchModal.classList.add('is-matched');
+                    document.getElementById('matchComicTitle').textContent = '對手登場！';
+                    const cancelBtn = matchModal.querySelector('.match-comic-cancel');
                     if (cancelBtn) cancelBtn.style.display = 'none';
                 } else if (status === 'matched') {
                     document.getElementById('matchmakingStatusText').textContent = '✅ 配對成功！即將進入戰鬥...';
+                    matchModal.classList.add('is-matched');
+                    document.getElementById('matchComicTitle').textContent = '對手登場！';
                 }
             }, rankedInfo);
         }

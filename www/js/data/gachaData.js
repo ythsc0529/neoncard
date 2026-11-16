@@ -11,7 +11,7 @@ const GACHA_POOLS = [
         hasFreeDaily: true,
         bg: 'linear-gradient(135deg, #1a1a2e, #16213e)',
         desc: '包含大部分基礎角色與強力角色。\n由科學、一般等級組成。',
-        ratesHtml: 'MYTHIC: 1% | LEGENDARY: 4% | EPIC: 15% | RARE: 35% | COMMON: 45%'
+        ratesHtml: 'MYTHIC: 2% | LEGENDARY: 8% | EPIC: 17% | RARE: 34% | COMMON: 39%'
     },
     {
         id: 'science',
@@ -21,8 +21,8 @@ const GACHA_POOLS = [
         costAmount: 1,
         hasFreeDaily: false,
         bg: 'linear-gradient(135deg, #0f3460, #1a1a2e)',
-        desc: '專注於高稀有度科学角色。\n低機率出現神話。',
-        ratesHtml: 'MYTHIC: 2% | LEGENDARY: 10% | EPIC: 30% | RARE: 58%'
+        desc: '以科學角色為主題。\n低機率出現神話。',
+        ratesHtml: 'MYTHIC: 2% | LEGENDARY: 8% | EPIC: 17% | RARE: 34% | COMMON: 39%'
     },
     {
         id: 'star',
@@ -33,7 +33,7 @@ const GACHA_POOLS = [
         hasFreeDaily: false,
         bg: 'linear-gradient(135deg, #4e0066, #1a1a2e)',
         desc: '包含新星系列角色與強力傳說卡牌。\n無一般卡。',
-        ratesHtml: 'MYTHIC: 5% | LEGENDARY: 20% | EPIC: 75%'
+        ratesHtml: 'MYTHIC: 6% | LEGENDARY: 14% | EPIC: 22% | RARE: 58%'
     },
     {
         id: 'titles',
@@ -55,7 +55,7 @@ const GACHA_POOLS = [
         hasFreeDaily: false,
         bg: 'linear-gradient(135deg, #ffcc00, #ff6600)',
         desc: '極高消耗，但僅會產出神話與傳說卡牌。\n推薦給頂尖收藏家。',
-        ratesHtml: 'MYTHIC: 10% | LEGENDARY: 90%'
+        ratesHtml: '神話或傳說角色；優先抽取未擁有角色，兩者依候選角色數抽取'
     }
 ];
 

@@ -18,7 +18,7 @@
     <script src="js/data/missionData.js"></script>
     <script src="js/data/passData.js"></script>
     <script src="js/data/trialData.js"></script>
-    <script src="js/data/gachaData.js"></script>
+    <script src="js/data/gachaData.js?v=ink2"></script>
     <script src="js/ui/soundManager.js"></script>
     <script src="js/core/notificationManager.js"></script>
     <script src="js/data/characters_part1.js"></script>
@@ -28,7 +28,7 @@
     <script src="js/data/characters_part5.js"></script>
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
-    <script src="js/ui/shop.js" defer></script>
+    <script src="js/ui/shop.js?v=ink2" defer></script>
     <style>
         body {
             background-color: var(--bg-secondary);
@@ -1138,9 +1138,12 @@
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
     </style>
+    <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
+    <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
-<body>
+<body data-page="shop">
     <div id="pageLoading" style="position:fixed;inset:0;background:#0F0F23;display:flex;align-items:center;justify-content:center;z-index:9999;">
         <div class="" style="color:var(--neon-cyan);font-family:var(--font-heading);font-size:1.5rem;animation:pulse 1.5s infinite;">載入中...</div>
     </div>
@@ -1158,6 +1161,7 @@
             </div>
         </div>
 
+        <div class="edition-heading"><small>03 / RECRUIT & SUPPLY</small><h1>招募補給站</h1><p>下一位夥伴，下一個可能。選擇獎池，開啟你的新篇章。</p></div>
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('gacha')" id="tab-gacha">機率抽獎</button>
             <button class="tab-btn" onclick="switchTab('shop')" id="tab-shop">資源商店</button>
@@ -1176,9 +1180,11 @@
                     <div class="gacha-rates" id="poolDesc">
                         請從左側選擇一個獎池來查看詳情。
                     </div>
-                    <div class="gacha-content-list" id="poolContent">
-                        <!-- Characters list injected via JS -->
-                    </div>
+                    <section class="pool-roster" aria-labelledby="poolRosterTitle">
+                        <div class="pool-roster-heading"><h3 id="poolRosterTitle">本池可獲得角色</h3><span id="poolContentCount" aria-live="polite"></span></div>
+                        <label class="pool-roster-search">搜尋角色或稱號 <input id="poolContentSearch" type="search" placeholder="輸入名稱快速尋找" oninput="renderPoolContents()" autocomplete="off"></label>
+                        <div class="gacha-content-list" id="poolContent"></div>
+                    </section>
                     <div class="gacha-actions" id="poolActions" style="display:none;">
                         <button class="btn btn-pull" id="btnPull1" onclick="performPull(1)">
                             單次抽取
