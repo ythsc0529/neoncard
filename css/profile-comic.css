@@ -1,0 +1,30 @@
+/* Player dossiers share a single manga language on private and public pages. */
+body[data-page="profile"], body[data-page="player"] { background: #efece2 !important; background-image: radial-gradient(#19191919 1px, transparent 1px) !important; background-size: 17px 17px !important; }
+body[data-page="profile"] .profile-page, body[data-page="player"] .player-page { max-width: 1120px; padding: 24px 20px 72px; }
+body[data-page="profile"] .page-header, body[data-page="player"] .player-page::before { border: 3px solid #191919; background: #f7ce46; box-shadow: 7px 7px 0 #191919; padding: 18px 24px; margin-bottom: 28px; }
+body[data-page="profile"] .page-heading { font-size: clamp(2.2rem, 5vw, 4rem); font-style: italic; line-height: 1; transform: rotate(-2deg); text-shadow: 3px 3px 0 #fffdf7 !important; }
+body[data-page="profile"] .page-heading::before { content: 'HERO FILE / '; display: block; margin-bottom: 7px; font-size: 11px; font-style: normal; letter-spacing: .25em; transform: rotate(2deg); }
+body[data-page="profile"] .profile-grid { grid-template-columns: minmax(290px, 360px) minmax(0, 1fr); gap: 28px; }
+body[data-page="profile"] .profile-card, body[data-page="profile"] .right-panel, body[data-page="player"] .hero-card, body[data-page="player"] .stats-section { border: 3px solid #191919; border-radius: 0; box-shadow: 7px 7px 0 #191919; background: #fffdf7; overflow: hidden; }
+body[data-page="profile"] .profile-card-header, body[data-page="player"] .hero-card { position: relative; background: #305bc7; color: #fffdf7; isolation: isolate; }
+body[data-page="profile"] .profile-card-header::before, body[data-page="player"] .hero-card::before { content: ''; position: absolute; inset: -50%; z-index: -1; background: repeating-conic-gradient(from 6deg at 50% 45%, #ffffff22 0 2deg, transparent 2deg 15deg); }
+body[data-page="profile"] .profile-card-header::after { content: '01 / PLAYER'; position: absolute; top: 8px; left: 12px; font-weight: 900; font-size: 10px; letter-spacing: .18em; }
+body[data-page="profile"] .profile-display-name, body[data-page="player"] .hero-name { color: #fffdf7; font-size: clamp(1.7rem,4vw,2.6rem); font-weight: 900; text-shadow: 3px 3px 0 #191919; overflow-wrap: anywhere; }
+body[data-page="profile"] .avatar-ring, body[data-page="player"] .hero-avatar { border: 4px solid #191919; border-radius: 50%; background: #f7ce46; box-shadow: 5px 5px 0 #191919; transform: rotate(-6deg); }
+body[data-page="profile"] .profile-card-body { padding: 22px; }
+body[data-page="profile"] .section-label, body[data-page="player"] .section-label { display: inline-block; padding: 3px 9px; background: #191919; color: #fffdf7; font-weight: 900; letter-spacing: .12em; transform: rotate(-2deg); }
+body[data-page="profile"] .section-divider { border: 0; border-top: 3px solid #191919; margin: 20px 0; }
+body[data-page="profile"] .stat-box, body[data-page="player"] .stat-card { border: 2px solid #191919; border-radius: 0; background: #f7ce46; box-shadow: 3px 3px 0 #191919; }
+body[data-page="profile"] .stat-box:nth-child(even), body[data-page="player"] .stat-card:nth-child(even) { background: #b9d4ef; }
+body[data-page="profile"] .right-panel { padding: 16px; min-height: 520px; }
+body[data-page="profile"] .tabs { border-bottom: 3px solid #191919; padding-bottom: 15px; }
+body[data-page="profile"] .tab-content { padding-top: 18px; }
+body[data-page="player"] .player-page::before { content: 'RIVAL FILE / 玩家檔案'; display: block; font-weight: 900; font-style: italic; font-size: clamp(1.5rem,4vw,3rem); line-height: 1.1; }
+body[data-page="player"] .hero-card { padding: 34px 24px; }
+body[data-page="player"] .hero-bio, body[data-page="player"] .hero-meta, body[data-page="player"] #heroLevel { color: #fffdf7 !important; }
+body[data-page="player"] #uidText { color: #e3e8ff !important; }
+body[data-page="player"] .fav-section { border-top: 2px solid #fffdf7; }
+body[data-page="player"] .fav-chip { border: 2px solid #191919; border-radius: 0; background: #f7ce46; color: #191919; font-weight: 900; box-shadow: 2px 2px 0 #191919; }
+body[data-page="player"] .match-item { border: 2px solid #191919; border-radius: 0; background: #fffdf7; box-shadow: 3px 3px 0 #191919; }
+body[data-page="player"] .match-result-badge { border: 2px solid #191919; border-radius: 0; }
+@media (max-width: 720px) { body[data-page="profile"] .profile-grid { grid-template-columns: 1fr; } body[data-page="profile"] .profile-card, body[data-page="profile"] .right-panel, body[data-page="player"] .hero-card, body[data-page="player"] .stats-section { box-shadow: 4px 4px 0 #191919; } }

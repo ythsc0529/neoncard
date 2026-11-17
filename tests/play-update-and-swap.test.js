@@ -51,6 +51,23 @@ test('comic swap keeps its panel until the change animation finishes', async () 
     assert.equal(document.body.child.removed, true);
 });
 
+test('death replacement still shows the entrance when the old battle slot is empty', async () => {
+    let finish;
+    const document = {
+        body: { append(node) { this.child = node; } },
+        createElement: () => ({ children: [], className: '', setAttribute() {}, append(...nodes) { this.children.push(...nodes); }, remove() { this.removed = true; } })
+    };
+    const window = {};
+    vm.runInNewContext(read('js/ui/comicMotion.js'), { window, document, console, setTimeout: callback => { finish = callback; }, clearTimeout() {} });
+    const action = window.ComicMotion.swap({ outgoing: null, incoming: { name: '魔眼' } });
+    await new Promise(setImmediate);
+    assert.match(document.body.child.className, /ink-swap--last-stand/);
+    assert.equal(document.body.child.children[2].children[1].textContent, '魔眼');
+    finish();
+    await action;
+    assert.equal(document.body.child.removed, true);
+});
+
 test('summon preview resolves the actual target and renders its base stats', () => {
     const source = read('game.html');
     const helpers = source.slice(source.indexOf('function escapeBattleHtml'), source.indexOf('function openBattleCardDetails'));

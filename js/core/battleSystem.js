@@ -490,7 +490,7 @@ const BattleSystem = {
             return 0;
         }
 
-        let dodge = card.resources?.dodge || 0;
+        let dodge = Number(card.resources?.dodge) || 0;
 
         // Check passive dodge (on_hit, initial_dodge, death_chance like 天才少年)
         if (card.passive?.effect) {
@@ -503,7 +503,7 @@ const BattleSystem = {
             }
         }
 
-        dodge += (card.resources?.dodge_chance_bonus || 0);
+        dodge += Number(card.resources?.dodge_chance_bonus) || 0;
 
         // Check status effects
         if (card.statusEffects) {
@@ -3011,6 +3011,7 @@ const BattleSystem = {
         }
 
         const oldName = card.name;
+        if (window.ComicMotion) await window.ComicMotion.evolution({ from: oldName, to: targetName });
         const oldHp = card.hp;
         const oldAtk = card.atk;
         const oldResources = { ...card.resources };

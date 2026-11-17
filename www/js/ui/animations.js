@@ -134,6 +134,20 @@ const Animations = {
 
     // Probability roll animation — Neo-Brutalism × Manga / Comic Style
     async probabilityRoll(chance, description = '') {
+        if (Number(chance) >= 100) {
+            // Keep the gameplay RNG aligned between peers even for a guaranteed result.
+            window.GameRandom();
+            if (window.SignatureMotion) {
+                await window.SignatureMotion.certainty(description);
+                return true;
+            }
+            this.show();
+            this.container.innerHTML = `<div class="ink-guaranteed"><span>ABSOLUTE / 必然</span><strong>100%</strong><b>確定成功！</b><small></small></div>`;
+            this.container.querySelector('small').textContent = description;
+            await new Promise(resolve => setTimeout(resolve, 1250));
+            this.hide();
+            return true;
+        }
         if (window.SoundManager) SoundManager.play('random');
         return new Promise(resolve => {
             try {
@@ -605,33 +619,11 @@ const Animations = {
 
     // Revive animation
     async reviveEffect(charName) {
+        if (window.SignatureMotion) return await window.SignatureMotion.revival(charName);
         return new Promise(resolve => {
             this.show();
-
-            this.container.innerHTML = `
-                <div style="text-align: center;">
-                    <div class="revive-effect">
-                        <div style="font-size: 5rem; margin-bottom: 20px; animation: float 2s infinite ease-in-out;">👼</div>
-                        <div style="font-size: 2.5rem; color: var(--neon-gold); text-shadow: 0 0 20px var(--neon-gold); font-weight: bold;">
-                            ${charName} 復活了！
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Adding a small float animation style just for this if not defined globally
-            const style = document.createElement('style');
-            style.id = 'revive-anim-style';
-            if (!document.getElementById('revive-anim-style')) {
-                style.innerHTML = `
-                    @keyframes float {
-                        0% { transform: translateY(0px); }
-                        50% { transform: translateY(-15px); }
-                        100% { transform: translateY(0px); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+            this.container.innerHTML = `<div class="ink-revival"><div class="ink-revival-ring"></div><span>RETURN FROM ZERO / 逆轉生死</span><strong></strong><b>復 活！</b></div>`;
+            this.container.querySelector('.ink-revival strong').textContent = charName;
 
             // Screen shake for impact
             this.shake();
@@ -641,6 +633,20 @@ const Animations = {
                 resolve();
             }, 2500); // Display for 2.5 seconds
         });
+    },
+
+    async empowermentFate(chance) {
+        const result = window.GameRandom() * 100 < chance;
+        if (window.SignatureMotion) {
+            await window.SignatureMotion.empowerment(result);
+            return result;
+        }
+        this.show();
+        this.container.innerHTML = `<div class="ink-empower"><small>GENIUS BOY / 被動發動</small><strong>賦 能 哥</strong><div class="ink-empower-split"><span>天才</span><b>OR</b><span>殞落</span></div><em></em></div>`;
+        this.container.querySelector('em').textContent = result ? '命運：突然死亡！' : '命運：存活！';
+        await new Promise(resolve => setTimeout(resolve, 1750));
+        this.hide();
+        return result;
     },
 
     // Screen shake
@@ -653,17 +659,13 @@ const Animations = {
 
     // Victory animation
     async victory(winner) {
+        const viewerWon = typeof GameState !== 'undefined' && GameState.winner === (
+            GameState.mode === 'online'
+                ? ((window.localOnlineRole || localStorage.getItem('onlineRole')) === 'host' ? 1 : 2)
+                : 1
+        );
         if (window.SoundManager) {
-            let iWon = false;
-            if (typeof GameState !== 'undefined') {
-                if (GameState.mode === 'online') {
-                    const role = window.localOnlineRole || localStorage.getItem('onlineRole');
-                    iWon = GameState.winner === (role === 'host' ? 1 : 2);
-                } else {
-                    iWon = GameState.winner === 1;
-                }
-            }
-            SoundManager.play(iWon ? 'win' : 'fail');
+            SoundManager.play(viewerWon ? 'win' : 'fail');
         }
 
         localStorage.removeItem('inRankedMatchOngoing');
@@ -886,21 +888,8 @@ const Animations = {
 
         // ── Show victory flash, then open Settlement overlay ─────────────────
         return new Promise(resolve => {
-            this.show();
-
             const isStory = typeof GameState !== 'undefined' && GameState.mode === 'story';
-
-            this.container.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 5rem; margin-bottom: 30px;">🏆</div>
-                    <div style="font-size: 3rem; color: var(--neon-gold); text-shadow: 0 0 30px var(--neon-gold);">
-                        ${winner} 勝利！
-                    </div>
-                </div>
-            `;
-
-            setTimeout(() => {
-                this.hide();
+            const finish = () => {
                 resolve();
 
                 // Story mode: keep original finish flow
@@ -928,7 +917,15 @@ const Animations = {
                 } else {
                     location.href = 'index.html';
                 }
-            }, 2000);
+            };
+            if (window.SignatureMotion) {
+                window.SignatureMotion.outcome(winner, viewerWon).then(finish);
+            } else {
+                this.show();
+                const safeWinner = String(winner).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+                this.container.innerHTML = `<div class="ink-result${viewerWon ? '' : ' is-loss'}"><small>FINAL PAGE / 對戰終章</small><strong>${viewerWon ? 'WIN!' : 'LOSE'}</strong><b>${safeWinner} 勝利！</b></div>`;
+                setTimeout(() => { this.hide(); finish(); }, 2000);
+            }
         });
     },
 

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="css/styles.css?v=tutorial2">
     <script src="js/theme.js"></script>
-    <script src="js/ui/musicManager.js"></script>
+    <script src="js/ui/musicManager.js?v=media1"></script>
     <style>
         /* Rank & Title badges in battle headers */
         .rank-badge-text {
@@ -321,9 +321,11 @@
         .stl-continue-btn { margin-top: 8px; padding: 12px 36px; min-width: 140px; }
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
-    <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <link rel="stylesheet" href="css/comic-motion.css?v=ink5">
+    <link rel="stylesheet" href="css/signature-motion.css?v=2">
     <link rel="stylesheet" href="css/battle-manga.css?v=2">
-    <script src="js/ui/comicMotion.js?v=ink3"></script>
+    <script src="js/ui/comicMotion.js?v=ink5"></script>
+    <script src="js/ui/signatureMotion.js?v=2"></script>
 </head>
 
 <body data-page="game">
@@ -447,6 +449,7 @@
     <div class="selection-phase hidden" id="selectionPhase">
         <h2 class="selection-title" id="selectionTitle">玩家1 抽牌階段</h2>
         <p class="selection-subtitle" id="selectionSubtitle">選擇一張牌放入戰鬥區</p>
+        <div class="choice-clock" id="initialChoiceClock" hidden></div>
         <div class="drawn-cards" id="drawnCards"></div>
         <div class="selection-info" id="selectionInfo"></div>
         <button class="btn confirm-selection" id="confirmSelection" disabled>確認選擇</button>
@@ -600,7 +603,16 @@
     <div class="modal-overlay" id="replacementModal">
         <div class="modal glass" style="max-width: 800px;">
             <h2 id="replacementTitle">角色已陣亡！選擇替換上場的角色</h2>
+            <div class="choice-clock" id="replacementChoiceClock" hidden></div>
             <div id="replacementOptions" class="drawn-cards"></div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="statusHelpModal" role="dialog" aria-modal="true" aria-labelledby="statusHelpTitle">
+        <div class="modal glass status-help-panel">
+            <small>STATUS FILE / 狀態說明</small>
+            <h2 id="statusHelpTitle"></h2>
+            <p id="statusHelpText"></p>
+            <button class="btn" type="button" onclick="document.getElementById('statusHelpModal').classList.remove('active')">關閉</button>
         </div>
     </div>
 
@@ -740,10 +752,9 @@
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
     <script src="js/core/tutorialSystem.js?v=manga2"></script>
-    <script src="js/core/gameState.js?v=manga2"></script>
-    <script src="js/core/battleSystem.js?v=manga2"></script>
-    <script src="js/ui/animations.js?v=manga3"></script>
-    <script src="js/ui/musicManager.js"></script>
+    <script src="js/core/gameState.js?v=manga5"></script>
+    <script src="js/core/battleSystem.js?v=manga4"></script>
+    <script src="js/ui/animations.js?v=manga5"></script>
     <script src="js/ui/soundManager.js"></script>
     <script src="js/ui/settlement.js?v=2"></script>
     <script>
@@ -773,6 +784,33 @@
         // Game initialization
         let selectionPhase = 'p1_draw';
         let selectedBattleCard = null;
+        let initialChoiceTimer = null;
+        let replacementChoiceTimer = null;
+        const timedMatch = () => GameState.mode === 'online' || window.isDisguisedBot();
+        function stopChoiceTimer(kind) {
+            const isInitial = kind === 'initial';
+            clearInterval(isInitial ? initialChoiceTimer : replacementChoiceTimer);
+            if (isInitial) initialChoiceTimer = null;
+            else replacementChoiceTimer = null;
+            const clock = document.getElementById(isInitial ? 'initialChoiceClock' : 'replacementChoiceClock');
+            if (clock) clock.hidden = true;
+        }
+        function startChoiceTimer(kind, onExpire) {
+            stopChoiceTimer(kind);
+            if (!timedMatch()) return;
+            const clock = document.getElementById(kind === 'initial' ? 'initialChoiceClock' : 'replacementChoiceClock');
+            const deadline = Date.now() + 20000;
+            const tick = () => {
+                const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+                clock.textContent = `自動選擇倒數 ${left} 秒`;
+                if (left === 0) { stopChoiceTimer(kind); onExpire(); }
+            };
+            clock.hidden = false;
+            tick();
+            const timer = setInterval(tick, 250);
+            if (kind === 'initial') initialChoiceTimer = timer;
+            else replacementChoiceTimer = timer;
+        }
         let isShowingOpponent = false;
 
         function toggleMobileView() {
@@ -1301,6 +1339,11 @@
 
             selectedBattleCard = null;
             updateSelectionInfo();
+            startChoiceTimer('initial', () => {
+                if (!cards.length || document.getElementById('selectionPhase').classList.contains('hidden')) return;
+                selectCard(playerKey, 0);
+                document.getElementById('confirmSelection').click();
+            });
         }
 
         function selectCard(playerKey, idx) {
@@ -1329,6 +1372,8 @@
 
             document.getElementById('selectionInfo').textContent =
                 selectedBattleCard !== null ? '已選擇戰鬥角色' : '請選擇一張牌作為戰鬥角色';
+            const first = GameState.firstPlayer === 1 ? GameState.player1 : GameState.player2;
+            if (first) document.getElementById('selectionSubtitle').textContent = `⚡ ${first.name} 先手｜選擇一張牌放入戰鬥區`;
         }
 
         function renderWaitingForOpponentSelection() {
@@ -1352,6 +1397,10 @@
 
             if (action.type === 'replace_death') {
                 const player = GameState[opponentKey];
+                const outgoing = player.battleCard;
+                const incoming = player.standbyCards[action.skillIdx];
+                if (!incoming) return;
+                await ComicMotion.swap({ outgoing, incoming, opponent: true });
                 player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
                 GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
 
@@ -1462,6 +1511,7 @@
 
         document.getElementById('confirmSelection').onclick = async function () {
             if (selectedBattleCard === null) return;
+            stopChoiceTimer('initial');
 
             if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
                 TutorialSystem.onActionCompleted('click_confirm');
@@ -1524,6 +1574,7 @@
         };
 
         function startBattle() {
+            stopChoiceTimer('initial');
             document.getElementById('selectionPhase').classList.add('hidden');
             document.getElementById('battleContainer').style.display = 'flex';
             GameState.phase = 'battle';
@@ -1865,6 +1916,54 @@
             return String(value);
         }
 
+        const battleStatusHelp = {
+            burn: '灼燒：每回合受到持續傷害。', poison: '中毒：每回合受到持續傷害。', dot: '持續傷害：每回合失去生命值。',
+            stun: '暈眩：暫時無法行動。', sleep: '睡眠：暫時無法行動，醒來後恢復行動。',
+            silence: '沉默：暫時無法使用技能。', anxiety: '焦慮：命中率降低 50%，攻擊力降低 30%。',
+            dodge: '閃避：有機率避開來襲攻擊。', dodge_reflect: '閃避並反擊來襲攻擊。',
+            damage_reduction: '減傷：降低受到的傷害。', immunity: '免疫：抵擋指定次數的攻擊。',
+            immunity_all: '完全免疫：抵擋傷害或效果。', vulnerable: '易傷：受到的傷害增加。',
+            shield_dot: '持續護盾：每回合獲得護盾。', dodge_zero: '無法閃避：閃避率降為 0。',
+            freeze: '冰凍：暫時無法行動。', reflect: '反射：將部分傷害回敬攻擊者。',
+            regen: '再生：每回合恢復生命值。', miss_chance: '失誤：攻擊有機率落空。',
+            atk_buff: '攻擊提升：提高角色攻擊力。', atk_zero: '攻擊歸零：暫時無法造成普攻傷害。',
+            debuff_atk: '攻擊降低：角色攻擊力下降。', buff_next: '蓄力：下一次攻擊傷害提高。',
+            double_damage_taken: '雙倍受傷：受到的傷害變成兩倍。', extra_damage_taken: '額外受傷：受到的傷害增加。',
+            damage_reduction_flat: '固定減傷：每次受傷減少固定數值。', damage_cap_hit: '傷害上限：單次受傷受到限制。',
+            dodge_shield: '閃避護盾：有機率完全避開傷害。', ignore_dodge: '必中：攻擊無視對手閃避。',
+            immune_status: '狀態免疫：抵擋異常狀態。', lifesteal: '吸血：造成傷害時恢復生命值。',
+            multi_attack: '連擊：額外攻擊。', force_basic: '強制普攻：只能使用普通攻擊。',
+            show_off: '炫耀：提高閃避率，成功閃避會延長持續時間。',
+            shield_decay: '衰減護盾：護盾會逐回合減少。', erosion: '侵蝕：每回合削減生命值與攻擊力。',
+            curable_burn_percent: '著火：每回合依目前生命值扣血，有機率自行解除。',
+            percent_hp_dot: '百分比持續傷害：每回合依生命值扣血。',
+            convert_damage_to_atk: '將受到的傷害轉換成攻擊力。',
+            convert_damage_to_max_hp: '將受到的傷害轉換成最大生命值。',
+            convert_damage_to_max_hp_immune: '免疫傷害並將其轉換成最大生命值。',
+            shield_on_next_damage: '造成下一次傷害時獲得護盾。',
+            delayed_buff: '延遲增益：倒數結束後獲得強化。',
+            defense_up: '防禦提升：受到的傷害降低。',
+            blackhole: '黑洞：依技能效果持續影響戰場。',
+            excite: '興奮：角色獲得攻擊相關增益。',
+            atheism: '無神論：依技能效果限制對手。'
+        };
+        function showStatusHelp(effect) {
+            const title = battleResourceLabel(effect.name || effect.type);
+            const details = [battleStatusHelp[effect.type] || `${title}：此效果會影響角色的戰鬥狀態。`];
+            if (effect.value !== undefined) details.push(`效果數值：${battleResourceValue(effect.value)}`);
+            if (effect.damage !== undefined) details.push(`每回合傷害：${effect.damage}`);
+            if (effect.decay !== undefined) details.push(`每回合衰減：${effect.decay}`);
+            if (effect.hp_percent !== undefined) details.push(`生命值變化：${effect.hp_percent}%`);
+            if (effect.atk_percent !== undefined) details.push(`攻擊力變化：${effect.atk_percent}%`);
+            if (effect.chance !== undefined) details.push(`觸發機率：${effect.chance}%`);
+            if (effect.turns !== undefined) details.push(`剩餘回合：${effect.turns}`);
+            if (effect.hits !== undefined) details.push(`剩餘次數：${effect.hits}`);
+            document.getElementById('statusHelpTitle').textContent = title;
+            document.getElementById('statusHelpText').textContent = details.join(' ');
+            document.getElementById('statusHelpModal').classList.add('active');
+            document.getElementById('statusHelpModal').querySelector('button').focus();
+        }
+
         function updatePlayerCard(playerKey, prefix) {
             const player = GameState[playerKey];
             const card = player.battleCard;
@@ -1897,8 +1996,12 @@
 
             // 1. Status Effects
             card.statusEffects.forEach(effect => {
-                const badge = document.createElement('span');
+                const badge = document.createElement('button');
+                badge.type = 'button';
                 badge.className = `status-badge ${effect.type}`;
+                badge.title = '點擊查看狀態效果';
+                badge.setAttribute('aria-label', `查看${battleResourceLabel(effect.name || effect.type)}效果`);
+                badge.onclick = event => { event.stopPropagation(); showStatusHelp(effect); };
                 let text = battleResourceLabel(effect.name || effect.type);
 
                 if (effect.turns && effect.turns > 0 && !effect.permanent) {
@@ -2453,6 +2556,9 @@
                                 });
                             }
 
+                            const outgoing = player.battleCard;
+                            const incoming = player.standbyCards[pickIdx];
+                            ComicMotion.swap({ outgoing, incoming, opponent: true }).then(() => {
                             player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
                         GameState.addLog(window.isDisguisedBot()
                             ? `${player.name} 派遣 ${player.battleCard.name} 上場！`
@@ -2460,6 +2566,7 @@
                             updateUI();
                             updateBattleLog();
                             resolve();
+                            });
                         }, window.isDisguisedBot() ? 1800 : 1000);
                         return;
                     }
@@ -2499,12 +2606,15 @@
                     div.className = `select-card glass ${getRarityClass(card.rarity)}`;
                     div.innerHTML = renderCardInfo(card);
 
-                    div.onclick = () => {
+                    div.onclick = async () => {
+                        stopChoiceTimer('replacement');
+                        optionsDiv.querySelectorAll('.select-card').forEach(option => { option.onclick = null; });
                         if (GameState.mode === 'online') {
                             NetManager.sendAction({ type: 'replace_death', skillIdx: idx });
                         }
 
                         // Perform the swap (remove from standby, set as battle)
+                        await ComicMotion.swap({ outgoing: player.battleCard, incoming: player.standbyCards[idx] });
                         player.battleCard = player.standbyCards.splice(idx, 1)[0];
                         GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
 
@@ -2515,6 +2625,7 @@
                     };
                     optionsDiv.appendChild(div);
                 });
+                startChoiceTimer('replacement', () => optionsDiv.querySelector('.select-card')?.click());
             });
         }
 

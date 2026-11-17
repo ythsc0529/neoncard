@@ -34,9 +34,12 @@
         if (/summon|draw|clone/.test(types)) return 'summon';
         return 'power';
     };
-
     let queue = Promise.resolve();
     async function performCombat({ attacker, defender, skill, kind = 'attack', source, target }) {
+        if (kind === 'skill' && global.SignatureMotion) {
+            const signature = global.SignatureMotion.combat({ attacker, skill });
+            if (signature) return await signature;
+        }
         const style = kind === 'attack' ? 'strike' : classifySkill(skill);
         const layer = document.createElement('div');
         layer.className = `ink-combat ink-combat--${style}${kind === 'skill' ? ' is-skill' : ''}`;
@@ -86,19 +89,23 @@
         }
     }
     async function performSwap({ outgoing, incoming, opponent = false }) {
-        if (!outgoing || !incoming) return;
+        if (!incoming) return;
+        const isDeathReplacement = !outgoing || outgoing.hp <= 0;
+        if (isDeathReplacement && global.SignatureMotion) {
+            return await global.SignatureMotion.replacement({ outgoing, incoming, opponent });
+        }
         const layer = document.createElement('div');
-        layer.className = 'ink-swap';
+        layer.className = isDeathReplacement ? 'ink-swap ink-swap--last-stand' : 'ink-swap';
         layer.setAttribute('aria-hidden', 'true');
         const caption = document.createElement('div');
         caption.className = 'ink-swap-caption';
         caption.append(text('small', '', opponent ? 'RIVAL / CHANGE' : 'PLAYER / CHANGE'));
-        caption.append(text('strong', '', opponent ? '對手撤退！' : '角色換手！'));
+        caption.append(text('strong', '', isDeathReplacement ? '繼承戰線！' : (opponent ? '對手撤退！' : '角色換手！')));
         layer.append(caption);
         const outgoingPanel = document.createElement('div');
         outgoingPanel.className = 'ink-swap-panel ink-swap-panel--out';
         outgoingPanel.append(text('small', '', '撤退 / EXIT'));
-        outgoingPanel.append(text('b', '', outgoing.name));
+        outgoingPanel.append(text('b', '', outgoing?.name || '前鋒陣亡'));
         layer.append(outgoingPanel);
         const incomingPanel = document.createElement('div');
         incomingPanel.className = 'ink-swap-panel ink-swap-panel--in';
@@ -110,6 +117,26 @@
         try { await new Promise(resolve => setTimeout(resolve, 1250)); }
         finally { layer.remove(); }
     }
+    async function performEvolution({ from, to }) {
+        if (global.SignatureMotion) return await global.SignatureMotion.evolution({ from, to });
+        const layer = document.createElement('div');
+        layer.className = 'ink-evolution';
+        layer.setAttribute('aria-hidden', 'true');
+        const symbol = /賈伯斯/.test(to) ? '◈' : /Peter/.test(to) ? '★' : /拳王/.test(to) ? '拳' : /戰機/.test(to) ? '➤' : Array.from(to || '✦')[0];
+        const hue = Array.from(to || '').reduce((value, char) => value + char.codePointAt(0), 0) % 360;
+        layer.style.setProperty('--evo-accent', `hsl(${hue} 78% 54%)`);
+        const panel = document.createElement('div');
+        panel.className = 'ink-evolution-panel';
+        panel.append(text('small', '', 'LIMIT BREAK / 進化解放'));
+        panel.append(text('div', 'ink-evolution-symbol', symbol));
+        panel.append(text('span', '', from));
+        panel.append(text('b', '', '➜'));
+        panel.append(text('strong', '', to));
+        layer.append(panel);
+        document.body.append(layer);
+        try { await new Promise(resolve => setTimeout(resolve, 1650)); }
+        finally { layer.remove(); }
+    }
     global.ComicMotion = {
         Timeline: ComicTimeline, classifySkill,
         combat(options) {
@@ -119,6 +146,11 @@
         },
         swap(options) {
             const run = () => performSwap(options).catch(error => console.warn('[Comic swap]', error));
+            queue = queue.then(run, run);
+            return queue;
+        },
+        evolution(options) {
+            const run = () => performEvolution(options).catch(error => console.warn('[Comic evolution]', error));
             queue = queue.then(run, run);
             return queue;
         }

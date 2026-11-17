@@ -149,6 +149,71 @@ test('skill visuals distinguish damage, restoration, protection, summons and uti
     }
 });
 
+test('planet, vehicle and mahjong summons receive distinct comic cut-ins', async () => {
+    const { context:c, clock, document } = setup();
+    vm.runInContext(read('js/ui/signatureMotion.js'), c);
+    for (const [category, theme] of [['planet','planet'],['vehicle','vehicle'],['mahjong','mahjong']]) {
+        const action = c.ComicMotion.combat({ attacker:{name:'召喚者'}, kind:'skill', skill:{name:'召喚',effect:{type:'summon_category',category}} });
+        await new Promise(setImmediate);
+        const layer = document.body.children.at(-1);
+        assert.equal(layer.className, `signature-scene signature-${theme}`);
+        clock.tick(270);
+        assert.equal(layer.dataset.phase, '1');
+        clock.tick(1680);
+        await action;
+        assert.equal(layer.removed, true);
+    }
+});
+
+test('named skill, replacement and evolution routes play their own complete storyboards', async () => {
+    const { context:c, clock, document } = setup();
+    vm.runInContext(read('js/ui/signatureMotion.js'), c);
+    const cases = [
+        [{ attacker:{name:'阿共'}, kind:'skill', skill:{name:'阿共的陰謀',effect:{type:'self_damage',value:999}} }, 'conspiracy'],
+        [{ attacker:{name:'輪胎'}, kind:'skill', skill:{name:'英國紳士',effect:{type:'swap_stats_stun'}} }, 'gentleman'],
+        [{ attacker:{name:'下半身'}, kind:'skill', skill:{name:'猜拳',effect:{type:'damage_chance'}} }, 'rps']
+    ];
+    for (const [options, kind] of cases) {
+        const action = c.ComicMotion.combat(options);
+        await new Promise(setImmediate);
+        const layer = document.body.children.at(-1);
+        assert.equal(layer.className, `signature-scene signature-${kind}`);
+        const scene = c.window.SignatureMotion.scenes[kind];
+        clock.tick(scene.cues[0][0]);
+        assert.equal(layer.dataset.phase, '1');
+        clock.tick(scene.duration - scene.cues[0][0] - 200);
+        assert.equal(layer.dataset.phase, '4');
+        assert.ok(layer.classList.contains('phase-1'));
+        assert.ok(layer.classList.contains('phase-3'));
+        clock.tick(200);
+        await action;
+        assert.equal(layer.removed, true);
+    }
+    const swap = c.ComicMotion.swap({outgoing:{name:'戰士',hp:0},incoming:{name:'魔眼'}});
+    await new Promise(setImmediate);
+    const replacement = document.body.children.at(-1);
+    assert.equal(replacement.className, 'signature-scene signature-replacement');
+    assert.match(replacement.innerHTML, /魔眼/);
+    clock.tick(c.window.SignatureMotion.scenes.replacement.duration);
+    await swap;
+    const evo = c.ComicMotion.evolution({from:'賈伯斯',to:'賈伯斯max'});
+    await new Promise(setImmediate);
+    const evolution = document.body.children.at(-1);
+    assert.equal(evolution.className, 'signature-scene signature-jobs');
+    clock.tick(c.window.SignatureMotion.scenes.jobs.duration);
+    await evo;
+    assert.equal(clock.timers.size, 0);
+});
+
+test('each fixed evolution in the roster selects a different storyboard', () => {
+    const { context:c } = setup();
+    vm.runInContext(read('js/ui/signatureMotion.js'), c);
+    const targets = ['賈伯斯max','Peter pro','拳王','骷髏王','機器之神','K型戰機','L型戰機'];
+    const kinds = targets.map(target => c.window.SignatureMotion.evolutionKind(target));
+    assert.equal(new Set(kinds).size, targets.length);
+    assert.ok(kinds.every(kind => c.window.SignatureMotion.scenes[kind]));
+});
+
 test('combat effects queue in order and remove their overlays when finished', async () => {
     const {context:c,clock,document} = setup();
     let completed = 0;

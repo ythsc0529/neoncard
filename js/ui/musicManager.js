@@ -30,6 +30,7 @@ var MusicManager = {
         this.audio.addEventListener('ended', function() { self.next(); });
         this.audio.addEventListener('timeupdate', function() { self._updateProgress(); });
         this.audio.addEventListener('loadedmetadata', function() { self._updateProgress(); });
+        this._initMediaSession();
 
         // Persistence Logic
         window.addEventListener('pagehide', function() {
@@ -72,6 +73,7 @@ var MusicManager = {
         if (!song) return;
         
         this.audio.src = song.file;
+        this._updateMediaSession();
         if (startTime) this.audio.currentTime = startTime;
         this.audio.load();
 
@@ -123,6 +125,7 @@ var MusicManager = {
             this.audio.play().then(function() {
                 self.isPlaying = true;
                 self._startProgressTimer();
+                self._updateUI();
             }).catch(function() {});
         }
         this._updateUI();
@@ -170,6 +173,7 @@ var MusicManager = {
     _updateUI: function() {
         var song = this.songs[this.currentIndex];
         if (!song) return;
+        this._updateMediaSession();
 
         // Global elements (if they exist on the page)
         var icon = document.getElementById('musicBtnIcon');
@@ -323,5 +327,38 @@ var MusicManager = {
         // Duck to 30% of base volume
         var target = this._isDucked ? (this._baseVolume * 0.3) : this._baseVolume;
         this.audio.volume = target;
+    },
+
+    _initMediaSession: function() {
+        if (!('mediaSession' in navigator)) return;
+        var self = this;
+        var actions = {
+            play: function() { if (!self.isPlaying) self.togglePlay(); },
+            pause: function() { if (self.isPlaying) self.togglePlay(); },
+            previoustrack: function() { self.prev(); },
+            nexttrack: function() { self.next(); },
+            seekto: function(details) {
+                if (Number.isFinite(details.seekTime) && self.audio) self.audio.currentTime = details.seekTime;
+            }
+        };
+        Object.keys(actions).forEach(function(action) {
+            try { navigator.mediaSession.setActionHandler(action, actions[action]); } catch (_e) {}
+        });
+        this._updateMediaSession();
+    },
+
+    _updateMediaSession: function() {
+        if (!('mediaSession' in navigator)) return;
+        var song = this.songs[this.currentIndex];
+        if (!song) return;
+        if (typeof MediaMetadata !== 'undefined') {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: song.title,
+                artist: '霓虹牌 NeonCard',
+                album: 'NeonCard',
+                artwork: song.cover ? [{ src: new URL(song.cover, location.href).href, sizes: '512x512', type: 'image/png' }] : []
+            });
+        }
+        navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
     }
 };

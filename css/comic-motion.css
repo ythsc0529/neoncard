@@ -141,3 +141,65 @@
 @keyframes ink-swap-in { 0%,35% { opacity: 0; translate: 80vw 0; } 58%,85% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 -16px; } }
 @keyframes ink-swap-hit { 0%,42% { opacity: 0; scale: 2; } 58%,82% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 1.3; } }
 @media(max-width: 600px) { .ink-swap-panel { top: 38%; min-height: 30%; padding: 10px; } .ink-swap-panel small { font-size: 9px; } .ink-swap-caption { top: 13%; }.ink-swap-sfx { top: 56%; } }
+
+/* Character and category cut-ins. */
+.ink-combat--planet { --fx: #3852ac; background: radial-gradient(circle at var(--impact-x) var(--impact-y), #f7ce46aa 0 3%, #25356bbb 5% 27%, transparent 65%); }
+.ink-combat--planet .ink-combat-impact i { width: 210px; height: 70px; top: 30%; left: 5%; border: 6px solid #f7ce46; border-radius: 50%; background: transparent; transform: rotate(-28deg); animation-name: ink-orbit; }
+.ink-combat--mahjong { --fx: #26744b; background: repeating-linear-gradient(135deg, #26744b22 0 20px, transparent 20px 40px); }
+.ink-combat--mahjong .ink-combat-impact i { width: 72px; height: 100px; top: 24%; left: calc(5% + var(--i)*28%); border-radius: 8px; background: #fffdf7; box-shadow: 6px 6px 0 #191919; transform: rotate(calc((var(--i) - 1)*14deg)); animation-name: ink-tile; }
+.ink-combat--vehicle { --fx: #e9472b; background: repeating-linear-gradient(170deg, #19191944 0 4px, transparent 4px 34px); }
+.ink-combat--vehicle .ink-combat-impact i { width: 220px; height: 16px; left: -40%; background: #f7ce46; transform: skew(-35deg); animation-name: ink-drive; }
+.ink-combat--conspiracy { --fx: #d72730; background: radial-gradient(circle, #d7273088 0 10%, transparent 60%); }
+.ink-combat--conspiracy .ink-combat-impact i { width: 190px; height: 12px; left: 10%; transform: rotate(calc(var(--i)*60deg)); background: #f7ce46; }
+.ink-combat--gentleman { --fx: #8b5c00; background: linear-gradient(100deg, #19191988 0 49%, #f7ce4688 50%); }
+.ink-combat--gentleman .ink-combat-impact i { width: 92px; height: 92px; top: 20%; left: calc(var(--i)*28%); border-radius: 50%; border-width: 7px; background: #fffdf7; animation-name: ink-tile; }
+.ink-combat--rps { --fx: #7650a3; background: conic-gradient(from 30deg at 50% 50%, #e9472b66, #f7ce4666, #305bc766, #e9472b66); }
+.ink-combat--rps .ink-combat-impact i { width: 70px; height: 70px; top: 32%; left: calc(var(--i)*35%); border-radius: 50%; background: #fffdf7; animation-name: ink-tile; }
+.ink-swap--last-stand { background: #191919ed; }
+.ink-swap--last-stand .ink-swap-panel--out { background: #aaa7a0; filter: grayscale(1); }
+.ink-swap--last-stand .ink-swap-panel--in { background: #f7ce46; color: #191919; }
+.ink-evolution { position: fixed; inset: 0; z-index: 9950; display: grid; place-items: center; pointer-events: none; overflow: hidden; background: #191919dc; }
+.ink-evolution::before { content: ''; position: absolute; inset: -40%; background: repeating-conic-gradient(from 0deg at 50% 50%, #f7ce463b 0 3deg, transparent 3deg 14deg); animation: match-lines 2s linear infinite; }
+.ink-evolution-panel { position: relative; width: min(580px, 88vw); padding: 26px; border: 5px solid #191919; background: #fffdf7; box-shadow: 10px 10px 0 var(--evo-accent, #f7ce46); text-align: center; transform: skew(-5deg); animation: ink-evolve-in 1.6s both; }
+.ink-evolution-panel small { display: block; background: #191919; color: #fffdf7; padding: 5px; font-weight: 900; letter-spacing: .18em; }
+.ink-evolution-symbol { margin: 4px auto; font-size: clamp(75px, 17vw, 150px); color: var(--evo-accent, #e9472b); line-height: 1; text-shadow: 7px 7px 0 #191919; animation: ink-evolve-symbol 1.6s both; }
+.ink-evolution-panel span { display: block; text-decoration: line-through; color: #66645d; font-weight: 900; }
+.ink-evolution-panel b { color: #e9472b; font-size: 28px; }
+.ink-evolution-panel strong { display: block; font-size: clamp(28px, 7vw, 56px); line-height: 1.2; font-weight: 900; overflow-wrap: anywhere; }
+.ink-guaranteed, .ink-revival { position: relative; width: min(600px, 88vw); padding: 28px; border: 5px solid #191919; background: #f7ce46; box-shadow: 10px 10px 0 #191919; text-align: center; overflow: hidden; animation: ink-evolve-in 1.3s both; }
+.ink-guaranteed::before, .ink-revival::before { content: ''; position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg, #19191925 0 2deg, transparent 2deg 14deg); animation: match-lines 2s linear infinite; }
+.ink-guaranteed > *, .ink-revival > *:not(.ink-revival-ring) { position: relative; display: block; font-weight: 900; }
+.ink-guaranteed span, .ink-revival span { letter-spacing: .2em; font-size: 12px; }
+.ink-guaranteed strong { font-size: clamp(85px, 23vw, 180px); line-height: 1; color: #e9472b; -webkit-text-stroke: 4px #191919; text-shadow: 7px 7px 0 #191919; }
+.ink-guaranteed b, .ink-revival b { font-size: clamp(24px, 6vw, 48px); }
+.ink-revival { background: #d9cbea; }
+.ink-revival-ring { position: absolute; width: 250px; height: 250px; border: 12px double #f7ce46; border-radius: 50%; left: calc(50% - 125px); top: calc(50% - 125px); animation: ink-orbit 2.4s linear infinite; }
+.ink-revival strong { margin: 90px 0 10px; font-size: clamp(34px, 8vw, 62px); color: #305bc7; text-shadow: 3px 3px 0 #191919; overflow-wrap: anywhere; }
+.ink-result { position: relative; width: min(700px, 90vw); padding: 32px; border: 5px solid #191919; background: #f7ce46; box-shadow: 12px 12px 0 #191919; text-align: center; transform: rotate(-3deg); animation: ink-evolve-in 1.8s both; }
+.ink-result.is-loss { background: #b9d4ef; }
+.ink-result small { display: block; font-weight: 900; letter-spacing: .2em; }
+.ink-result strong { display: block; font-size: clamp(60px, 18vw, 150px); line-height: 1; color: #e9472b; -webkit-text-stroke: 3px #191919; text-shadow: 8px 8px 0 #191919; }
+.ink-result.is-loss strong { color: #305bc7; }
+.ink-result b { font-size: clamp(18px, 4vw, 30px); overflow-wrap: anywhere; }
+@keyframes ink-orbit { to { transform: rotate(332deg); } }
+@keyframes ink-tile { 0% { opacity: 0; translate: 0 -100px; rotate: 45deg; } 65% { opacity: 1; translate: 0 0; rotate: -8deg; } 100% { rotate: 0deg; } }
+@keyframes ink-drive { 0% { translate: -100vw 0; opacity: 0; } 75% { translate: 0 0; opacity: 1; } 100% { translate: 45vw 0; opacity: 0; } }
+@keyframes ink-evolve-in { 0% { opacity: 0; scale: .4; rotate: 10deg; } 25%, 75% { opacity: 1; scale: 1; rotate: 0; } 100% { opacity: 0; scale: 1.2; rotate: -3deg; } }
+@keyframes ink-evolve-symbol { 0% { rotate: -30deg; scale: .3; } 45% { rotate: 15deg; scale: 1.2; } 100% { rotate: 0; scale: 1; } }
+.choice-clock { width: fit-content; margin: 10px auto; padding: 5px 14px; background: #f7ce46; border: 2px solid #191919; box-shadow: 3px 3px 0 #191919; color: #191919; font-weight: 900; font-variant-numeric: tabular-nums; }
+.choice-clock[hidden] { display: none; }
+.status-badge[type="button"] { cursor: pointer; font: inherit; }
+.status-badge[type="button"]:focus-visible { outline: 3px solid #305bc7; outline-offset: 3px; }
+.status-help-panel { max-width: 440px; padding: 24px; border: 4px solid #191919; background: #fffdf7; box-shadow: 8px 8px 0 #f7ce46; }
+.status-help-panel small { font-weight: 900; letter-spacing: .18em; }
+.status-help-panel h2 { margin: 8px 0; font-size: 2rem; }
+.status-help-panel p { line-height: 1.7; white-space: pre-wrap; }
+.ink-empower { position: relative; width: min(600px, 90vw); padding: 28px; border: 5px solid #191919; box-shadow: 9px 9px 0 #191919; background: #d9cbea; text-align: center; overflow: hidden; animation: ink-evolve-in 1.7s both; }
+.ink-empower::before { content: ''; position: absolute; inset: -40%; background: repeating-conic-gradient(#19191920 0deg 2deg, transparent 2deg 13deg); animation: match-lines 2s linear infinite; }
+.ink-empower > * { position: relative; }
+.ink-empower small { display: block; font-weight: 900; letter-spacing: .2em; }
+.ink-empower strong { display: block; font-size: clamp(38px, 10vw, 78px); color: #e9472b; -webkit-text-stroke: 2px #191919; text-shadow: 5px 5px 0 #191919; }
+.ink-empower-split { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 15px 0; font-weight: 900; }
+.ink-empower-split span { padding: 10px; border: 3px solid #191919; background: #f7ce46; transform: skew(-8deg); }
+.ink-empower-split span:last-child { background: #b9d4ef; }
+.ink-empower em { display: block; font-size: 24px; font-weight: 900; font-style: normal; }

@@ -909,7 +909,7 @@ const GameState = {
                         // We will rely on window.BattleSystem in browser, we can't import dynamically in synchronous.
                         // Wait, processPassive does not have BattleSystem? ProcessPassive is in GameState. In game, BattleSystem is global.
                         if (typeof BattleSystem !== 'undefined') {
-                            BattleSystem.evolveCharacter(card, effect.target);
+                            await BattleSystem.evolveCharacter(card, effect.target);
                         } else {
                             const tChar = getCharacterByName(effect.target);
                             Object.assign(card, createCharacterInstance(tChar));
@@ -1025,14 +1025,14 @@ const GameState = {
             case 'transform_to':
                 if (trigger === 'on_skill_count' && card.resources && card.resources.skill_count_all >= effect.skill_uses) {
                     if (typeof BattleSystem !== 'undefined') {
-                        BattleSystem.evolveCharacter(card, effect.target);
+                        await BattleSystem.evolveCharacter(card, effect.target);
                     } else {
                         const tChar = getCharacterByName(effect.target);
                         Object.assign(card, createCharacterInstance(tChar));
                     }
                 } else if (trigger === 'on_enemy_turn_end' || trigger === 'on_turn_end') {
                     if (typeof BattleSystem !== 'undefined') {
-                        BattleSystem.evolveCharacter(card, effect.target);
+                        await BattleSystem.evolveCharacter(card, effect.target);
                     } else {
                         const tChar = getCharacterByName(effect.target);
                         Object.assign(card, createCharacterInstance(tChar));
@@ -1074,7 +1074,7 @@ const GameState = {
             case 'dodge_if_enemy_anxious':
                 if (trigger === 'passive') {
                     const opp = this.getOpponent().battleCard;
-                    if (opp && opp.statusEffects.some(e => e.type === 'anxiety')) card.resources.dodge = effect.dodge;
+                    if (opp && opp.statusEffects.some(e => e.type === 'anxiety')) card.resources.dodge = effect.value ?? effect.dodge ?? 0;
                     else card.resources.dodge = 0;
                 }
                 break;
@@ -1532,16 +1532,13 @@ const GameState = {
             // Self kill chance (賦能哥-天才少年, 越野摩托車-翻車)
             case 'self_kill_chance':
                 if (window.Animations && window.Animations.probabilityRoll) {
-                    window.Animations.probabilityRoll(effect.chance, '生存判定').then(success => {
-                        if (success) {
-                            card.hp = 0;
-                            this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
-                            if (window.BattleSystem) {
-                                window.BattleSystem.checkDeath('player1');
-                                window.BattleSystem.checkDeath('player2');
-                            }
-                        }
-                    });
+                    const success = card.name === '賦能哥' && window.Animations.empowermentFate
+                        ? await window.Animations.empowermentFate(effect.chance)
+                        : await window.Animations.probabilityRoll(effect.chance, '生存判定');
+                    if (success) {
+                        card.hp = 0;
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
+                    }
                 } else if (window.GameRandom() * 100 < effect.chance) {
                     card.hp = 0;
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：突然死亡！`, 'damage');
