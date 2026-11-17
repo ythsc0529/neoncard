@@ -56,13 +56,17 @@ const Animations = {
             const name2 = (typeof GameState !== 'undefined' && GameState.player2?.name) ? GameState.player2.name : '玩家 2';
 
             this.container.innerHTML = `
-                <div class="manga-stage manga-coin-stage" role="status" aria-live="polite">
+                <div class="manga-stage manga-coin-stage" style="--manga-duration:4300ms" role="status" aria-live="polite">
                     <div class="manga-speedlines"></div>
-                    <div class="manga-issue">NEON CARD / 第一話</div>
-                    <div class="manga-heading">命運的一擲</div>
-                    <div class="manga-contenders"><span>${this.escapeText(name1)}</span><b>VS</b><span>${this.escapeText(name2)}</span></div>
-                    <div class="manga-coin-space"><div class="manga-coin" id="mangaCoin"><div class="manga-coin-front">1</div><div class="manga-coin-back">2</div></div></div>
-                    <div class="manga-coin-impact">鏘！</div>
+                    <div class="manga-issue">NEON CARD / 開戰序章</div>
+                    <div class="manga-coin-eyebrow">WHO TAKES THE FIRST TURN?</div>
+                    <div class="manga-heading">命運・擲下！</div>
+                    <div class="manga-coin-arena">
+                        <div class="manga-coin-trail"></div>
+                        <div class="manga-coin-flight"><div class="manga-coin" id="mangaCoin"><div class="manga-coin-front manga-coin-mark">?</div><div class="manga-coin-back manga-coin-mark">?</div></div></div>
+                        <div class="manga-coin-impact">鏘！</div>
+                    </div>
+                    <div class="manga-contenders"><span data-player="1">${this.escapeText(name1)}</span><b>VS</b><span data-player="2">${this.escapeText(name2)}</span></div>
                     <div class="manga-coin-result"><small>先攻確定</small><strong>${this.escapeText(result === 1 ? name1 : name2)}</strong><span>先手出擊！</span></div>
                     <div class="manga-progress"></div>
                 </div>
@@ -71,13 +75,19 @@ const Animations = {
             const coinEl = stage.querySelector('.manga-coin');
             setTimeout(() => {
                 if (!stage.isConnected) return;
-                coinEl.classList.add(result === 1 ? 'land-one' : 'land-two');
-                stage.classList.add('is-revealed');
-            }, 1900);
+                stage.classList.add('is-tossing');
+            }, 350);
             setTimeout(() => {
-                this.hide();
+                if (!stage.isConnected) return;
+                stage.querySelectorAll('.manga-coin-mark').forEach(mark => { mark.textContent = String(result); });
+                coinEl.classList.add('is-landed');
+                stage.querySelector(`[data-player="${result}"]`)?.classList.add('is-winner');
+                stage.classList.add('is-revealed');
+            }, 2550);
+            setTimeout(() => {
+                if (stage.isConnected) this.hide();
                 resolve(result);
-            }, 3500);
+            }, 4300);
         });
     },
 
@@ -548,28 +558,37 @@ const Animations = {
         return new Promise(resolve => {
             if (!cards?.length) { resolve(); return; }
             this.show();
-            let html = `<div class="manga-stage manga-draw-stage" role="status" aria-live="polite">
+            const revealEnd = (cards.length - 1) * 850 + 1750;
+            const slots = cards.map((_, i) => `<div class="manga-draw-slot" data-reveal-index="${i}"><small>${String(i + 1).padStart(2, '0')}</small><strong>?</strong></div>`).join('');
+            const summary = cards.map(card => `<span>${this.escapeText(card.name)}</span>`).join('');
+            this.container.innerHTML = `<div class="manga-stage manga-draw-stage" style="--manga-duration:${revealEnd + 1300}ms" role="status" aria-live="polite">
                 <div class="manga-speedlines"></div><div class="manga-issue">NEON CARD / 角色登場</div>
-                <div class="manga-heading">命運揭曉</div><div class="manga-draw-count">${cards.length} 張角色卡</div>
-                <div class="manga-draw-cards">`;
-            cards.forEach((card, i) => {
-                html += `
-                    <div class="manga-draw-card ${getRarityClass(card.rarity)}" data-card-index="${i}" style="--card-index:${i}">
-                        <div class="manga-draw-back"><b>?</b><small>WHO'S NEXT?</small></div>
-                        <div class="manga-draw-front"><small>${this.escapeText(getRarityName(card.rarity))}</small>
-                            <strong>${this.escapeText(card.name)}</strong><span>HP ${this.escapeText(card.hp)} · ATK ${this.escapeText(card.atk)}</span></div>
-                    </div>
-                `;
-            });
-            html += `</div><div class="manga-draw-verdict">角色已揭曉</div><div class="manga-progress"></div></div>`;
-            this.container.innerHTML = html;
+                <div class="manga-draw-kicker">THE NEXT CHAPTER</div><div class="manga-heading">抽出你的命運</div>
+                <div class="manga-draw-focus"><div class="manga-draw-sealed"><span>?</span><strong>NEON CARD</strong><small>封印解除中</small></div></div>
+                <div class="manga-draw-sfx">啪！</div>
+                <div class="manga-draw-count">${cards.length} 張角色卡・逐張揭曉</div>
+                <div class="manga-draw-slots">${slots}</div>
+                <div class="manga-draw-summary"><b>本次抽到</b>${summary}</div>
+                <div class="manga-progress"></div></div>`;
             const stage = this.container.querySelector('.manga-draw-stage');
-            cards.forEach((_, i) => {
+            setTimeout(() => { if (stage.isConnected) stage.classList.add('is-opening'); }, 350);
+            cards.forEach((card, i) => {
                 setTimeout(() => {
-                    if (stage.isConnected) stage.querySelector(`[data-card-index="${i}"]`)?.classList.add('revealed');
-                }, i * 330 + 650);
+                    if (!stage.isConnected) return;
+                    const focus = stage.querySelector('.manga-draw-focus');
+                    focus.innerHTML = `<div class="manga-reveal-card ${getRarityClass(card.rarity)}">
+                        <div class="manga-reveal-card-top"><span>NO. ${String(i + 1).padStart(2, '0')}</span><span>${this.escapeText(getRarityName(card.rarity))}</span></div>
+                        <div class="manga-reveal-emblem">${this.escapeText(String(card.name).charAt(0))}</div>
+                        <div class="manga-reveal-name">${this.escapeText(card.name)}</div>
+                        <div class="manga-reveal-stats"><span>HP <b>${this.escapeText(card.hp)}</b></span><span>ATK <b>${this.escapeText(card.atk)}</b></span></div>
+                    </div>`;
+                    const slot = stage.querySelector(`[data-reveal-index="${i}"]`);
+                    slot.querySelector('strong').textContent = card.name;
+                    slot.classList.add('is-collected');
+                    stage.classList.add('is-flashing');
+                    setTimeout(() => { if (stage.isConnected) stage.classList.remove('is-flashing'); }, 300);
+                }, i * 850 + 950);
             });
-            const revealEnd = (cards.length - 1) * 330 + 1250;
             setTimeout(() => { if (stage.isConnected) stage.classList.add('is-revealed'); }, revealEnd);
             if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
                 setTimeout(() => TutorialSystem.checkTrigger('onDrawCards'), 500);
@@ -580,7 +599,7 @@ const Animations = {
                 if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
                     setTimeout(() => TutorialSystem.onActionCompleted('draw_revealed'), 0);
                 }
-            }, revealEnd + 850);
+            }, revealEnd + 1300);
         });
     },
 

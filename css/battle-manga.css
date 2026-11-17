@@ -89,46 +89,72 @@
     width: 100%;
     background: var(--manga-accent);
     transform-origin: left;
-    animation: mangaTimer 3.5s linear both;
+    animation: mangaTimer var(--manga-duration, 3.5s) linear both;
 }
+.manga-coin-stage { --manga-accent: #ffd344; background: #fff6d8; }
+.manga-coin-eyebrow { margin-bottom: 12px; font-size: 12px; font-weight: 900; letter-spacing: .27em; }
+.manga-coin-stage .manga-heading { margin-bottom: 2px; }
 .manga-contenders { display: flex; align-items: center; gap: 15px; font-size: clamp(14px, 2vw, 22px); font-weight: 900; }
-.manga-contenders span { max-width: 32vw; overflow-wrap: anywhere; padding: 8px 15px; background: #fff; border: 3px solid #171923; box-shadow: 4px 4px 0 #171923; }
+.manga-contenders span { max-width: 32vw; overflow-wrap: anywhere; padding: 8px 15px; background: #fff; border: 3px solid #171923; box-shadow: 4px 4px 0 #171923; transition: background .2s, transform .2s; }
+.manga-contenders span.is-winner { background: #ffd344; transform: rotate(-4deg) scale(1.1); }
 .manga-contenders b { color: #e43845; font-size: 30px; font-style: italic; text-shadow: 2px 2px 0 #171923; }
-.manga-coin-space { display: grid; place-items: center; height: 245px; perspective: 750px; }
-.manga-coin { position: relative; width: 154px; height: 154px; transform-style: preserve-3d; animation: mangaCoinToss 1.9s cubic-bezier(.15,.7,.34,1) forwards; }
+.manga-coin-arena { position: relative; width: min(450px, 100%); height: 295px; perspective: 850px; }
+.manga-coin-arena::before { content: ''; position: absolute; left: 50%; bottom: 18px; width: 210px; height: 28px; border-radius: 50%; background: #17192328; transform: translateX(-50%); filter: blur(6px); }
+.manga-coin-trail { position: absolute; inset: 15px 22%; opacity: 0; background: repeating-linear-gradient(105deg, transparent 0 9px, #e83e4b80 10px 13px, transparent 14px 25px); clip-path: polygon(38% 100%, 62% 100%, 100% 0, 0 0); }
+.manga-coin-stage.is-tossing .manga-coin-trail { animation: mangaCoinTrail 2.1s ease-out both; }
+.manga-coin-flight { position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%); }
+.manga-coin-stage.is-tossing .manga-coin-flight { animation: mangaCoinFlight 2.1s cubic-bezier(.21,.67,.36,1) forwards; }
+.manga-coin { position: relative; width: 154px; height: 154px; transform-style: preserve-3d; transform: rotateY(0); }
+.manga-coin-stage.is-tossing .manga-coin { animation: mangaCoinSpin 2.1s cubic-bezier(.19,.48,.29,1) forwards; }
+.manga-coin-stage .manga-coin.is-landed { animation: mangaCoinLand .4s ease-out forwards; }
 .manga-coin-front, .manga-coin-back {
     position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%;
     border: 9px double #171923; backface-visibility: hidden; font-size: 70px; font-weight: 1000;
     background: #ffcb39; box-shadow: inset 0 0 0 7px #f5a623, 6px 6px 0 #171923;
 }
 .manga-coin-back { background: #ff6575; box-shadow: inset 0 0 0 7px #e64052, 6px 6px 0 #171923; transform: rotateY(180deg); }
-.manga-coin.land-one { animation: mangaCoinOne .3s ease-out forwards; }
-.manga-coin.land-two { animation: mangaCoinTwo .3s ease-out forwards; }
-.manga-coin-impact { position: absolute; right: 11%; top: 44%; color: #fff; font-size: clamp(36px, 8vw, 88px); font-weight: 1000; font-style: italic; -webkit-text-stroke: 3px #171923; text-shadow: 6px 6px 0 #e43845; opacity: 0; transform: rotate(16deg) scale(3); }
-.manga-coin-result { display: grid; gap: 3px; opacity: 0; transform: translateY(30px); }
+.manga-coin-impact { position: absolute; right: -1%; top: 39%; color: #fff; font-size: clamp(36px, 8vw, 88px); font-weight: 1000; font-style: italic; -webkit-text-stroke: 3px #171923; text-shadow: 6px 6px 0 #e43845; opacity: 0; transform: rotate(16deg) scale(3); }
+.manga-coin-result { display: grid; gap: 1px; height: 98px; opacity: 0; transform: translateY(30px); }
 .manga-coin-result small { font-size: 15px; font-weight: 900; letter-spacing: .15em; }
 .manga-coin-result strong { font-size: clamp(27px, 5vw, 50px); overflow-wrap: anywhere; }
 .manga-coin-result span { font-size: 22px; font-weight: 900; color: #db3040; }
 .manga-coin-stage.is-revealed .manga-coin-impact { animation: mangaImpact .6s ease-out both; }
 .manga-coin-stage.is-revealed .manga-coin-result { animation: mangaReveal .5s .15s ease-out both; }
 
-.manga-draw-stage { --manga-accent: #ff656f; }
-.manga-draw-count { margin-bottom: 22px; padding: 4px 14px; background: #171923; color: #fff; font-size: 14px; font-weight: 900; }
-.manga-draw-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; overflow-y: auto; padding: 8px 10px 18px; perspective: 1000px; }
-.manga-draw-card { position: relative; flex: 0 0 clamp(92px, 16vw, 136px); height: clamp(135px, 22vw, 190px); transform-style: preserve-3d; transform: rotateY(0) rotate(-5deg) translateY(12px); transition: transform .65s cubic-bezier(.18,1.3,.4,1); animation: mangaCardDeal .4s calc(var(--card-index) * 75ms) both; }
-.manga-draw-card:nth-child(even) { transform: rotateY(0) rotate(5deg) translateY(12px); }
-.manga-draw-card.revealed, .manga-draw-card.revealed:nth-child(even) { transform: rotateY(180deg) rotate(0) translateY(0); }
-.manga-draw-back, .manga-draw-front { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 9px; border: 4px solid #171923; backface-visibility: hidden; box-shadow: 5px 5px 0 #171923; }
-.manga-draw-back { color: #fff; background: #ed4454; }
-.manga-draw-back b { font-size: 68px; line-height: 1; }
-.manga-draw-back small { font-size: 9px; font-weight: 900; letter-spacing: .1em; }
-.manga-draw-front { background: #fff; transform: rotateY(180deg); overflow-wrap: anywhere; }
-.manga-draw-front small { padding: 3px 6px; background: #171923; color: #fff; font-size: 11px; font-weight: 900; }
-.manga-draw-front strong { font-size: clamp(16px, 2.2vw, 23px); line-height: 1.1; }
-.manga-draw-front span { font-size: 11px; font-weight: 800; }
-.manga-draw-verdict { margin-top: 12px; padding: 6px 17px; border: 3px solid #171923; background: #ffdf56; box-shadow: 4px 4px 0 #171923; font-size: 18px; font-weight: 900; opacity: 0; }
-.manga-draw-stage.is-revealed .manga-draw-verdict { animation: mangaReveal .4s both; }
-.manga-draw-stage .manga-progress { animation-duration: 4.5s; }
+.manga-draw-stage { --manga-accent: #ff656f; min-height: min(690px, 92vh); background: #fff4ee; }
+.manga-draw-kicker { margin-bottom: 11px; font-size: 12px; font-weight: 900; letter-spacing: .25em; }
+.manga-draw-stage .manga-heading { margin-bottom: 10px; font-size: clamp(27px, 5vw, 48px); }
+.manga-draw-focus { display: grid; place-items: center; width: min(560px, 100%); height: 300px; perspective: 900px; }
+.manga-draw-sealed, .manga-reveal-card { display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: min(260px, 70vw); height: 285px; padding: 18px; border: 5px solid #171923; box-shadow: 10px 10px 0 #171923; }
+.manga-draw-sealed { justify-content: center; gap: 16px; color: #fff; background: repeating-linear-gradient(135deg, #e63f50 0 20px, #c5293c 20px 40px); transform: rotate(-7deg); }
+.manga-draw-sealed span { font-size: 95px; line-height: 1; font-weight: 1000; }
+.manga-draw-sealed strong { font-size: 22px; letter-spacing: .12em; }
+.manga-draw-sealed small { padding: 4px 10px; border: 2px solid #fff; font-size: 12px; font-weight: 900; }
+.manga-draw-stage.is-opening .manga-draw-sealed { animation: mangaPackOpen .6s ease-in forwards; }
+.manga-reveal-card { --reveal-color: #b6c0c8; color: #171923; background: #fffdf3; border-color: var(--reveal-color); outline: 4px solid #171923; outline-offset: -12px; animation: mangaHeroReveal .68s cubic-bezier(.17,1.2,.38,1) both; }
+.manga-reveal-card.rarity-rare { --reveal-color: #66b6ff; }
+.manga-reveal-card.rarity-epic { --reveal-color: #bf8cff; }
+.manga-reveal-card.rarity-legendary { --reveal-color: #ffd155; }
+.manga-reveal-card.rarity-mythic { --reveal-color: #ff6ba8; }
+.manga-reveal-card.rarity-special { --reveal-color: #5fe0b4; }
+.manga-reveal-card-top { display: flex; justify-content: space-between; width: 100%; gap: 10px; font-size: 12px; font-weight: 900; }
+.manga-reveal-card-top span:last-child { padding: 2px 8px; border: 2px solid #171923; background: var(--reveal-color); }
+.manga-reveal-emblem { display: grid; place-items: center; width: 105px; height: 105px; border: 4px solid #171923; border-radius: 50%; background: var(--reveal-color); font-size: 70px; font-weight: 1000; line-height: 1; }
+.manga-reveal-name { max-width: 100%; overflow-wrap: anywhere; font-size: clamp(24px, 4vw, 36px); font-weight: 1000; line-height: 1.05; }
+.manga-reveal-stats { display: flex; justify-content: space-around; width: 100%; padding-top: 7px; border-top: 3px solid #171923; font-size: 14px; font-weight: 900; }
+.manga-reveal-stats b { font-size: 18px; }
+.manga-draw-sfx { position: absolute; top: 35%; right: 12%; z-index: 3; color: #fff; font-size: clamp(44px, 8vw, 88px); font-weight: 1000; -webkit-text-stroke: 3px #171923; text-shadow: 6px 6px 0 #e63f50; opacity: 0; pointer-events: none; }
+.manga-draw-stage.is-flashing .manga-draw-sfx { animation: mangaImpact .3s both; }
+.manga-draw-count { margin: 9px 0 12px; padding: 4px 14px; background: #171923; color: #fff; font-size: 13px; font-weight: 900; }
+.manga-draw-slots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; width: 100%; }
+.manga-draw-slot { display: flex; align-items: center; gap: 5px; min-width: 74px; max-width: 120px; padding: 5px 7px; border: 2px solid #171923; background: #e5dfd8; color: #60616a; transform: skew(-6deg); }
+.manga-draw-slot small { font-size: 10px; font-weight: 900; }
+.manga-draw-slot strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.manga-draw-slot.is-collected { background: #ffca55; color: #171923; animation: mangaSlotClaim .35s both; }
+.manga-draw-summary { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-top: 12px; opacity: 0; transform: translateY(20px); }
+.manga-draw-summary b, .manga-draw-summary span { padding: 3px 8px; border: 2px solid #171923; background: #fff; font-size: 12px; font-weight: 900; }
+.manga-draw-summary b { background: #171923; color: #fff; }
+.manga-draw-stage.is-revealed .manga-draw-summary { animation: mangaReveal .4s both; }
 
 .manga-moment { --manga-accent: #f7d54a; min-height: min(480px, 75vh); }
 .manga-sleep { --manga-accent: #a9a4ff; }
@@ -150,25 +176,33 @@
 @keyframes mangaPageIn { from { opacity: 0; transform: translateY(40px) scale(.9) rotate(-2deg); } to { opacity: 1; transform: none; } }
 @keyframes mangaLines { to { transform: rotate(15deg); } }
 @keyframes mangaTimer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes mangaCoinToss { 0% { transform: translateY(80px) rotateY(0); } 45% { transform: translateY(-55px) rotateY(900deg); } 100% { transform: translateY(0) rotateY(1800deg); } }
-@keyframes mangaCoinOne { from { transform: rotateY(1800deg) scale(1.15); } to { transform: rotateY(1800deg) scale(1); } }
-@keyframes mangaCoinTwo { from { transform: rotateY(1800deg) scale(1.15); } to { transform: rotateY(1980deg) scale(1); } }
+@keyframes mangaCoinFlight { 0% { transform: translateX(-50%) translateY(25px) scale(.75); } 48% { transform: translateX(-50%) translateY(-145px) scale(1.35); } 78% { transform: translateX(-50%) translateY(-70px) scale(1.15); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
+@keyframes mangaCoinSpin { 0% { transform: rotateY(0) rotateZ(-18deg); } 55% { transform: rotateY(1980deg) rotateZ(22deg); } 100% { transform: rotateY(2880deg) rotateZ(0); } }
+@keyframes mangaCoinLand { 0% { transform: rotateY(2880deg) scale(1.2); } 50% { transform: rotateY(2880deg) scale(.88); } 100% { transform: rotateY(2880deg) scale(1); } }
+@keyframes mangaCoinTrail { 0%,100% { opacity: 0; } 35%,75% { opacity: .75; } }
 @keyframes mangaImpact { from { opacity: 0; transform: rotate(14deg) scale(3); } 60% { opacity: 1; transform: rotate(14deg) scale(.9); } to { opacity: 1; transform: rotate(14deg) scale(1); } }
 @keyframes mangaReveal { to { opacity: 1; transform: none; } }
-@keyframes mangaCardDeal { from { opacity: 0; translate: 0 -120px; } to { opacity: 1; translate: 0 0; } }
+@keyframes mangaPackOpen { 0% { transform: rotate(-7deg) scale(1); opacity: 1; } 65% { transform: rotate(9deg) scale(1.2); opacity: 1; } 100% { transform: rotate(-15deg) scale(1.5); opacity: 0; } }
+@keyframes mangaHeroReveal { 0% { opacity: 0; transform: translateY(-110px) rotateY(80deg) rotate(-8deg) scale(.6); } 55% { opacity: 1; transform: translateY(12px) rotateY(0) rotate(4deg) scale(1.08); } 100% { opacity: 1; transform: none; } }
+@keyframes mangaSlotClaim { from { transform: skew(-6deg) scale(.5); } to { transform: skew(-6deg) scale(1); } }
 @keyframes mangaRowIn { to { opacity: 1; transform: none; } }
 
 @media (max-width: 600px) {
     .manga-stage { min-height: min(580px, 88vh); padding: 60px 12px 26px; box-shadow: 5px 5px 0 var(--manga-accent); }
-    .manga-coin-space { height: 210px; }
+    .manga-coin-arena { height: 245px; }
+    .manga-coin-stage .manga-heading { font-size: 30px; }
     .manga-coin { width: 130px; height: 130px; }
     .manga-contenders { gap: 6px; }
     .manga-contenders span { padding: 5px; }
-    .manga-draw-cards { gap: 7px; }
-    .manga-draw-card { flex-basis: 91px; height: 134px; }
+    .manga-draw-stage { padding-top: 48px; padding-bottom: 18px; }
+    .manga-draw-focus { height: 235px; }
+    .manga-draw-sealed, .manga-reveal-card { width: 190px; height: 220px; padding: 12px; box-shadow: 6px 6px 0 #171923; }
+    .manga-reveal-emblem { width: 72px; height: 72px; font-size: 46px; }
+    .manga-reveal-name { font-size: 24px; }
+    .manga-draw-slot { min-width: 64px; max-width: 90px; padding: 3px 5px; }
+    .manga-draw-summary { margin-top: 7px; }
     .manga-moment { min-height: min(450px, 75vh); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .manga-stage, .manga-speedlines, .manga-coin, .manga-draw-card, .manga-progress { animation-duration: .01ms !important; }
-    .manga-draw-card { transition-duration: .01ms; }
+    .manga-speedlines { animation: none; }
 }
