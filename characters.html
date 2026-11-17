@@ -134,18 +134,19 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
+    <link rel="stylesheet" href="css/collection-music.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
 <body data-page="characters">
     <!-- Theme Toggle Removed -->
-    <a href="index.html" class="btn back-btn">← 返回</a>
-
     <div class="character-list-container">
-        <div class="page-header">
-            <h1 class="page-title">角色圖鑑</h1>
-            <p class="char-count">共 <span id="charCount">0</span> 個角色</p>
-        </div>
+        <nav class="collection-nav"><a href="index.html">← 返回大廳</a><span>NEON CARD / CHARACTER ARCHIVE</span><a href="team.html">我的收藏 ↗</a></nav>
+        <header class="collection-hero">
+            <div class="collection-hero-copy"><span class="collection-kicker">VOL. 01 · 全角色資料</span><h1 class="page-title">角色<br><em>圖鑑！</em></h1><p>翻開角色檔案，搜尋招式與被動能力。</p><div class="collection-count">顯示 <strong id="charCount">0</strong> 位角色 <span>↗</span></div></div>
+            <div class="collection-hero-art" aria-hidden="true"><span class="hero-burst">角色<br>集結</span><span class="hero-stamp">THE ROSTER</span></div>
+        </header>
+        <div class="collection-section-heading"><strong>角色索引 / INDEX</strong><span>選擇卡片查看完整能力</span></div>
 
         <div class="search-container">
             <input type="text" class="search-input" id="searchInput" aria-label="搜尋角色" placeholder="🔍 搜尋角色名稱、技能或被動..."
@@ -210,6 +211,7 @@
                         <span class="character-id">#${char.id}</span>
                         <span class="character-rarity ${getRarityClass(char.rarity)}">${getRarityName(char.rarity)}</span>
                     </div>
+                    <div class="collection-card-art" aria-hidden="true"><span>${char.name.slice(0, 1)}</span><b>NEON / ${String(char.id).padStart(3, '0')}</b></div>
                     <div class="character-name">${char.name}</div>
                     <div class="character-stats">
                         <span class="stat"><span class="stat-label stat-hp">❤</span> ${hpDisplay}</span>
@@ -228,6 +230,7 @@
                         : ''
                     }
                     </div>
+                    <div class="collection-card-footer">開啟角色檔案 <span>↗</span></div>
                 `;
 
                 grid.appendChild(card);

@@ -161,15 +161,19 @@ const MatchmakingManager = (() => {
         if (myName) localStorage.setItem('onlineMyName', myName);
         
         // If we were in a ranked queue, set bot ranked flag
-        if (localStorage.getItem('isRankedMatch') === 'true') {
+        if (gameMode === 'ranked') {
             localStorage.setItem('isBotRankedMatch', 'true');
             localStorage.removeItem('isRankedMatch'); // Use bot specific flag
+        } else {
+            localStorage.removeItem('isBotRankedMatch');
         }
         
         setTimeout(() => { location.href = 'game.html'; }, 600);
     }
 
     function _commit(role, roomCode, opponentName, myName, gameMode) {
+        localStorage.removeItem('isBotRankedMatch');
+        localStorage.removeItem('botMatchName');
         localStorage.setItem('gameMode', 'online');
         localStorage.setItem('gameType', 'pvp');
         localStorage.setItem('onlineRole', role);

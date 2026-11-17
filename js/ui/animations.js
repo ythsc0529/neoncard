@@ -658,10 +658,9 @@ const Animations = {
             if (typeof GameState !== 'undefined') {
                 if (GameState.mode === 'online') {
                     const role = window.localOnlineRole || localStorage.getItem('onlineRole');
-                    const myPlayerName = role === 'host' ? GameState.player1.name : GameState.player2.name;
-                    iWon = (winner === myPlayerName);
+                    iWon = GameState.winner === (role === 'host' ? 1 : 2);
                 } else {
-                    iWon = (winner === GameState.player1.name);
+                    iWon = GameState.winner === 1;
                 }
             }
             SoundManager.play(iWon ? 'win' : 'fail');
@@ -684,11 +683,17 @@ const Animations = {
             (GameState.mode === 'online' || isBotRankedMatch)) {
             try {
                 let user = AuthManager.getCurrentUser();
-                
                 if (!user) {
-                    console.warn('[Ranked] User missing at victory, retrying Auth init...');
-                    AuthManager.init();
-                    user = AuthManager.getCurrentUser();
+                    user = await new Promise(resolve => {
+                        let unsubscribe = null;
+                        const timer = setTimeout(() => { if (unsubscribe) unsubscribe(); resolve(null); }, 5000);
+                        unsubscribe = AuthManager.onAuthChanged(current => {
+                            if (!current) return;
+                            clearTimeout(timer);
+                            if (unsubscribe) unsubscribe();
+                            resolve(current);
+                        });
+                    });
                 }
 
                 if (user) {
@@ -750,7 +755,7 @@ const Animations = {
                         let statMode = null;
                         let iWon = false;
                         if (mode === 'pve' || mode === 'story') {
-                            statMode = isBotRankedMatch ? 'competitive' : 'pve';
+                            statMode = localStorage.getItem('fromCompetitiveMode') === 'true' ? 'competitive' : 'pve';
                             iWon = (GameState.winner === 1);
                         } else if (mode === 'online') {
                             const role = window.localOnlineRole || localStorage.getItem('onlineRole');
@@ -786,9 +791,14 @@ const Animations = {
 
                     if (localStorage.getItem('isBotRankedMatch') === 'true') {
                         iWonFinal = GameState.winner === 1;
-                        oppName = localStorage.getItem('botMatchName') || '機器人';
+                        oppName = localStorage.getItem('botMatchName') || GameState.player2.name;
                         oppUid = 'NPC_' + oppName;
                         matchMode = 'ranked';
+                    } else if (localStorage.getItem('fromCompetitiveMode') === 'true' && GameState.type === 'pve') {
+                        iWonFinal = GameState.winner === 1;
+                        oppName = localStorage.getItem('botMatchName') || GameState.player2.name;
+                        oppUid = 'NPC_' + oppName;
+                        matchMode = 'online';
                     } else if (localStorage.getItem('isRankedMatch') === 'true') {
                         const role = window.localOnlineRole || localStorage.getItem('onlineRole');
                         const myPlayer = (role === 'host') ? 1 : 2;
@@ -822,7 +832,7 @@ const Animations = {
                         
                         if (matchMode === 'story') {
                             if (iWonFinal) levelExp = 60;
-                        } else if (matchMode === 'pve' || oppUid.startsWith('NPC_')) {
+                        } else if (matchMode === 'pve') {
                             levelExp = 0; 
                         } else {
                             levelExp = iWonFinal ? 50 : 25;

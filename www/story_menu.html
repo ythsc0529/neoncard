@@ -646,6 +646,10 @@
                 location.href = 'story_runner.html';
             } else if (node.type === 'battle') {
                 localStorage.setItem('gameMode', 'story');
+                localStorage.removeItem('fromCompetitiveMode');
+                localStorage.removeItem('isBotRankedMatch');
+                localStorage.removeItem('isRankedMatch');
+                localStorage.removeItem('botMatchName');
                 location.href = 'game.html';
             }
         }

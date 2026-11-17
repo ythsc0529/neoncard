@@ -1,0 +1,98 @@
+/* Character archive, collection and soundtrack: comic panels on printed paper. */
+body[data-page="characters"], body[data-page="team"] { background: #eae5d9 !important; }
+body[data-page="characters"] .character-list-container,
+body[data-page="team"] .team-page { max-width: 1220px; }
+.collection-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0 20px; font-size:11px; font-weight:900; letter-spacing:.13em; }
+.collection-nav a { color:#191919; text-decoration:none; border:2px solid #191919; padding:8px 12px; background:#fffdf7; box-shadow:3px 3px 0 #191919; white-space:nowrap; }
+.collection-nav a:hover { background:#f7ce46; }
+.collection-nav span { text-align:center; }
+.collection-hero { display:grid; grid-template-columns:1.15fr .85fr; min-height:330px; border:4px solid #191919; box-shadow:8px 8px 0 #191919; margin:0 8px 34px 0; background:#fffdf7; overflow:hidden; }
+.collection-hero-copy { padding:clamp(24px,4vw,48px); position:relative; z-index:1; }
+.collection-kicker { display:inline-block; padding:5px 10px; background:#f7ce46; border:2px solid #191919; font-size:11px; font-weight:900; letter-spacing:.12em; transform:rotate(-2deg); }
+.collection-hero .page-title { margin:18px 0 8px; font-size:clamp(49px,7vw,90px); line-height:.98; letter-spacing:-.09em; -webkit-text-stroke:0; }
+.collection-hero .page-title em { color:#e9472b; font-style:normal; }
+.collection-hero p { margin:12px 0 20px; color:#494840; font-size:14px; font-weight:700; }
+.collection-count { display:inline-flex; align-items:center; gap:10px; padding:9px 14px; color:#fffdf7; background:#191919; border:2px solid #191919; font-size:13px; font-weight:900; letter-spacing:.04em; }
+.collection-count strong { color:#f7ce46; font-size:23px; line-height:1; }
+.collection-count span { color:#f7ce46; font-size:22px; }
+.collection-hero-art { position:relative; display:flex; align-items:center; justify-content:center; border-left:4px solid #191919; background:#bcd2ed; overflow:hidden; }
+.collection-hero-art::before { content:""; position:absolute; inset:-45%; background:repeating-conic-gradient(from 5deg at 50% 50%,#19191920 0deg 7deg,transparent 7deg 16deg); }
+.collection-hero-art::after { content:""; position:absolute; inset:0; background:radial-gradient(#19191960 1px,transparent 1px); background-size:6px 6px; opacity:.3; }
+.hero-burst { position:relative; z-index:1; display:block; font-size:clamp(48px,6vw,92px); font-weight:900; line-height:1.1; text-align:center; color:#fffdf7; -webkit-text-stroke:3px #191919; text-shadow:7px 7px 0 #e9472b; transform:rotate(-10deg); }
+.hero-stamp { position:absolute; right:16px; bottom:16px; z-index:2; padding:4px 9px; background:#191919; color:#fffdf7; font-size:10px; font-weight:900; letter-spacing:.16em; }
+.team-hero .collection-hero-art { background:#f6cd49; }
+.team-hero .hero-burst { text-shadow:7px 7px 0 #305bc7; }
+.collection-section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; border-bottom:3px solid #191919; padding:0 0 9px; margin:0 0 18px; }
+.collection-section-heading strong { font-size:18px; font-weight:900; letter-spacing:.03em; }
+.collection-section-heading span { font-size:12px; color:#494840; font-weight:700; }
+body[data-page="characters"] .search-container,
+body[data-page="team"] .ink-collection-search { margin-bottom:14px; }
+body[data-page="characters"] .search-input,
+body[data-page="team"] .ink-collection-search input { min-height:48px; background:#fffdf7 !important; box-shadow:3px 3px 0 #191919; }
+body[data-page="characters"] .filter-container,
+body[data-page="team"] .filters-bar { justify-content:flex-start; margin-bottom:28px; }
+body[data-page="characters"] .filter-btn,
+body[data-page="team"] .filter-btn { border-radius:0; background:#fffdf7; color:#191919; box-shadow:3px 3px 0 #191919; }
+body[data-page="characters"] .filter-btn.active,
+body[data-page="team"] .filter-btn.active { background:#191919; color:#fffdf7 !important; box-shadow:3px 3px 0 #e9472b; }
+body[data-page="characters"] .character-grid,
+body[data-page="team"] .char-grid { grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:20px; }
+body[data-page="characters"] .character-card,
+body[data-page="team"] .character-card { display:flex; flex-direction:column; min-width:0; padding:0; border:3px solid #191919; border-radius:0; box-shadow:5px 5px 0 #191919; background:#fffdf7; }
+body[data-page="characters"] .character-card::after,
+body[data-page="team"] .character-card::after { display:none; }
+body[data-page="characters"] .character-header,
+body[data-page="team"] .character-header { margin:0; padding:8px 12px; background:#fffdf7; border-bottom:3px solid #191919; }
+body[data-page="characters"] .character-rarity,
+body[data-page="team"] .character-rarity { border:0; color:#191919; background:#f7ce46; padding:3px 8px; font-size:10px; }
+.collection-card-art { position:relative; display:flex; height:136px; align-items:center; justify-content:center; overflow:hidden; border-bottom:3px solid #191919; background:#d5e5fa; }
+.collection-card-art::before { content:""; position:absolute; inset:-50%; background:repeating-conic-gradient(from 9deg at 50% 50%,#19191920 0deg 4deg,transparent 4deg 15deg); }
+.collection-card-art span { position:relative; z-index:1; font-size:82px; line-height:1; font-weight:900; color:#fffdf7; -webkit-text-stroke:3px #191919; text-shadow:5px 5px 0 #e9472b; transform:rotate(-9deg); }
+.collection-card-art b { position:absolute; right:8px; bottom:7px; z-index:2; font-size:9px; letter-spacing:.08em; background:#191919; color:#fffdf7; padding:2px 5px; }
+.rarity-rare .collection-card-art { background:#b5d9ec; }.rarity-epic .collection-card-art { background:#ddc4ee; }.rarity-legendary .collection-card-art { background:#f9d581; }.rarity-mythic .collection-card-art { background:#f5a6a0; }.rarity-special .collection-card-art { background:#b8dcc7; }
+body[data-page="characters"] .character-name,
+body[data-page="team"] .character-name { padding:12px 14px 3px; font-size:23px; line-height:1.2; overflow-wrap:anywhere; }
+body[data-page="characters"] .character-stats,
+body[data-page="team"] .character-stats { gap:6px; margin:6px 14px 10px; }
+body[data-page="characters"] .character-stats .stat,
+body[data-page="team"] .character-stats .stat { flex:1; justify-content:center; border:2px solid #191919; background:#f3f0e7; padding:4px 2px; font-size:12px; }
+body[data-page="characters"] .character-skills,
+body[data-page="team"] .character-skills { padding:0 14px 12px; flex:1; }
+body[data-page="characters"] .character-card .skill-item,
+body[data-page="team"] .character-card .skill-item { margin:5px 0; padding:3px 7px; border-left:3px solid #191919; font-size:11px; line-height:1.4; }
+.collection-card-footer,body[data-page="team"] .ink-ownership { display:flex; justify-content:space-between; margin:0; padding:9px 14px; border-top:3px solid #191919; background:#f7ce46; color:#191919; font-size:11px; font-weight:900; }
+body[data-page="team"] .character-card.locked { opacity:.72; filter:none; border-style:dashed; }
+body[data-page="team"] .character-card.locked .collection-card-art { filter:grayscale(1); }
+body[data-page="team"] .character-card.locked:hover { transform:translateY(-4px); box-shadow:5px 5px 0 #191919; }
+@media(max-width:650px) { .collection-nav span { display:none; }.collection-hero { grid-template-columns:1fr; }.collection-hero-art { min-height:155px; border-left:0; border-top:4px solid #191919; }.collection-hero .page-title { font-size:60px; }.hero-burst { font-size:54px; }.collection-section-heading { flex-wrap:wrap; }.collection-card-art { height:118px; } }
+@media(max-width:480px) { body[data-page="characters"] .character-grid,body[data-page="team"] .char-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }.collection-card-art { height:95px; }.collection-card-art span { font-size:54px; }.collection-card-art b { display:none; }body[data-page="characters"] .character-name,body[data-page="team"] .character-name { font-size:18px; }.character-stats { flex-wrap:wrap; } }
+
+/* Soundtrack modal */
+#musicModal .music-comic-modal { width:min(760px,calc(100vw - 28px)); max-width:760px; padding:0; overflow:hidden; background:#fffdf7; border:4px solid #191919; box-shadow:9px 9px 0 #191919; text-align:left; }
+.music-comic-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; background:#191919; color:#fffdf7; font-size:11px; font-weight:900; letter-spacing:.16em; }
+.music-comic-head button { border:2px solid #fffdf7; background:#f7ce46; color:#191919; width:34px; height:34px; font-size:19px; line-height:1; cursor:pointer; }
+.music-comic-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.music-feature { padding:24px; background:#f7ce46; border-right:4px solid #191919; }
+.music-feature .music-kicker { font-size:11px; font-weight:900; letter-spacing:.15em; }
+.music-feature h2 { margin:4px 0 16px; font-size:clamp(28px,4vw,42px); line-height:1.1; letter-spacing:-.06em; }
+#musicCoverContainer { position:relative; display:flex; width:min(100%,260px); aspect-ratio:1; align-items:center; justify-content:center; margin:0 auto 18px; border:4px solid #191919; background:#d5e5fa; box-shadow:6px 6px 0 #191919; overflow:hidden; transform:rotate(-3deg); }
+#musicCoverContainer::after { content:"NEON CARD / OST"; position:absolute; bottom:10px; left:10px; padding:3px 7px; border:2px solid #191919; background:#fffdf7; color:#191919; font-size:9px; font-weight:900; letter-spacing:.1em; }
+#musicCoverImg { width:100%; height:100%; object-fit:cover; }
+.music-player-panel { padding:24px; min-width:0; }
+.music-now-label,.music-track-heading { font-size:10px; font-weight:900; letter-spacing:.18em; color:#494840; }
+#musicTitle { margin:5px 0; font-size:26px; font-weight:900; line-height:1.1; color:#191919; overflow-wrap:anywhere; }
+#musicSubtitle { margin-bottom:20px; font-size:12px; font-weight:700; color:#494840; }
+.music-time-row { display:flex; justify-content:space-between; font-size:11px; font-weight:900; }
+#musicProgressBar { width:100%; height:16px; margin:5px 0 18px; background:#e8e4da; border:2px solid #191919; cursor:pointer; }
+#musicProgressFill { height:100%; background:#e9472b; }
+.music-control-row { display:flex; gap:10px; align-items:center; margin-bottom:20px; }
+.music-control-row button { flex:1; border:2px solid #191919; box-shadow:3px 3px 0 #191919; background:#fffdf7; min-height:46px; font-size:18px; font-weight:900; cursor:pointer; }
+.music-control-row #musicPlayPauseBtn { flex:1.3; background:#e9472b; color:#fffdf7; }
+.music-volume-row { display:flex; align-items:center; gap:10px; font-size:12px; font-weight:900; }
+.music-volume-row input { flex:1; min-width:0; }
+#musicPlaylist { margin-top:14px; max-height:210px; overflow-y:auto; border-top:3px solid #191919; padding-top:12px; }
+#musicPlaylist .music-list-item { display:flex; align-items:center; min-height:44px; margin:0 0 8px; padding:7px 10px; border:2px solid #191919; background:#fffdf7; box-shadow:2px 2px 0 #191919; cursor:pointer; color:#191919; }
+#musicPlaylist .music-list-item.active { background:#d5e5fa; border-color:#191919; color:#191919; }
+#musicPlaylist .music-list-item:hover { transform:translate(-1px,-1px); box-shadow:3px 3px 0 #191919; }
+.music-list-item-index { margin-right:10px; font-size:10px; font-weight:900; color:#494840; }
+@media(max-width:650px) { #musicModal .music-comic-modal { max-height:90dvh; overflow-y:auto; }.music-comic-layout { grid-template-columns:1fr; }.music-feature { display:grid; grid-template-columns:105px 1fr; gap:0 18px; align-items:center; padding:15px; border-right:0; border-bottom:4px solid #191919; }.music-feature .music-kicker,.music-feature h2 { grid-column:2; }.music-feature h2 { margin:0; font-size:26px; }#musicCoverContainer { grid-column:1; grid-row:1/3; width:100px; margin:0; box-shadow:3px 3px 0 #191919; }.music-player-panel { padding:18px; } }

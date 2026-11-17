@@ -394,9 +394,9 @@ const GameSettlement = (() => {
     }
 
     function _rematch() {
+        const mode = _context.mode;
         _cleanup();
-        const isRanked = localStorage.getItem('isRankedMatch') === 'true' || localStorage.getItem('isBotRankedMatch') === 'true';
-        if (isRanked) {
+        if (mode === 'ranked' || mode === 'ranked_bot') {
             sessionStorage.setItem('autoMatchmake', 'ranked');
         } else {
             sessionStorage.setItem('autoMatchmake', 'casual');
@@ -535,6 +535,7 @@ const GameSettlement = (() => {
         if (_rematchCountdownTimer) clearInterval(_rematchCountdownTimer);
         if (_rematchAutoExitTimer) clearTimeout(_rematchAutoExitTimer);
         if (window._settlementAutoExitTick) clearInterval(window._settlementAutoExitTick);
+        localStorage.removeItem('fromCompetitiveMode');
         const overlay = document.getElementById('settlementOverlay');
         if (overlay) overlay.classList.remove('active');
     }

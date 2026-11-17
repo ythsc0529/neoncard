@@ -5,7 +5,7 @@ const TutorialSystem = {
     tutorialDeck: ['戰士', '赫特', '醫生'],
     enemyDeck: ['小混混', '戰士', '醫生'],
     steps: [
-        { title: '先認識這場對戰', text: '你和對手各有 3 名角色。每次只有 1 名在戰鬥區，其餘待在備戰區。先看看抽到的角色，點擊畫面關閉抽牌結果。', trigger: 'onDrawCards', action: 'click_close_draw', target: '#animationOverlay' },
+        { title: '先認識這場對戰', text: '你和對手各有 3 名角色。每次只有 1 名在戰鬥區，其餘待在備戰區。角色卡揭曉後會自動進入首發選擇。', trigger: 'onDrawCards', action: 'draw_revealed', target: '#animationOverlay' },
         { title: '選擇首發角色', text: 'HP 是生命值，ATK 是普攻傷害。先點第一張「戰士」：他有 100 HP、20 ATK，技能「砍一刀」造成 30 傷害。其餘兩張會留在備戰區。', trigger: 'onSelectionPhase', action: 'select_warrior', target: '#drawnCards .select-card:first-child' },
         { title: '讓戰士上場', text: '已選好的牌會有選取標記。按「確認選擇」後，戰士進入戰鬥區，赫特和醫生留在備戰區。', trigger: 'onSelectionPhase', action: 'click_confirm', target: '#confirmSelection' },
         { title: '看懂你的戰鬥區', text: '這裡是你目前上場的角色。血條歸零時會退場；護盾會先承受傷害。每個回合只能選一種行動：普攻、技能或撤退。', trigger: 'onPlayerTurn', action: 'continue', target: '#p1BattleCard' },

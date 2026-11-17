@@ -15,7 +15,7 @@
     
     <script>
         // ── 版本號：必須是此檔案最先執行的 script ──
-        window.APP_VERSION = "2.8.1";
+        window.APP_VERSION = "2.8.2";
 
         // ── Service Worker 更新管理 ──
         if ('serviceWorker' in navigator) {
@@ -1416,6 +1416,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <link rel="stylesheet" href="css/collection-music.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink3"></script>
 </head>
 
@@ -1905,49 +1906,12 @@
 
     <!-- ⑨ Music Player Modal -->
     <div class="modal-overlay" id="musicModal" onclick="if(event.target===this)closeMusicModal()">
-        <div class="modal" style="max-width:380px;text-align:center;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                <h2 style="margin:0;font-size:1.3rem;">🎵 原聲帶播放器</h2>
-                <button onclick="closeMusicModal()" style="background:none;border:none;font-size:1.5rem;font-weight:900;cursor:pointer;">✕</button>
+        <div class="modal music-comic-modal" role="dialog" aria-modal="true" aria-label="原聲帶播放器">
+            <div class="music-comic-head"><span>NEON CARD / ORIGINAL SOUNDTRACK</span><button onclick="closeMusicModal()" aria-label="關閉音樂播放器">✕</button></div>
+            <div class="music-comic-layout">
+                <div class="music-feature"><div class="music-kicker">ISSUE 01 · SOUNDTRACK</div><h2>霓虹<br>原聲帶！</h2><div id="musicCoverContainer"><img id="musicCoverImg" src="" alt="專輯封面" style="display:none;"><span id="musicCoverEmoji">🎵</span></div></div>
+                <div class="music-player-panel"><div class="music-now-label">NOW PLAYING / 正在播放</div><div id="musicTitle">Neon Shuffle</div><div id="musicSubtitle">霓虹牌官方原聲帶</div><div class="music-time-row"><span id="musicCurrentTime">0:00</span><span id="musicDuration">0:00</span></div><div id="musicProgressBar" onclick="seekMusic(event)" role="slider" aria-label="播放進度"><div id="musicProgressFill" style="width:0%;"></div></div><div class="music-control-row"><button onclick="MusicManager.prev()" aria-label="上一首">⏮</button><button id="musicPlayPauseBtn" onclick="MusicManager.togglePlay()" aria-label="播放或暫停">▶</button><button onclick="MusicManager.next()" aria-label="下一首">⏭</button></div><div class="music-volume-row"><span>音量</span><input type="range" class="settings-slider" id="musicModalVolume" min="0" max="100" value="70" aria-label="音樂音量" oninput="onMusicVolumeChange(this.value)"></div><div class="music-track-heading" style="margin-top:22px;">TRACK LIST / 曲目列表</div><div id="musicPlaylist"></div></div>
             </div>
-
-            <!-- Album Art Vinyl -->
-            <div id="musicCoverContainer" style="width:140px;height:140px;margin:0 auto 14px;border-radius:50%;border:4px solid #0A0A0A;box-shadow:var(--comic-shadow);background:var(--comic-paper-dark);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:3.5rem;">
-                <img id="musicCoverImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;">
-                <span id="musicCoverEmoji">🎵</span>
-            </div>
-
-            <!-- Track Info -->
-            <div id="musicTitle" style="font-size:1.2rem;font-weight:900;color:#0A0A0A;margin-bottom:2px;">Neon Shuffle</div>
-            <div id="musicSubtitle" style="font-size:0.8rem;font-weight:700;color:#666666;margin-bottom:16px;">霓虹牌官方原聲帶</div>
-
-            <!-- Progress Bar -->
-            <div style="margin-bottom:14px;">
-                <div style="display:flex;justify-content:space-between;font-size:0.75rem;font-weight:800;color:#666666;margin-bottom:4px;">
-                    <span id="musicCurrentTime">0:00</span>
-                    <span id="musicDuration">0:00</span>
-                </div>
-                <div style="width:100%;height:8px;background:var(--comic-paper-dark);border:2px solid #0A0A0A;cursor:pointer;" id="musicProgressBar" onclick="seekMusic(event)">
-                    <div id="musicProgressFill" style="width:0%;height:100%;background:var(--comic-orange);"></div>
-                </div>
-            </div>
-
-            <!-- Play Controls -->
-            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;">
-                <button onclick="MusicManager.prev()" class="btn btn-sm" style="font-size:1.2rem;padding:8px 14px;">⏮</button>
-                <button id="musicPlayPauseBtn" onclick="MusicManager.togglePlay()" class="btn btn-gold" style="width:48px;height:48px;border-radius:50%;padding:0;font-size:1.3rem;">▶</button>
-                <button onclick="MusicManager.next()" class="btn btn-sm" style="font-size:1.2rem;padding:8px 14px;">⏭</button>
-            </div>
-
-            <!-- Volume Slider in Modal -->
-            <div style="display:flex;align-items:center;gap:8px;padding:0 8px;">
-                <span>🔈</span>
-                <input type="range" class="settings-slider" id="musicModalVolume" min="0" max="100" value="70" oninput="onMusicVolumeChange(this.value)" style="flex:1;">
-                <span>🔊</span>
-            </div>
-
-            <!-- Track Playlist -->
-            <div id="musicPlaylist"></div>
         </div>
     </div>
 
@@ -2567,6 +2531,8 @@
 
         function startMatchmaking(mode, isRanked) {
             localStorage.removeItem('isRankedMatch');
+            localStorage.removeItem('isBotRankedMatch');
+            localStorage.removeItem('botMatchName');
             if (!isRanked) localStorage.removeItem('myRankedInfo');
             if (isRanked) localStorage.setItem('isRankedMatch', 'true');
 
@@ -2742,6 +2708,8 @@
             localStorage.setItem('gameMode', mode);
             localStorage.setItem('gameType', type);
             localStorage.setItem('pveDifficulty', difficulty);
+            localStorage.removeItem('fromCompetitiveMode');
+            localStorage.removeItem('botMatchName');
             localStorage.removeItem('onlineMyName');
             localStorage.removeItem('isRankedMatch');
             localStorage.removeItem('myRankedInfo');

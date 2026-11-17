@@ -322,6 +322,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <link rel="stylesheet" href="css/battle-manga.css?v=2">
     <script src="js/ui/comicMotion.js?v=ink3"></script>
 </head>
 
@@ -738,10 +739,10 @@
     <script src="js/data/characters_part5.js"></script>
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
-    <script src="js/core/tutorialSystem.js?v=4"></script>
-    <script src="js/core/gameState.js?v=4"></script>
-    <script src="js/core/battleSystem.js?v=ink1"></script>
-    <script src="js/ui/animations.js?v=ink2"></script>
+    <script src="js/core/tutorialSystem.js?v=manga2"></script>
+    <script src="js/core/gameState.js?v=manga2"></script>
+    <script src="js/core/battleSystem.js?v=manga2"></script>
+    <script src="js/ui/animations.js?v=manga3"></script>
     <script src="js/ui/musicManager.js"></script>
     <script src="js/ui/soundManager.js"></script>
     <script src="js/ui/settlement.js?v=2"></script>
@@ -825,12 +826,12 @@
             // Helper to check if we are playing against a bot disguised as a human
             window.isDisguisedBot = () => {
                 return localStorage.getItem('fromCompetitiveMode') === 'true' && 
-                       (GameState.mode === 'pve' || GameState.type === 'pve');
+                       localStorage.getItem('gameMode') === 'pve' &&
+                       localStorage.getItem('gameType') === 'pve';
             };
 
-            // Show emoji & surrender button for online mode or ranked bot matches
-            const isBotRankedMatch = localStorage.getItem('isBotRankedMatch') === 'true';
-            if (mode === 'online' || isBotRankedMatch) {
+            // Competitive bot opponents use the same visible controls as online opponents.
+            if (mode === 'online' || window.isDisguisedBot()) {
                 document.getElementById('p1EmojiBtn').classList.remove('hidden');
                 document.getElementById('surrenderBtn').classList.remove('hidden');
 
@@ -1165,11 +1166,6 @@
                 GameState.firstPlayer = firstPlayer;
                 GameState.currentPlayer = firstPlayer;
 
-                // Show rank reveal if ranked match
-                if (localStorage.getItem('isBotRankedMatch') === 'true') {
-                    await showRankReveal();
-                }
-
                 if (type === 'pve') {
                     // Populate my pool 
                     const myUnlockedChars = (() => {
@@ -1228,7 +1224,7 @@
                                 } catch(e) {}
                             }
                         }
-                        localStorage.removeItem('botMatchName'); // clean up now
+                        // Keep the opponent identity through settlement and match history.
                     } else if (difficulty === 'hell') {
                         GameState.player2.name = 'NPC (地獄)';
                     } else if (difficulty === 'hard') {
@@ -1237,6 +1233,10 @@
                         GameState.player2.name = 'NPC (簡單)';
                     } else {
                         GameState.player2.name = 'NPC';
+                    }
+
+                    if (localStorage.getItem('isBotRankedMatch') === 'true') {
+                        await showRankReveal();
                     }
 
                     // NPC selects a random card
@@ -1499,6 +1499,13 @@
                 } else {
                     GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${GameState.player2.name} 派出了 ${GameState.player2.battleCard.name} 作為首發。`, 'status');
                 }
+                if (window.isDisguisedBot()) {
+                    renderWaitingForOpponentSelection();
+                    await new Promise(resolve => setTimeout(resolve, 1800));
+                    const overlay = document.getElementById('networkWaitingOverlay');
+                    overlay.classList.remove('active');
+                    overlay.classList.add('hidden');
+                }
                 startBattle();
                 return;
             }
@@ -1536,8 +1543,8 @@
 
             // Trigger AI if it's Player 2's turn in story, pve, or tutorial
             if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
-                const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
-                const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                const isCompetitiveBot = window.isDisguisedBot();
+                const delay = isCompetitiveBot ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
                 setTimeout(playAITurn, delay); // Wait a bit before AI acts
             }
 
@@ -1574,8 +1581,7 @@
 
         function startTurnTimer() {
             stopTurnTimer();
-            const isBotRanked = localStorage.getItem('isBotRankedMatch') === 'true';
-            if (GameState.mode !== 'online' && !isBotRanked) return;
+            if (GameState.mode !== 'online' && !window.isDisguisedBot()) return;
 
             turnEndTime = Date.now() + 60000;
             document.getElementById('turnTimerDisplay').style.display = 'inline';
@@ -1663,7 +1669,7 @@
             // Show/hide action buttons based on current player
             const isP1Turn = GameState.currentPlayer === 1;
             const isPvE = GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve';
-            const isOnline = GameState.mode === 'online';
+            const isOnline = GameState.mode === 'online' || window.isDisguisedBot();
             const localRole = window.localOnlineRole || 'host'; // Fix: Read from memory, not localStorage to avoid cross-tab pollution
             const isLocalP1 = !isOnline || localRole === 'host';
             const isLocalP2 = !isOnline || localRole === 'join';
@@ -1824,6 +1830,41 @@
             startTurnTimer();
         }
 
+        const battleResourceLabels = {
+            dodge: '閃避', dodge_inited: '閃避已啟動', defense_stacks: '減傷', oranges: '橘子', apple: '蘋果',
+            has_nuke: '原子彈', plan: '計畫進度', food: '食物', combo_chance: '連擊機率',
+            skill_chance: '技能機率', speed: '速度', crit_rate: '暴擊率', crit_mult: '暴擊倍率',
+            money: '金錢', money_passive_uses: '金錢被動次數', skill_count: '技能次數',
+            skill_counts: '各技能次數', hit_count: '命中次數', special_count: '特殊次數',
+            poem_count: '詩句數', eat_count: '進食次數', three_point_rate: '三分球機率',
+            research: '研究進度', drown_chance: '溺水機率', upgrade: '強化次數',
+            bao: '包', forward: '正向', reverse: '反向', hp_threshold_triggered: '血量條件已觸發',
+            breakthrough: '突破次數', gear: '檔位', blast_count: '爆發次數',
+            revive_chance_current: '目前復活機率', wear_chance: '磨損機率', broken: '已損壞',
+            summon_chance: '召喚機率', death_chance: '死亡機率', burden: '負擔',
+            huangai_atk_bonus: '攻擊加成', current_chance: '目前機率', tower_skill_uses: '技能使用次數',
+            apple_reached_max: '蘋果已達上限', san_triggered: '三已觸發', si_triggered: '四已觸發',
+            seventeen_triggered: '十七已觸發', revive_count: '復活次數',
+            dr_initialized: '減傷已啟動', entered: '已進場', prev_apples: '先前蘋果數',
+            tribal_buff_active: '部族增益已啟動', ts_dodge_set: '閃避已設定',
+            vs_char_buff_active: '對戰增益已啟動', hollow_purple: '茈',
+            hp_sacrificed: '已犧牲生命', sacrificed_hp: '已犧牲生命',
+            low_hp_buff_triggered: '低血量增益已觸發', missing_hp_bonus: '失血加成',
+            navy_buff_amount: '海軍增益', skill_count_all: '技能總次數',
+            poison: '中毒', burn: '灼燒', stun: '暈眩', sleep: '睡眠', silence: '沉默',
+            dodge_zero: '無法閃避', shield_dot: '護盾傷害', vulnerable: '易傷'
+        };
+
+        function battleResourceLabel(key) {
+            return battleResourceLabels[key] || (/[\u3400-\u9fff]/.test(String(key)) ? String(key) : '特殊狀態');
+        }
+
+        function battleResourceValue(value) {
+            if (value === true || value === 'true') return '已啟動';
+            if (value === false || value === 'false') return '未啟動';
+            return String(value);
+        }
+
         function updatePlayerCard(playerKey, prefix) {
             const player = GameState[playerKey];
             const card = player.battleCard;
@@ -1858,7 +1899,7 @@
             card.statusEffects.forEach(effect => {
                 const badge = document.createElement('span');
                 badge.className = `status-badge ${effect.type}`;
-                let text = effect.name || effect.type;
+                let text = battleResourceLabel(effect.name || effect.type);
 
                 if (effect.turns && effect.turns > 0 && !effect.permanent) {
                     text += ` (${effect.turns}回)`;
@@ -1869,7 +1910,7 @@
                 if (effect.hits !== undefined) {
                     text += ` [${effect.hits}次]`;
                 } else if (effect.value !== undefined && effect.type !== 'dot' && effect.type !== 'poison' && effect.type !== 'burn') {
-                    text += `: ${effect.value}`;
+                    text += `：${battleResourceValue(effect.value)}`;
                 } else if (effect.chance !== undefined) {
                     text += ` ${effect.chance}%`;
                 }
@@ -1884,9 +1925,9 @@
                     const badge = document.createElement('span');
                     badge.className = 'status-badge resource';
                     const resourceValue = value && typeof value === 'object'
-                        ? Object.entries(value).map(([name, amount]) => `${name} ${amount}`).join('、')
-                        : value;
-                    badge.textContent = `${key}: ${resourceValue}`;
+                        ? Object.entries(value).map(([name, amount]) => `${battleResourceLabel(name)} ${battleResourceValue(amount)}`).join('、')
+                        : battleResourceValue(value);
+                    badge.textContent = `${battleResourceLabel(key)}：${resourceValue}`;
                     statusDiv.appendChild(badge);
                 });
             }
@@ -1953,13 +1994,14 @@
                     // Strict disable: Not my turn OR cooldown OR silence
                     const onCooldown = card.cooldowns[idx] > 0;
                     const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    if (onCooldown) btn.classList.add('is-cooling');
                     btn.disabled = !isMyTurn || onCooldown || isSilenced;
 
                     btn.innerHTML = `
                         <div class="skill-name-modal">${skill.name}</div>
                         <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
                         <div class="skill-footer-modal">
-                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            <span class="skill-cd-modal">${onCooldown ? `冷卻中：${card.cooldowns[idx]} 回合` : `冷卻：${skill.cd} 回合`}</span>
                             ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
                         </div>
                     `;
@@ -2122,6 +2164,19 @@
                                         document.getElementById('networkWaitingOverlay').classList.remove('active');
                                     }
                                 } else {
+                                    if (p === 'player2' && window.isDisguisedBot()) {
+                                        const waiting = document.getElementById('networkWaitingOverlay');
+                                        document.getElementById('networkWaitingTitle').textContent = '等待對手替換角色...';
+                                        document.getElementById('networkWaitingText').textContent = '對手正在選擇替補角色';
+                                        document.getElementById('lobbyHostSection').classList.add('hidden');
+                                        document.getElementById('lobbyFriendsSection').classList.add('hidden');
+                                        document.getElementById('cancelLobbyBtn').style.display = 'none';
+                                        waiting.classList.remove('hidden');
+                                        waiting.classList.add('active');
+                                        try { await promptReplacement(p); }
+                                        finally { waiting.classList.remove('active'); waiting.classList.add('hidden'); }
+                                        continue;
+                                    }
                                     await promptReplacement(p);
                                 }
                             }
@@ -2143,8 +2198,8 @@
 
                 // Trigger AI if it's Player 2's turn in story mode or PvE
                 if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
-                    const isRanked = localStorage.getItem('isBotRankedMatch') === 'true';
-                    const delay = isRanked ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                    const isCompetitiveBot = window.isDisguisedBot();
+                    const delay = isCompetitiveBot ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
                     setTimeout(playAITurn, delay); // Wait a bit before AI acts
                 }
 
@@ -2399,11 +2454,13 @@
                             }
 
                             player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
-                            GameState.addLog(`${window.isDisguisedBot() ? '' : '[NPC] '}${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
+                        GameState.addLog(window.isDisguisedBot()
+                            ? `${player.name} 派遣 ${player.battleCard.name} 上場！`
+                            : `[NPC] ${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
                             updateUI();
                             updateBattleLog();
                             resolve();
-                        }, 1000); // Small delay for visual pacing
+                        }, window.isDisguisedBot() ? 1800 : 1000);
                         return;
                     }
                 }
@@ -2511,7 +2568,8 @@
 
                     // Trigger AI if it's Player 2's turn in story mode or PvE
                     if ((GameState.mode === 'tutorial' || GameState.mode === 'story' || GameState.type === 'pve') && GameState.currentPlayer === 2) {
-                        setTimeout(playAITurn, 1200); // Wait a bit before AI acts
+                        const delay = window.isDisguisedBot() ? (Math.floor(window.GameRandom() * 4000) + 3000) : 1200;
+                        setTimeout(playAITurn, delay);
                     }
                 };
                 optionsDiv.appendChild(div);

@@ -229,12 +229,13 @@ var MusicManager = {
         for (var i = 0; i < this.songs.length; i++) {
             var s = this.songs[i];
             var active = (i === this.currentIndex);
-            html += '<div onclick="MusicManager.playSong(' + i + ')" class="music-list-item' + (active ? ' active' : '') + '">' +
+            html += '<button type="button" onclick="MusicManager.playSong(' + i + ')" class="music-list-item' + (active ? ' active' : '') + '" aria-current="' + (active ? 'true' : 'false') + '">' +
+                    '<span class="music-list-item-index">' + String(i + 1).padStart(2, '0') + '</span>' +
                     '<div class="music-list-item-info">' +
                     '<span class="music-list-item-title">' + s.title + '</span>' +
                     '</div>' +
                     (active && this.isPlaying ? '<span class="music-playing-bars"><span></span><span></span><span></span></span>' : '') +
-                    '</div>';
+                    '</button>';
         }
         playlistEl.innerHTML = html;
     },

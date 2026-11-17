@@ -214,6 +214,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
+    <link rel="stylesheet" href="css/collection-music.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
@@ -229,14 +230,9 @@
     </div>
 
     <div class="team-page" id="teamPage" style="display:none;">
-        <div class="header-row">
-            <a href="index.html" class="back-btn">← 返回大廳</a>
-            <div class="page-title-block">
-                <div class="page-title">隊伍配置</div>
-                <div class="page-subtitle">Team Collection &amp; Compendium</div>
-            </div>
-            <div class="stats-bar" id="collectionStats">收集度: 0 / 0 (0%)</div>
-        </div>
+        <nav class="collection-nav"><a href="index.html">← 返回大廳</a><span>NEON CARD / YOUR ROSTER</span><a href="characters.html">完整圖鑑 ↗</a></nav>
+        <header class="collection-hero team-hero"><div class="collection-hero-copy"><span class="collection-kicker">BUILD YOUR LINEUP · 角色收藏</span><h1 class="page-title">隊伍<br><em>配置！</em></h1><p>檢視已擁有的角色，探索下一張想加入的王牌。</p><div class="collection-count" id="collectionStats">收集度: 0 / 0 (0%)</div></div><div class="collection-hero-art" aria-hidden="true"><span class="hero-burst">王牌<br>出擊</span><span class="hero-stamp">YOUR SQUAD</span></div></header>
+        <div class="collection-section-heading"><strong>我的角色 / COLLECTION</strong><span>點擊卡片查看技能</span></div>
 
         <label class="ink-collection-search">搜尋收藏<input id="collectionSearch" type="search" placeholder="輸入角色名稱或技能" oninput="renderCollection()"></label>
         <div class="filters-bar">
@@ -315,8 +311,9 @@
             const grid = document.getElementById('charGrid');
             grid.innerHTML = '';
             
-            const ownedNames = myProfile.unlockedCharacters || [];
-            document.getElementById('collectionStats').textContent = `收集度: ${ownedNames.length} / ${allChars.length} (${Math.round(ownedNames.length / allChars.length * 100)}%)`;
+            const ownedNames = Array.isArray(myProfile?.unlockedCharacters) ? myProfile.unlockedCharacters : [];
+            const ownedCount = allChars.filter(c => ownedNames.includes(c.name)).length;
+            document.getElementById('collectionStats').textContent = `收集度: ${ownedCount} / ${allChars.length} (${allChars.length ? Math.round(ownedCount / allChars.length * 100) : 0}%)`;
             
             let displayList = [...allChars];
             if(currentFilter === 'owned') displayList = displayList.filter(c => ownedNames.includes(c.name));
@@ -355,7 +352,7 @@
                         <span class="character-id">#${c.id || '?'}</span>
                         <span class="character-rarity ${rarityClass}">${rarityTrans}</span>
                     </div>
-                    ${c.emoji ? `<div style="font-size:2rem;text-align:center;margin:5px 0;">${c.emoji}</div>` : ''}
+                    <div class="collection-card-art" aria-hidden="true"><span>${c.emoji || c.name.slice(0, 1)}</span><b>NEON / ${String(c.id || 0).padStart(3, '0')}</b></div>
                     <div class="character-name">${c.name}</div>
                     <div class="character-stats">
                         <span class="stat"><span class="stat-label stat-hp">❤</span> ${hpVal}</span>
