@@ -322,6 +322,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink3">
+    <link rel="stylesheet" href="css/battle-manga.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink3"></script>
 </head>
 
@@ -1824,6 +1825,41 @@
             startTurnTimer();
         }
 
+        const battleResourceLabels = {
+            dodge: '閃避', dodge_inited: '閃避已啟動', defense_stacks: '減傷', oranges: '橘子', apple: '蘋果',
+            has_nuke: '原子彈', plan: '計畫進度', food: '食物', combo_chance: '連擊機率',
+            skill_chance: '技能機率', speed: '速度', crit_rate: '暴擊率', crit_mult: '暴擊倍率',
+            money: '金錢', money_passive_uses: '金錢被動次數', skill_count: '技能次數',
+            skill_counts: '各技能次數', hit_count: '命中次數', special_count: '特殊次數',
+            poem_count: '詩句數', eat_count: '進食次數', three_point_rate: '三分球機率',
+            research: '研究進度', drown_chance: '溺水機率', upgrade: '強化次數',
+            bao: '包', forward: '正向', reverse: '反向', hp_threshold_triggered: '血量條件已觸發',
+            breakthrough: '突破次數', gear: '檔位', blast_count: '爆發次數',
+            revive_chance_current: '目前復活機率', wear_chance: '磨損機率', broken: '已損壞',
+            summon_chance: '召喚機率', death_chance: '死亡機率', burden: '負擔',
+            huangai_atk_bonus: '攻擊加成', current_chance: '目前機率', tower_skill_uses: '技能使用次數',
+            apple_reached_max: '蘋果已達上限', san_triggered: '三已觸發', si_triggered: '四已觸發',
+            seventeen_triggered: '十七已觸發', revive_count: '復活次數',
+            dr_initialized: '減傷已啟動', entered: '已進場', prev_apples: '先前蘋果數',
+            tribal_buff_active: '部族增益已啟動', ts_dodge_set: '閃避已設定',
+            vs_char_buff_active: '對戰增益已啟動', hollow_purple: '茈',
+            hp_sacrificed: '已犧牲生命', sacrificed_hp: '已犧牲生命',
+            low_hp_buff_triggered: '低血量增益已觸發', missing_hp_bonus: '失血加成',
+            navy_buff_amount: '海軍增益', skill_count_all: '技能總次數',
+            poison: '中毒', burn: '灼燒', stun: '暈眩', sleep: '睡眠', silence: '沉默',
+            dodge_zero: '無法閃避', shield_dot: '護盾傷害', vulnerable: '易傷'
+        };
+
+        function battleResourceLabel(key) {
+            return battleResourceLabels[key] || (/[\u3400-\u9fff]/.test(String(key)) ? String(key) : '特殊狀態');
+        }
+
+        function battleResourceValue(value) {
+            if (value === true || value === 'true') return '已啟動';
+            if (value === false || value === 'false') return '未啟動';
+            return String(value);
+        }
+
         function updatePlayerCard(playerKey, prefix) {
             const player = GameState[playerKey];
             const card = player.battleCard;
@@ -1858,7 +1894,7 @@
             card.statusEffects.forEach(effect => {
                 const badge = document.createElement('span');
                 badge.className = `status-badge ${effect.type}`;
-                let text = effect.name || effect.type;
+                let text = battleResourceLabel(effect.name || effect.type);
 
                 if (effect.turns && effect.turns > 0 && !effect.permanent) {
                     text += ` (${effect.turns}回)`;
@@ -1869,7 +1905,7 @@
                 if (effect.hits !== undefined) {
                     text += ` [${effect.hits}次]`;
                 } else if (effect.value !== undefined && effect.type !== 'dot' && effect.type !== 'poison' && effect.type !== 'burn') {
-                    text += `: ${effect.value}`;
+                    text += `：${battleResourceValue(effect.value)}`;
                 } else if (effect.chance !== undefined) {
                     text += ` ${effect.chance}%`;
                 }
@@ -1884,9 +1920,9 @@
                     const badge = document.createElement('span');
                     badge.className = 'status-badge resource';
                     const resourceValue = value && typeof value === 'object'
-                        ? Object.entries(value).map(([name, amount]) => `${name} ${amount}`).join('、')
-                        : value;
-                    badge.textContent = `${key}: ${resourceValue}`;
+                        ? Object.entries(value).map(([name, amount]) => `${battleResourceLabel(name)} ${battleResourceValue(amount)}`).join('、')
+                        : battleResourceValue(value);
+                    badge.textContent = `${battleResourceLabel(key)}：${resourceValue}`;
                     statusDiv.appendChild(badge);
                 });
             }
@@ -1953,13 +1989,14 @@
                     // Strict disable: Not my turn OR cooldown OR silence
                     const onCooldown = card.cooldowns[idx] > 0;
                     const isSilenced = card.statusEffects.some(e => e.type === 'silence');
+                    if (onCooldown) btn.classList.add('is-cooling');
                     btn.disabled = !isMyTurn || onCooldown || isSilenced;
 
                     btn.innerHTML = `
                         <div class="skill-name-modal">${skill.name}</div>
                         <div class="skill-desc-modal">${skill.desc || '無描述'}</div>
                         <div class="skill-footer-modal">
-                            <span class="skill-cd-modal">${onCooldown ? `冷卻中: ${card.cooldowns[idx]}` : `冷卻: ${skill.cd}`}</span>
+                            <span class="skill-cd-modal">${onCooldown ? `冷卻中：${card.cooldowns[idx]} 回合` : `冷卻：${skill.cd} 回合`}</span>
                             ${isSilenced ? '<span class="skill-silence-modal">被沉默</span>' : ''}
                         </div>
                     `;

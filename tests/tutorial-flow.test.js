@@ -41,8 +41,8 @@ function makeTutorial() {
 test('guided actions follow the actual turn and modal events', async () => {
     const { tutorial: t, state, game, shown, storage } = makeTutorial();
     t.checkTrigger('onDrawCards');
-    assert.equal(shown.at(-1), 'click_close_draw');
-    t.onActionCompleted('click_close_draw');
+    assert.equal(shown.at(-1), 'draw_revealed');
+    t.onActionCompleted('draw_revealed');
     assert.equal(shown.at(-1), 'select_warrior');
     t.onActionCompleted('click_card', 1);
     assert.equal(t.currentStepIndex, 1, 'wrong first card must not advance');

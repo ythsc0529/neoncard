@@ -924,8 +924,9 @@ const BattleSystem = {
                     GameState.addLog(`${defender.name} 被沉默 ${effect.turns} 回合`, 'status');
                     break;
                 case 'sleep':
-                    defender.statusEffects.push({ type: 'sleep', name: '昏睡', turns: 99 });
+                    defender.statusEffects.push({ type: 'sleep', name: '昏睡', turns: 99, source: attacker.name });
                     GameState.addLog(`${defender.name} 陷入睡眠`, 'status');
+                    if (attacker.name === '神益州') await Animations.characterMoment('sleep', { character: defender.name, applied: true });
                     break;
                 case 'apply_excite': // 霍去病-用兵高手
                     attacker.statusEffects.push({ type: 'excite', name: '振奮', turns: effect.turns });
@@ -1139,6 +1140,7 @@ const BattleSystem = {
                         attacker.skills.push({ ...rSkill });
                         attacker.cooldowns[attacker.skills.length - 1] = 0;
                         GameState.addLog(`複製了 ${rSkill.name}！`, 'skill');
+                        if (attacker.name === '摳屎不累') await Animations.characterMoment('copy', { source: defender.name, skill: rSkill.name, target: attacker.name });
                     }
                     break;
                 case 'trade_hp_atk':
@@ -2736,16 +2738,20 @@ const BattleSystem = {
                         const p2Sb = GameState.player2.standbyCards;
                         const tbTarget = getCharacterByName(effect.target);
                         if (tbTarget) {
+                            const changes = [];
                             if (p1Sb.length > 0) {
                                 const idx1 = Math.floor(window.GameRandom() * p1Sb.length);
+                                changes.push({ player: GameState.player1.name, from: p1Sb[idx1].name, to: effect.target });
                                 p1Sb[idx1] = createCharacterInstance(tbTarget);
-                                GameState.addLog(`玩家1備戰區一張牌變成了 ${effect.target}`, 'skill');
+                                GameState.addLog(`${GameState.player1.name} 備戰區：${changes[changes.length - 1].from} 變成 ${effect.target}`, 'skill');
                             }
                             if (p2Sb.length > 0) {
                                 const idx2 = Math.floor(window.GameRandom() * p2Sb.length);
+                                changes.push({ player: GameState.player2.name, from: p2Sb[idx2].name, to: effect.target });
                                 p2Sb[idx2] = createCharacterInstance(tbTarget);
-                                GameState.addLog(`玩家2備戰區一張牌變成了 ${effect.target}`, 'skill');
+                                GameState.addLog(`${GameState.player2.name} 備戰區：${changes[changes.length - 1].from} 變成 ${effect.target}`, 'skill');
                             }
+                            if (attacker.name === '不平凡') await Animations.characterMoment('replace', { changes });
                         }
                     }
                     break;

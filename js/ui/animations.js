@@ -41,7 +41,11 @@ const Animations = {
         this.container.onclick = null; // Clear click handlers
     },
 
-    // Coin flip animation — 3D redesign
+    escapeText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    },
+
+    // Opening manga coin toss
     async coinFlip(forcedResult = null) {
         return new Promise(resolve => {
             this.show();
@@ -51,82 +55,29 @@ const Animations = {
             const name1 = (typeof GameState !== 'undefined' && GameState.player1?.name) ? GameState.player1.name : '玩家 1';
             const name2 = (typeof GameState !== 'undefined' && GameState.player2?.name) ? GameState.player2.name : '玩家 2';
 
-            // coinToss3D ends at rotateX(3600deg) — front face showing (even multiples of 360).
-            // We force the coin to show the correct face by setting a final rotation:
-            // Front face (player 1) = rotateX(3600deg), back face (player 2) = rotateX(3780deg).
-            // We do this by overriding the animation end via a CSS custom property on the element,
-            // then applying a final static transform after the animation ends.
-            const finalRotation = result === 1 ? 3600 : 3780; // 3780 = 3600+180 → back face
-
             this.container.innerHTML = `
-                <div class="coin-stage">
-                    <!-- Player VS row -->
-                    <div class="coin-vs-row">
-                        <div class="coin-player p1" id="coinP1">${name1}</div>
-                        <div class="coin-vs-label">VS</div>
-                        <div class="coin-player p2" id="coinP2">${name2}</div>
-                    </div>
-
-                    <!-- 3-D coin -->
-                    <div class="coin-3d-wrap">
-                        <div class="coin-3d tossing" id="coin3d">
-                            <!-- Front face = Player 1 -->
-                            <div class="coin-face coin-front">
-                                <div class="coin-face-rim"></div>
-                                <span class="coin-face-num">1</span>
-                            </div>
-                            <!-- Back face = Player 2 -->
-                            <div class="coin-face coin-back">
-                                <div class="coin-face-rim"></div>
-                                <span class="coin-face-num">2</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Result -->
-                    <div class="coin-result" id="coinResult">
-                        <span class="coin-result-name"
-                              style="color:${result === 1 ? 'var(--neon-cyan)' : 'var(--neon-magenta)'}">
-                            ${result === 1 ? name1 : name2}
-                        </span>
-                        <span class="coin-result-label">先手出擊！</span>
-                    </div>
+                <div class="manga-stage manga-coin-stage" role="status" aria-live="polite">
+                    <div class="manga-speedlines"></div>
+                    <div class="manga-issue">NEON CARD / 第一話</div>
+                    <div class="manga-heading">命運的一擲</div>
+                    <div class="manga-contenders"><span>${this.escapeText(name1)}</span><b>VS</b><span>${this.escapeText(name2)}</span></div>
+                    <div class="manga-coin-space"><div class="manga-coin" id="mangaCoin"><div class="manga-coin-front">1</div><div class="manga-coin-back">2</div></div></div>
+                    <div class="manga-coin-impact">鏘！</div>
+                    <div class="manga-coin-result"><small>先攻確定</small><strong>${this.escapeText(result === 1 ? name1 : name2)}</strong><span>先手出擊！</span></div>
+                    <div class="manga-progress"></div>
                 </div>
             `;
-
-            const coinEl = document.getElementById('coin3d');
-            const resultEl = document.getElementById('coinResult');
-            const p1El = document.getElementById('coinP1');
-            const p2El = document.getElementById('coinP2');
-
-            // After the toss animation ends, snap to exact face & fire land glow
+            const stage = this.container.querySelector('.manga-coin-stage');
+            const coinEl = stage.querySelector('.manga-coin');
             setTimeout(() => {
-                if (!coinEl) return;
-                // Set inline transform FIRST so there's no snap-back flicker
-                coinEl.style.transform = `rotateX(${finalRotation}deg)`;
-                coinEl.style.transition = 'none'; // no transition for the snap
-                // Small rAF to let the browser commit the inline style before removing the animation
-                requestAnimationFrame(() => {
-                    coinEl.classList.remove('tossing');
-                    coinEl.classList.add('landed');
-                });
-
-                // Highlight winner player badge
-                if (p1El && p2El) {
-                    (result === 1 ? p1El : p2El).classList.add('winner');
-                }
-
-                // Reveal result text slightly after
-                setTimeout(() => {
-                    if (resultEl) resultEl.classList.add('show');
-                }, 150);
-            }, 2400);
-
-            // Auto-close
+                if (!stage.isConnected) return;
+                coinEl.classList.add(result === 1 ? 'land-one' : 'land-two');
+                stage.classList.add('is-revealed');
+            }, 1900);
             setTimeout(() => {
                 this.hide();
                 resolve(result);
-            }, 4000);
+            }, 3500);
         });
     },
 
@@ -566,58 +517,70 @@ const Animations = {
         });
     },
 
+    // Character-specific manga panels. The result stays visible before play resumes.
+    async characterMoment(kind, details = {}) {
+        const scenes = {
+            sleep: { issue: '神益州 / 晚安', heading: details.awake ? '夢境破碎！' : details.applied ? '晚安，入夢。' : '還在夢中…', sfx: details.awake ? '醒！' : 'Zzz', accent: 'sleep' },
+            replace: { issue: '不平凡 / 註定平凡', heading: '命運改寫！', sfx: '換！', accent: 'replace' },
+            copy: { issue: '摳屎不累 / 寫輪眼', heading: '招式複製！', sfx: '映！', accent: 'copy' }
+        };
+        const scene = scenes[kind];
+        if (!scene) return;
+        const rows = kind === 'replace'
+            ? (details.changes || []).map(change => `<div class="manga-moment-row"><small>${this.escapeText(change.player)}</small><strong>${this.escapeText(change.from)}</strong><b>→</b><strong>${this.escapeText(change.to)}</strong></div>`).join('') || '<div class="manga-moment-row"><strong>雙方備戰區沒有角色可替換</strong></div>'
+            : kind === 'copy'
+                ? `<div class="manga-moment-row"><strong>${this.escapeText(details.source)}</strong><b>→</b><strong>${this.escapeText(details.skill)}</strong><b>→</b><strong>${this.escapeText(details.target)}</strong></div>`
+                : `<div class="manga-moment-row"><strong>${this.escapeText(details.character)}</strong><b>${details.awake ? '恢復行動' : details.applied ? '陷入睡眠' : '本回合無法行動'}</b></div>`;
+        return new Promise(resolve => {
+            this.show();
+            this.container.innerHTML = `<div class="manga-stage manga-moment manga-${scene.accent}" role="status" aria-live="assertive">
+                <div class="manga-speedlines"></div><div class="manga-issue">${scene.issue}</div>
+                <div class="manga-moment-sfx">${scene.sfx}</div><div class="manga-heading">${scene.heading}</div>
+                <div class="manga-moment-rows">${rows}</div><div class="manga-progress"></div></div>`;
+            const stage = this.container.querySelector('.manga-moment');
+            setTimeout(() => { if (stage.isConnected) stage.classList.add('is-revealed'); }, 350);
+            setTimeout(() => { if (stage.isConnected) this.hide(); resolve(); }, kind === 'replace' ? 2600 : 2200);
+        });
+    },
+
     // Card draw sequence
     async drawCards(cards) {
         return new Promise(resolve => {
+            if (!cards?.length) { resolve(); return; }
             this.show();
-
-            let html = '<div class="card-draw-area">';
+            let html = `<div class="manga-stage manga-draw-stage" role="status" aria-live="polite">
+                <div class="manga-speedlines"></div><div class="manga-issue">NEON CARD / 角色登場</div>
+                <div class="manga-heading">命運揭曉</div><div class="manga-draw-count">${cards.length} 張角色卡</div>
+                <div class="manga-draw-cards">`;
             cards.forEach((card, i) => {
                 html += `
-                    <div class="draw-card ${getRarityClass(card.rarity)}" data-card-index="${i}">
-                        <div class="card-front">
-                            <div style="font-size: 0.9rem; margin-bottom: 5px;">${getRarityName(card.rarity)}</div>
-                            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">${card.name}</div>
-                            <div style="font-size: 0.8rem;">HP: ${card.hp}</div>
-                            <div style="font-size: 0.8rem;">ATK: ${card.atk}</div>
-                        </div>
-                        <div class="card-back"></div>
+                    <div class="manga-draw-card ${getRarityClass(card.rarity)}" data-card-index="${i}" style="--card-index:${i}">
+                        <div class="manga-draw-back"><b>?</b><small>WHO'S NEXT?</small></div>
+                        <div class="manga-draw-front"><small>${this.escapeText(getRarityName(card.rarity))}</small>
+                            <strong>${this.escapeText(card.name)}</strong><span>HP ${this.escapeText(card.hp)} · ATK ${this.escapeText(card.atk)}</span></div>
                     </div>
                 `;
             });
-            html += '</div>';
-            html += '<p style="text-align: center; margin-top: 30px; color: var(--text-secondary);">點擊關閉</p>';
-
+            html += `</div><div class="manga-draw-verdict">角色已揭曉</div><div class="manga-progress"></div></div>`;
             this.container.innerHTML = html;
-
-            // Flip cards one by one
+            const stage = this.container.querySelector('.manga-draw-stage');
             cards.forEach((_, i) => {
                 setTimeout(() => {
-                    const card = document.querySelector(`[data-card-index="${i}"]`);
-                    if (card) {
-                        card.classList.add('flipping');
-                        setTimeout(() => {
-                            card.classList.remove('flipping');
-                            card.classList.add('revealed');
-                        }, 300);
-                    }
-                }, i * 400 + 500);
+                    if (stage.isConnected) stage.querySelector(`[data-card-index="${i}"]`)?.classList.add('revealed');
+                }, i * 330 + 650);
             });
-
-            // Tutorial hook
+            const revealEnd = (cards.length - 1) * 330 + 1250;
+            setTimeout(() => { if (stage.isConnected) stage.classList.add('is-revealed'); }, revealEnd);
             if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
                 setTimeout(() => TutorialSystem.checkTrigger('onDrawCards'), 500);
             }
-
-            // Click to close
-            this.container.onclick = () => {
-                this.container.onclick = null;
-                this.hide();
-                if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
-                    TutorialSystem.onActionCompleted('click_close_draw');
-                }
+            setTimeout(() => {
+                if (stage.isConnected) this.hide();
                 resolve();
-            };
+                if (typeof TutorialSystem !== 'undefined' && TutorialSystem.isActive) {
+                    setTimeout(() => TutorialSystem.onActionCompleted('draw_revealed'), 0);
+                }
+            }, revealEnd + 850);
         });
     },
 

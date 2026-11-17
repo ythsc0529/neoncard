@@ -525,8 +525,10 @@ const GameState = {
             if (window.GameRandom() < 0.5) {
                 card.statusEffects = card.statusEffects.filter(e => e !== sleep);
                 this.addLog(`${card.name} 甦醒了！`, 'status');
+                if (sleep.source === '神益州' && window.Animations?.characterMoment) await window.Animations.characterMoment('sleep', { character: card.name, awake: true });
             } else {
                 this.addLog(`${card.name} 還在睡眠中...`, 'status');
+                if (sleep.source === '神益州' && window.Animations?.characterMoment) await window.Animations.characterMoment('sleep', { character: card.name });
                 await this.endTurn();
                 return;
             }
