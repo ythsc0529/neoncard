@@ -11,18 +11,9 @@ const MatchmakingManager = (() => {
     let _timeout    = null;
     let _committed  = false; // guard: prevent double-commit
 
-    // ── Fake player name pool ─────────────────────────────────────────
-    const FAKE_NAMES = [
-        'StarBlade_77', 'NightWolf', 'AquaFox', 'SilverEcho', 'ZephyrX',
-        'CrimsonAce', 'DuskRider', 'IronVeil', 'LunarByte', 'ThunderEdge',
-        '霓虹劍客', '幽靈手牌', '星煌決鬥', '暗月行者', '閃電術士',
-        '赤焰王者', '冰晶智者', '神速閃擊', '午夜孤狼', '破曉戰士',
-        'V3n0m_GG', 'TurboDecK', 'Phr0st', 'Kairos_99', 'NebulaX',
-        '影速', '天穹牌師', '絕境逆轉', '虛空術士', 'ProPLayer2077'
-    ];
-
     function getRandomBotName() {
-        return FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
+        const names = Object.keys(window.NPC_PROFILES || {});
+        return names[Math.floor(Math.random() * names.length)] || '阿哲';
     }
 
     function genCode() {
@@ -153,7 +144,7 @@ const MatchmakingManager = (() => {
     function _commitBotMatch(botName, gameMode, myName) {
         localStorage.setItem('gameMode', 'pve');
         localStorage.setItem('gameType', 'pve');
-        localStorage.setItem('pveDifficulty', 'normal');
+        localStorage.setItem('pveDifficulty', 'hell');
         localStorage.setItem('botMatchName', botName);
         localStorage.setItem('fromCompetitiveMode', 'true');
         localStorage.setItem('onlineSubMode', gameMode);

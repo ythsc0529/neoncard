@@ -680,7 +680,7 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, Math.floor((attacker.maxHp - attacker.hp) * effect.value / 100));
                     break;
                 case 'damage_self_max_hp_percent':
-                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * (effect.value || effect.percent || 10) / 100));
+                    await this.applyDamage(attacker, defender, Math.floor(attacker.maxHp * (effect.percent ?? effect.value ?? 10) / 100));
                     break;
                 case 'damage_turn_hp_percent':
                     await this.applyDamage(attacker, defender, Math.floor(GameState.turnCount * attacker.hp * effect.percent / 100));
@@ -1027,6 +1027,9 @@ const BattleSystem = {
                         const inst = createCharacterInstance(ch);
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
                         GameState.addLog(`召喚了 ${inst.name}！`, 'skill');
+                        if (['殘骸', '半殘', '重傷'].includes(attacker.name) && ['半殘', '重傷', '受傷'].includes(inst.name)) {
+                            await window.SignatureMotion?.event('injuryChain', { from: attacker.name, name: inst.name });
+                        }
                         await Animations.drawCards([inst]);
                     }
                     break;
@@ -1036,7 +1039,8 @@ const BattleSystem = {
                         const inst = createCharacterInstance(categoryChar);
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
                         GameState.addLog(`獲得 ${inst.name}！`, 'skill');
-                        await Animations.drawCards([inst]);
+                        if (attacker.name === '機器母巢') await window.SignatureMotion?.event('machineNest', { name: inst.name });
+                        await Animations.drawCards([inst], { signature: attacker.name !== '機器母巢' });
                     }
                     break;
                 case 'summon_mahjong_choice':
@@ -1504,6 +1508,7 @@ const BattleSystem = {
                             const inst = createCharacterInstance(tea);
                             GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', inst);
                             GameState.addLog(`獲得 ${inst.name}！`, 'skill');
+                            await Animations.drawCards([inst]);
                         }
                     }
                     break;
@@ -2089,6 +2094,7 @@ const BattleSystem = {
                         const clone = createCharacterInstance(getCharacterByName(target.name));
                         GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', clone);
                         GameState.addLog(`複製了 ${target.name}！`, 'skill');
+                        if (attacker.name === '影印機') await window.SignatureMotion?.event('photocopy', { name: target.name });
                         await Animations.drawCards([clone]);
                     }
                     break;
@@ -2303,6 +2309,7 @@ const BattleSystem = {
                             if (tk) {
                                 oppState.standbyCards[idx] = createCharacterInstance(tk);
                                 GameState.addLog(`對手的 ${oldCard.name} 被變成了 ${effect.target}`, 'skill');
+                                if (attacker.name === '一般') await window.SignatureMotion?.event('ordinary', { from: oldCard.name, name: effect.target });
                             }
                         }
                     }
@@ -2677,7 +2684,7 @@ const BattleSystem = {
                             const spInst = createCharacterInstance(spChar);
                             GameState.addToStandby(GameState.currentPlayer === 1 ? 'player1' : 'player2', spInst);
                             GameState.addLog(`${attacker.name} 召喚了 ${effect.target}`, 'skill');
-                            await Animations.drawCards([spInst]);
+                            await Animations.drawCards([spInst], { signature: attacker.name !== '堯冥' });
                         }
                     }
                     break;
@@ -2702,6 +2709,7 @@ const BattleSystem = {
                         } else {
                             GameState.addLog(`沒有 ${targetName} 可以消耗`, 'status');
                         }
+                        if (attacker.name === '魔王') await window.SignatureMotion?.event('demonPeck', { count: consumed, heal: consumed * (effect.heal_per || 15) });
                     }
                     break;
 

@@ -97,6 +97,68 @@
   .ink-combat-banner { padding: 12px 20px; }
 }
 
+/* Shop draw: an actual comic book opens, flips, stops, and ejects each reward. */
+.gacha-book-scene { position: relative; display: grid; place-items: center; width: 100%; height: 100%; min-height: 330px; overflow: hidden; isolation: isolate; border: 4px solid #191919; background: #f7ce46; box-shadow: 7px 7px 0 #191919; }
+.gacha-book-scene::before { content: ''; position: absolute; inset: 0; background: radial-gradient(#19191944 1.5px, transparent 1.5px) 0 0 / 18px 18px; opacity: .45; }
+.gacha-book-rays { position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg at 50% 50%,#19191922 0deg 2deg,transparent 2deg 14deg); animation: gacha-rays 8s linear infinite; }
+.gacha-book-issue, .gacha-book-count { position: absolute; z-index: 5; top: 14px; padding: 5px 9px; border: 2px solid #191919; background: #fffdf7; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+.gacha-book-issue { left: 14px; }.gacha-book-count { right: 14px; }
+.gacha-book-hit { position: relative; z-index: 2; display: grid; place-items: center; width: min(82%,560px); height: min(75%,360px); padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
+.gacha-book-hit:focus-visible { outline: 4px solid #305bc7; outline-offset: 6px; }
+.gacha-book { position: relative; display: block; width: min(100%,500px); height: min(100%,310px); perspective: 1100px; filter: drop-shadow(12px 15px 0 #191919); transform: rotate(-3deg) scale(.7); transition: transform .55s cubic-bezier(.2,.85,.2,1); }
+.phase-flipping .gacha-book, .phase-land .gacha-book, .phase-eject .gacha-book { transform: rotate(-2deg) scale(1); }
+.gacha-book-spread { position: absolute; inset: 0; display: flex; border: 5px solid #191919; background: #fffdf7; transform: scaleX(.56); opacity: 0; transition: transform .55s,opacity .2s; }
+.phase-flipping .gacha-book-spread, .phase-land .gacha-book-spread, .phase-eject .gacha-book-spread { transform: scaleX(1); opacity: 1; }
+.gacha-manga-page { position: relative; display: grid; flex: 1; grid-template-rows: 1.3fr .8fr; gap: 8px; min-width: 0; overflow: hidden; padding: 16px; background: #fffdf7; }
+.gacha-book-left { border-right: 3px solid #191919; }
+.gacha-book-right { background: #eee8d7; }
+.gacha-page-folio { position: absolute; z-index: 2; right: 20px; bottom: 20px; padding: 2px 5px; background: #fffdf7; border: 1px solid #191919; font-size: 10px; font-weight: 900; }
+.gacha-manga-panel { position: relative; display: block; min-height: 0; overflow: hidden; border: 3px solid #191919; box-shadow: 2px 2px 0 #191919; }
+.gacha-panel-portrait { background: radial-gradient(circle at 68% 24%,#fffdf7 0 9%,transparent 10%),repeating-conic-gradient(from -12deg at 52% 70%,#19191920 0deg 2deg,transparent 2deg 15deg),#b9d4ef; }
+.gacha-panel-portrait::before { content: ''; position: absolute; left: 36%; top: 15%; width: 25%; height: 32%; border: 3px solid #191919; border-radius: 48% 48% 44% 44%; background: #fffdf7; transform: rotate(-12deg); }
+.gacha-panel-portrait::after { content: ''; position: absolute; left: 22%; bottom: -28%; width: 63%; height: 64%; border: 3px solid #191919; border-radius: 48% 48% 0 0; background: #305bc7; transform: rotate(-12deg); }
+.gacha-panel-action { background: repeating-linear-gradient(160deg,transparent 0 13px,#19191926 13px 16px,transparent 16px 25px),#f7ce46; }
+.gacha-panel-action::before { content: ''; position: absolute; left: 13%; top: 20%; width: 63%; height: 62%; border: 3px solid #191919; background: #e9472b; clip-path: polygon(0 15%,60% 0,100% 45%,78% 100%,24% 75%); transform: rotate(-16deg); }
+.gacha-panel-action::after { content: ''; position: absolute; left: 10%; top: 50%; width: 95%; height: 12px; border: 2px solid #191919; background: #fffdf7; transform: rotate(-28deg); }
+.gacha-panel-impact { background: repeating-conic-gradient(from 0deg at 53% 51%,#19191926 0deg 5deg,transparent 5deg 19deg),#fffdf7; }
+.gacha-panel-impact::before { content: ''; position: absolute; left: 22%; top: 12%; width: 55%; height: 78%; border: 3px solid #191919; background: #e9472b; clip-path: polygon(50% 0,61% 34%,100% 18%,70% 52%,95% 90%,57% 68%,32% 100%,34% 64%,0 51%,37% 42%); }
+.gacha-panel-impact::after { content: ''; position: absolute; left: 7%; bottom: 9%; width: 38%; height: 10px; background: #191919; transform: rotate(-20deg); }
+.gacha-book-cover { position: absolute; z-index: 6; top: 0; right: 25%; display: flex; flex-direction: column; justify-content: space-between; width: 50%; height: 100%; padding: 18px; border: 6px solid #191919; background: #e9472b; color: #fffdf7; box-shadow: 7px 8px 0 #191919; text-align: left; transform-origin: left center; transition: transform .58s,opacity .35s; backface-visibility: hidden; }
+.gacha-book-cover::before { content: ''; position: absolute; inset: 10px; border: 2px solid #fffdf7; pointer-events: none; }
+.gacha-book-cover small,.gacha-book-cover em { position: relative; z-index: 1; font-size: 11px; font-style: normal; font-weight: 900; letter-spacing: .08em; }
+.gacha-book-cover strong { position: relative; z-index: 1; font-size: clamp(35px,6vw,67px); line-height: 1; white-space: pre-line; text-shadow: 4px 4px 0 #191919; }
+.phase-flipping .gacha-book-cover,.phase-land .gacha-book-cover,.phase-eject .gacha-book-cover { transform: rotateY(-170deg); opacity: 0; pointer-events: none; }
+.gacha-book-leaf { position: absolute; z-index: 4; top: 5px; right: 5px; width: calc(50% - 5px); height: calc(100% - 10px); transform-origin: left center; transform-style: preserve-3d; opacity: 0; }
+.gacha-leaf-face { position: absolute; inset: 0; display: grid; grid-template-rows: 1.3fr .8fr; gap: 8px; min-width: 0; padding: 11px; border: 3px solid #191919; background: #fffdf7; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: inset 8px 0 12px #19191917; }
+.gacha-leaf-front { transform: rotateY(0deg); }
+.gacha-leaf-back { transform: rotateY(180deg); background: #eee8d7; box-shadow: inset -8px 0 12px #19191917; }
+.phase-flipping .gacha-book-leaf { opacity: 1; animation: gacha-page-flip .58s linear infinite; }
+.phase-flipping .leaf-one { z-index: 6; }.phase-flipping .leaf-two { z-index: 5; animation-delay: -.19s; }.phase-flipping .leaf-three { z-index: 4; animation-delay: -.38s; }
+.phase-land .leaf-one,.phase-eject .leaf-one { opacity: 1; transform: rotateY(-180deg); }
+.phase-land .leaf-one { animation: gacha-page-land .28s ease-out both; }
+.gacha-book-spine { position: absolute; z-index: 7; top: 3px; left: calc(50% - 4px); width: 8px; height: calc(100% - 6px); border: 2px solid #191919; background: #e9472b; opacity: 0; }
+.phase-flipping .gacha-book-spine,.phase-land .gacha-book-spine,.phase-eject .gacha-book-spine { opacity: 1; }
+.phase-land .gacha-book { animation: gacha-book-thump .28s both; }
+.phase-land .gacha-book-right,.phase-eject .gacha-book-right { background: #fff0a4; }
+.gacha-flying-card { position: absolute; z-index: 8; left: 50%; top: 49%; display: flex; flex-direction: column; justify-content: space-between; width: 155px; height: 210px; padding: 10px; border: 5px solid #191919; background: #fffdf7; box-shadow: 8px 8px 0 #191919; color: #191919; text-align: center; opacity: 0; transform: translate(-50%,-50%) scale(.15) rotate(-15deg); pointer-events: none; }
+.gacha-flying-card small { padding: 5px; border: 2px solid #191919; background: var(--fly-accent,#f7ce46); font-size: 13px; font-weight: 900; }
+.gacha-flying-card strong { align-self: center; font-size: 25px; line-height: 1.15; overflow-wrap: anywhere; }
+.gacha-flying-card span { padding: 4px; background: #191919; color: #fffdf7; font-size: 12px; font-weight: 900; }
+.phase-eject .gacha-flying-card { animation: gacha-card-eject 1.18s cubic-bezier(.16,.78,.3,1) both; }
+.gacha-book-sfx { position: absolute; z-index: 9; left: 58%; top: 19%; color: #e9472b; font-size: clamp(34px,7vw,75px); font-weight: 900; -webkit-text-stroke: 2px #191919; text-shadow: 5px 5px 0 #191919; transform: rotate(13deg) scale(.3); opacity: 0; pointer-events: none; }
+.phase-land .gacha-book-sfx,.phase-eject .gacha-book-sfx { animation: gacha-sfx-pop .5s both; }
+.gacha-book-instruction { position: absolute; z-index: 5; bottom: 22px; left: 50%; width: max-content; max-width: 90%; padding: 6px 12px; border: 2px solid #191919; background: #fffdf7; box-shadow: 3px 3px 0 #191919; font-size: 12px; font-weight: 900; text-align: center; transform: translateX(-50%); }
+.phase-land .gacha-book-instruction,.phase-eject .gacha-book-instruction { visibility: hidden; }
+.gacha-book-progress { position: absolute; z-index: 5; inset: auto 0 0; height: 8px; border-top: 2px solid #191919; background: #fffdf7; }
+.gacha-book-progress span { display: block; width: 0; height: 100%; background: #e9472b; transition: width .3s; }
+@keyframes gacha-rays { to { transform: rotate(35deg); } }
+@keyframes gacha-page-flip { 0% { transform: rotateY(0deg); } 82%,100% { transform: rotateY(-180deg); } }
+@keyframes gacha-page-land { from { transform: rotateY(-88deg); } to { transform: rotateY(-180deg); } }
+@keyframes gacha-book-thump { 50% { transform: rotate(-2deg) scale(1.08); } 100% { transform: rotate(-2deg) scale(1); } }
+@keyframes gacha-card-eject { 0% { opacity: 0; transform: translate(-50%,-35%) scale(.2) rotate(-18deg); } 18% { opacity: 1; transform: translate(-50%,-75%) scale(1.08) rotate(7deg); } 64% { opacity: 1; transform: translate(-50%,-72%) scale(1.12) rotate(-4deg); } 100% { opacity: 0; transform: translate(calc(-50% + 27vw),-115%) scale(.45) rotate(18deg); } }
+@keyframes gacha-sfx-pop { 0% { opacity: 0; transform: rotate(13deg) scale(.3); } 45%,85% { opacity: 1; transform: rotate(13deg) scale(1); } 100% { opacity: 0; transform: rotate(13deg) scale(1.25); } }
+@media(max-width:600px) { .gacha-book-hit { width: 94%; height: 72%; }.gacha-book { height: 205px; }.gacha-book-cover { padding: 10px; border-width: 4px; }.gacha-book-cover strong { font-size: 34px; }.gacha-manga-page { padding: 8px; gap: 5px; }.gacha-leaf-face { padding: 6px; gap: 5px; }.gacha-book-issue,.gacha-book-count { top: 8px; font-size: 9px; }.gacha-book-issue { left: 8px; }.gacha-book-count { right: 8px; }.gacha-flying-card { width: 132px; height: 182px; }.gacha-flying-card strong { font-size: 20px; }.gacha-book-instruction { font-size: 10px; bottom: 17px; } }
+
 /* Matchmaking: two-page manga confrontation. */
 .match-comic { width: min(92vw, 620px); max-width: 620px; padding: 0 0 20px; overflow: hidden; text-align: center; background: #fffdf7; }
 .match-comic-masthead { display: flex; justify-content: space-between; padding: 8px 16px; background: #191919; color: #fffdf7; font-size: 11px; font-weight: 900; letter-spacing: .12em; }

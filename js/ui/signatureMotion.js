@@ -92,7 +92,7 @@
         const scene = scenes[kind];
         if (!scene) return Promise.resolve();
         const layer = document.createElement('div');
-        layer.className = `signature-scene signature-${kind}`;
+        layer.className = `signature-scene signature-${kind}${scene.character ? ' character-signature' : ''}`;
         layer.dataset.phase = '0';
         layer.setAttribute('aria-hidden', 'true');
         layer.innerHTML = scene.markup(data);

@@ -32,6 +32,7 @@ function setup(reduced = false) {
     class Element {
         constructor() {
             this.className = ''; this.innerHTML = ''; this.children = []; this.dataset = {};
+            this.queries = new Map();
             this.style = { setProperty() {} }; this.attrs = {};
             this.classList = {
                 contains: name => this.className.split(' ').includes(name),
@@ -48,7 +49,8 @@ function setup(reduced = false) {
         getBoundingClientRect() { return { left: 100, top: 100, width: 160, height: 220 }; }
         querySelector(selector) {
             if (selector === '.gc-status.is-dupe') return this.innerHTML.includes('gc-status is-dupe') ? {} : null;
-            return new Element();
+            if (!this.queries.has(selector)) this.queries.set(selector, new Element());
+            return this.queries.get(selector);
         }
     }
     document.body = new Element();
@@ -56,13 +58,14 @@ function setup(reduced = false) {
     const window = { matchMedia: () => ({matches: reduced}), addEventListener() {} };
     const context = vm.createContext({ window, document, console, ...clock, innerWidth: 1000, innerHeight: 700 });
     vm.runInContext(read('js/ui/comicMotion.js'), context);
+    vm.runInContext(read('js/data/gachaData.js'), context);
     context.ComicMotion = window.ComicMotion;
     const shop = read('js/ui/shop.js');
     const config = shop.slice(shop.indexOf('const EXP_CONVERSION'), shop.indexOf('// ── Init'));
     vm.runInContext(`let gachaAnimState = null; let isAnimating = false; let activePoolId = 'general';
         function toggleUIButtons() {} function selectPool() {} function triggerHaptic() {}
         ${config}
-        ${shop.slice(shop.indexOf('function showGachaModal'), shop.indexOf('function triggerHaptic'))}
+        ${shop.slice(shop.indexOf('const GACHA_BOOK_COVERS'), shop.indexOf('function triggerHaptic'))}
         globalThis.getState = () => gachaAnimState;
         globalThis.getLocked = () => isAnimating;
         spawnComicPop = () => {};
@@ -71,16 +74,63 @@ function setup(reduced = false) {
 }
 const rewards = (count = 10) => Array.from({length: count}, (_,i) => ({type:'char',name:'角色'+i,rarity:i===count-1?'MYTHIC':'COMMON',isDupe:i===0}));
 
-test('full recruit sequence holds anticipation for 6.2 seconds, then reveals every reward once', () => {
-    const {context:c,clock} = setup();
-    c.showGachaModal(rewards());
+test('comic book cover shows the actual pool for all five draw types', () => {
+    const {context:c,elements} = setup();
+    const covers = [
+        ['general', '一般獎池', '一般\n獎池', '全角色招募特刊'],
+        ['science', '科學獎池', '科學\n獎池', '科學角色招募特刊'],
+        ['star', '新星特選', '新星\n特選', '新星角色招募特刊'],
+        ['titles', '皇民化運動 (稱號)', '皇民化\n運動', '稱號獎池特刊'],
+        ['evo', '進化之光 (神話/傳說)', '進化\n之光', '神話／傳說特刊']
+    ];
+    for (const [id, name, title, subtitle] of covers) {
+        c.showGachaModal(rewards(1), id);
+        const stage = elements.get('gachaStage');
+        assert.equal(c.getState().poolId, id);
+        assert.equal(stage.querySelector('.gacha-book-cover-label').textContent, 'NEON CARD / ' + name);
+        assert.equal(stage.querySelector('.gacha-book-cover-title').textContent, title);
+        assert.equal(stage.querySelector('.gacha-book-cover-subtitle').textContent, subtitle);
+        c.closeGachaModal();
+    }
+});
+
+test('comic book flips, stops, and ejects every reward before showing the result grid', () => {
+    const {context:c,clock,elements} = setup();
+    c.showGachaModal(rewards(2));
+    const bookMarkup = elements.get('gachaStage').innerHTML;
+    assert.match(bookMarkup, /gacha-leaf-front/);
+    assert.match(bookMarkup, /gacha-leaf-back/);
+    assert.match(bookMarkup, /gacha-manga-panel/);
+    assert.doesNotMatch(bookMarkup, /下一頁|是誰/);
     assert.equal(c.getLocked(), true);
-    clock.tick(6199); assert.equal(c.getState().opened, false);
-    clock.tick(1); assert.equal(c.getState().opened, true); assert.equal(c.getState().revealed, 0);
-    clock.tick(499); assert.equal(c.getState().revealed, 0);
-    clock.tick(1); assert.equal(c.getState().revealed, 1);
-    clock.tick(10000); assert.equal(c.getState().revealed, 10); assert.equal(c.getState().completed, true);
-    c.revealAll(); assert.equal(c.getState().revealed, 10);
+    clock.tick(649); assert.equal(c.getState().phase, 'intro');
+    clock.tick(1); assert.equal(c.getState().phase, 'flipping');
+    clock.tick(1600); assert.equal(c.getState().phase, 'land');
+    clock.tick(280); assert.equal(c.getState().phase, 'eject');
+    clock.tick(1220); assert.equal(c.getState().revealed, 1);
+    assert.equal(c.getState().phase, 'flipping');
+    clock.tick(3100); assert.equal(c.getState().revealed, 2);
+    assert.equal(c.getState().opened, true);
+    clock.tick(500); assert.equal(c.getState().completed, true);
+    c.revealAll(); assert.equal(c.getState().revealed, 2);
+});
+
+test('tapping the book stops the current page early without changing reward order', () => {
+    const {context:c,clock} = setup();
+    c.showGachaModal(rewards(2));
+    c.stopGachaPage(); assert.equal(c.getState().phase, 'intro');
+    clock.tick(650);
+    c.stopGachaPage(); c.stopGachaPage();
+    assert.equal(c.getState().phase, 'land');
+    clock.tick(1500);
+    assert.equal(c.getState().revealed, 1);
+    assert.equal(c.getState().cards[0].classList.contains('revealed'), true);
+    assert.equal(c.getState().cards[1].classList.contains('revealed'), false);
+    clock.tick(1600);
+    assert.equal(c.getState().phase, 'land');
+    clock.tick(2000);
+    assert.equal(c.getState().completed, true);
+    assert.equal(c.getState().revealed, 2);
 });
 
 test('skip, rapid repeated reveal and a new session cannot receive stale timers', () => {
@@ -106,13 +156,13 @@ test('closing during anticipation cancels all callbacks and restores focus and s
     assert.equal(document.activeElement, original); assert.equal(document.body.style.overflow, 'auto');
 });
 
-test('system reduced-motion setting still plays the full recruit sequence', () => {
+test('system reduced-motion setting still plays the complete comic book sequence', () => {
     const {context:c,clock} = setup(true);
     c.showGachaModal([]); assert.equal(c.getLocked(), false);
-    c.showGachaModal(rewards(1)); clock.tick(6199);
+    c.showGachaModal(rewards(1)); clock.tick(3749);
     assert.equal(c.getState().opened, false);
     clock.tick(1); assert.equal(c.getState().opened, true);
-    clock.tick(1200);
+    clock.tick(500);
     assert.equal(c.getState().completed, true); assert.equal(c.getState().revealed, 1);
 });
 

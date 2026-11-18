@@ -212,6 +212,13 @@ const GameState = {
 
             if (!revived) {
                 await this.processPassive(deadCard, 'on_death');
+                // Summoned equipment and minions belong to their living master.
+                // Remove them only after revival has definitively failed.
+                const before = player.standbyCards.length;
+                player.standbyCards = player.standbyCards.filter(card => card.passive?.effect?.master !== deadCard.name);
+                if (before !== player.standbyCards.length) {
+                    this.addLog(`${deadCard.name} 陣亡，附屬卡牌已消失`, 'status');
+                }
                 player.battleCard = null;
                 this.didSwapOrDie[playerKey] = true;
             }
@@ -525,10 +532,10 @@ const GameState = {
             if (window.GameRandom() < 0.5) {
                 card.statusEffects = card.statusEffects.filter(e => e !== sleep);
                 this.addLog(`${card.name} 甦醒了！`, 'status');
-                if (sleep.source === '神益州' && window.Animations?.characterMoment) await window.Animations.characterMoment('sleep', { character: card.name, awake: true });
+                if (sleep.source === '神益州' && typeof Animations !== 'undefined') await Animations.characterMoment('sleep', { character: card.name, awake: true });
             } else {
                 this.addLog(`${card.name} 還在睡眠中...`, 'status');
-                if (sleep.source === '神益州' && window.Animations?.characterMoment) await window.Animations.characterMoment('sleep', { character: card.name });
+                if (sleep.source === '神益州' && typeof Animations !== 'undefined') await Animations.characterMoment('sleep', { character: card.name });
                 await this.endTurn();
                 return;
             }
@@ -581,7 +588,7 @@ const GameState = {
         await this.processPassive(card, 'passive');
 
         // Process turn interval passives (every X turns)
-        this.processTurnIntervalPassives(card);
+        await this.processTurnIntervalPassives(card);
 
         // Reduce cooldowns for active card
         if (card.cooldowns) {
@@ -839,7 +846,7 @@ const GameState = {
                 }
                 break;
             case 'summon_chance':
-                if (trigger === 'on_attack') {
+                if (trigger === 'on_attack' || trigger === 'on_death') {
                     if (window.GameRandom() * 100 < effect.chance) {
                         const targetChar = getCharacterByName(effect.target);
                         if (targetChar) {
@@ -847,7 +854,8 @@ const GameState = {
                             const ownerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
                             this[ownerKey].standbyCards.push(inst);
                             this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${effect.target}`, 'skill');
-                            Animations.drawCards([inst]);
+                            if (card.name === '巔峰' && trigger === 'on_death') await window.SignatureMotion?.event('injuryChain', { from: card.name, name: inst.name });
+                            await Animations.drawCards([inst]);
                         }
                     }
                 }
@@ -899,15 +907,12 @@ const GameState = {
                 if (trigger === 'on_turn_start' || trigger === 'passive') {
                     const ownerP = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
                     const sb = this[ownerP].standbyCards;
-                    const r1 = sb.findIndex(c => c.name === effect.requires[0]);
-                    const r2 = sb.findIndex(c => c.name === effect.requires[1]);
-                    const r3 = sb.findIndex(c => c.name === effect.requires[2]);
-                    if (r1 !== -1 && r2 !== -1 && r3 !== -1) {
-                        const indices = [r1, r2, r3].sort((a, b) => b - a);
+                    const remaining = effect.requires.filter(name => name !== card.name);
+                    const indices = remaining.map(name => sb.findIndex(c => c.name === name));
+                    if (effect.requires.includes(card.name) && indices.every(index => index !== -1)) {
+                        indices.sort((a, b) => b - a);
                         indices.forEach(idx => sb.splice(idx, 1));
 
-                        // We will rely on window.BattleSystem in browser, we can't import dynamically in synchronous.
-                        // Wait, processPassive does not have BattleSystem? ProcessPassive is in GameState. In game, BattleSystem is global.
                         if (typeof BattleSystem !== 'undefined') {
                             await BattleSystem.evolveCharacter(card, effect.target);
                         } else {
@@ -921,7 +926,9 @@ const GameState = {
             case 'death_chance_range':
                 if (trigger === 'on_turn_start') {
                     const chance = Math.floor(window.GameRandom() * (effect.max - effect.min + 1)) + effect.min;
-                    if (window.GameRandom() * 100 < chance) {
+                    const fatal = window.GameRandom() * 100 < chance;
+                    if (card.name === '概率學') await window.SignatureMotion?.event('probabilityPassive', { chance, fatal });
+                    if (fatal) {
                         card.hp = 0;
                         this.addLog(`${card.name} 迎來了死亡的隨機性 (判定機率 ${chance}%)！`, 'damage');
                     } else {
@@ -1134,6 +1141,7 @@ const GameState = {
                     if (!card.resources) card.resources = {};
                     card.resources.breakthrough = (card.resources.breakthrough || 0) + 1;
                     this.addLog(`${card.name} 突破值 +1 (${card.resources.breakthrough}/${effect.limit})`, 'skill');
+                    await window.SignatureMotion?.event('wounded', { count: card.resources.breakthrough, limit: effect.limit, name: card.resources.breakthrough >= (effect.limit || 5) ? effect.target : '突破累積' });
                     if (card.resources.breakthrough >= (effect.limit || 5)) {
                         const ownerKey = this.player1.battleCard === card ? 'player1' : 'player2';
                         const targetChar = getCharacterByName(effect.target);
@@ -1141,7 +1149,7 @@ const GameState = {
                             const inst = createCharacterInstance(targetChar);
                             this[ownerKey].standbyCards.push(inst);
                             this.addLog(`${card.name} 突破極限，召喚了 ${effect.target}！`, 'skill');
-                            Animations.drawCards([inst]);
+                            await Animations.drawCards([inst]);
                         }
                         card.hp = 0;
                         this.addLog(`${card.name} 自我消耗殆盡！`, 'damage');
@@ -1229,6 +1237,7 @@ const GameState = {
                         const inst = createCharacterInstance(itemChar);
                         this[ownerKey].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：獲得了 ${item}`, 'skill');
+                        await window.SignatureMotion?.event('heroShop', { name: item });
                         await Animations.drawCards([inst]);
                     }
                 }
@@ -1377,6 +1386,7 @@ const GameState = {
                         const inst = createCharacterInstance(smChar);
                         this[ownerKey].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                        if (card.name === '魔王') await window.SignatureMotion?.event('demonCall', { name: inst.name });
                         await Animations.drawCards([inst]);
                     }
                 }
@@ -1458,6 +1468,7 @@ const GameState = {
                     const inst = createCharacterInstance(catChar);
                     this[catOwner].standbyCards.push(inst);
                     this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
+                    if (trigger === 'on_death' && effect.category === 'planet') await window.SignatureMotion?.event('planetDeath', { from: card.name, name: inst.name });
                     await Animations.drawCards([inst]);
                 }
                 break;
@@ -1683,6 +1694,7 @@ const GameState = {
                         const inst = createCharacterInstance(teaChar);
                         this[owner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動：對手是茶，額外召喚了 ${inst.name}`, 'skill');
+                        await Animations.drawCards([inst]);
                     }
                 }
                 break;
@@ -1699,6 +1711,7 @@ const GameState = {
                         const inst = createCharacterInstance(teaChar);
                         this[owner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動：成功清除閃避，召喚了 ${inst.name}`, 'skill');
+                        await Animations.drawCards([inst]);
                     }
                 }
                 break;
@@ -1804,7 +1817,7 @@ const GameState = {
     },
 
     // Process turn interval passives (called from processStartOfTurn)
-    processTurnIntervalPassives(card) {
+    async processTurnIntervalPassives(card) {
         if (!card || !card.passive) return;
         const effect = card.passive.effect;
         if (effect.trigger !== 'on_turn_interval') return;
@@ -1818,7 +1831,8 @@ const GameState = {
                         const inst = createCharacterInstance(targetChar);
                         this[owner].standbyCards.push(inst);
                         this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                        Animations.drawCards([inst]);
+                        if (card.name === '奧沙利文') await window.SignatureMotion?.event('snooker', { name: inst.name });
+                        await Animations.drawCards([inst], { signature: card.name !== '奧沙利文' });
                     }
                     break;
                 case 'summon_category': // 伽利略-天文天才 (summon_category action)

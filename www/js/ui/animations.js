@@ -568,7 +568,17 @@ const Animations = {
     },
 
     // Card draw sequence
-    async drawCards(cards) {
+    async drawCards(cards, options = {}) {
+        if (cards?.length === 1 && options.signature !== false && window.SignatureMotion?.event) {
+            const card = cards[0];
+            const tags = card.tags || [];
+            const name = card.name;
+            const kind = tags.includes('robot_part') ? 'robotParts'
+                : /摩托車/.test(name) ? 'motorcycle'
+                : ['籃球', '足球', '排球', '羽球', '高爾夫球', '撞球'].includes(name) ? 'ball'
+                : tags.includes('tea') || /茶$/.test(name) ? 'tea' : null;
+            if (kind) await window.SignatureMotion.event(kind, { name });
+        }
         return new Promise(resolve => {
             if (!cards?.length) { resolve(); return; }
             this.show();

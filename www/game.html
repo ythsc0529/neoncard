@@ -323,9 +323,16 @@
     <link rel="stylesheet" href="css/comic-ui.css?v=ink3">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink5">
     <link rel="stylesheet" href="css/signature-motion.css?v=2">
+    <link rel="stylesheet" href="css/character-signature-motion.css?v=1">
+    <style>
+        .battle-profile-overlay { position: fixed; inset: 0; z-index: 11000; background: #12131d; display: flex; flex-direction: column; }
+        .battle-profile-close { flex: none; align-self: flex-start; margin: max(10px, env(safe-area-inset-top)) 12px 10px; padding: 10px 18px; border: 3px solid #191919; background: #ffe15d; box-shadow: 4px 4px 0 #191919; color: #191919; font-family: inherit; font-size: 16px; font-weight: 900; cursor: pointer; }
+        .battle-profile-overlay iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: #12131d; }
+    </style>
     <link rel="stylesheet" href="css/battle-manga.css?v=2">
     <script src="js/ui/comicMotion.js?v=ink5"></script>
     <script src="js/ui/signatureMotion.js?v=2"></script>
+    <script src="js/ui/characterSignatureMotion.js?v=1"></script>
 </head>
 
 <body data-page="game">
@@ -736,6 +743,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/core/auth.js?v=2"></script>
+    <script src="js/data/botProfiles.js"></script>
     <script src="js/core/userProfile.js?v=2"></script>
     <script src="js/core/friends.js?v=2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -753,6 +761,7 @@
     <script src="js/data/characters.js"></script>
     <script src="js/core/tutorialSystem.js?v=manga2"></script>
     <script src="js/core/gameState.js?v=manga5"></script>
+    <script src="js/core/npcAI.js"></script>
     <script src="js/core/battleSystem.js?v=manga4"></script>
     <script src="js/ui/animations.js?v=manga5"></script>
     <script src="js/ui/soundManager.js"></script>
@@ -1277,8 +1286,10 @@
                         await showRankReveal();
                     }
 
-                    // NPC selects a random card
-                    GameState.setBattleCard('player2', Math.floor(window.GameRandom() * GameState.getCardCount()));
+                    // Hell opponents lead with their strongest available card.
+                    GameState.setBattleCard('player2', difficulty === 'hell'
+                        ? NpcAI.bestCardIndex(npcCards)
+                        : Math.floor(window.GameRandom() * GameState.getCardCount()));
 
                     // Player 1 draw, regardless of firstPlayer
                     selectionPhase = 'player1_draw';
@@ -2352,7 +2363,7 @@
                     const isSilenced = card.statusEffects.some(e => e.type === 'silence');
                     if (!isSilenced) {
                         card.skills.forEach((skill, idx) => {
-                            if (card.cooldowns[idx] <= 0) {
+                            if (card.cooldowns[idx] <= 0 && (!skill.speedCost || (card.resources?.speed || 0) >= skill.speedCost)) {
                                 availableSkills.push(idx);
                             }
                         });
@@ -2366,74 +2377,9 @@
 
                 // Smart AI Decisions based on difficulty
                 if (difficulty === 'hell') {
-                    // Try to retreat if low HP and have healthy standby
-                    const hpPercent = card.hp / card.maxHp;
-                    const opponentHpPercent = GameState.player1.battleCard ? GameState.player1.battleCard.hp / GameState.player1.battleCard.maxHp : 1;
-
-                    // More aggressive retreat: 100% chance if HP < 35% and opponent is not close to dying
-                    if (hpPercent < 0.35 && opponentHpPercent > 0.2 && GameState.player2.standbyCards.length > 0) {
-                        const healthyStandbys = GameState.player2.standbyCards.filter(c => c.hp / c.maxHp > 0.5);
-                        if (healthyStandbys.length > 0) {
-                            let bestIdx = 0;
-                            let maxScore = 0;
-                            GameState.player2.standbyCards.forEach((c, i) => {
-                                const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
-                                const score = c.hp + (baseAtk * 10);
-                                if (score > maxScore) { maxScore = score; bestIdx = i; }
-                            });
-                            actionType = 'retreat';
-                            skillIdx = bestIdx;
-                        }
-                    }
-
-                    if (actionType !== 'retreat') {
-                        const expectedAtk = typeof card.atk === 'object' ? Math.floor((card.atk.min + card.atk.max) / 2) : card.atk;
-                        const opponentCard = GameState.player1.battleCard;
-                        const totalOpponentHp = opponentCard ? (opponentCard.hp + opponentCard.shield) : 9999;
-
-                        // Categorize available skills
-                        const defensiveSkills = availableSkills.filter(idx =>
-                            card.skills[idx].desc.includes('保護') ||
-                            card.skills[idx].desc.includes('恢復') ||
-                            card.skills[idx].desc.includes('護盾') ||
-                            card.skills[idx].desc.includes('無敵') ||
-                            card.skills[idx].desc.includes('生命')
-                        );
-                        const offensiveSkills = availableSkills.filter(idx =>
-                            !defensiveSkills.includes(idx) && (
-                                card.skills[idx].desc.includes('傷害') ||
-                                card.skills[idx].desc.includes('攻擊') ||
-                                card.skills[idx].desc.includes('暈眩') ||
-                                card.skills[idx].desc.includes('中毒') ||
-                                card.skills[idx].desc.includes('燃燒')
-                            )
-                        );
-                        const otherSkills = availableSkills.filter(idx => !defensiveSkills.includes(idx) && !offensiveSkills.includes(idx));
-
-                        // 1. Kill confirmed with normal attack & we aren't about to die
-                        if (totalOpponentHp <= expectedAtk && hpPercent > 0.3) {
-                            actionType = 'attack';
-                        }
-                        // 2. High priority: Defensive skills when HP is low
-                        else if (hpPercent < 0.65 && defensiveSkills.length > 0) {
-                            actionType = 'skill';
-                            skillIdx = defensiveSkills[Math.floor(window.GameRandom() * defensiveSkills.length)];
-                        }
-                        // 3. Offensive skills when opponent has enough HP to warrant it
-                        else if (offensiveSkills.length > 0 && totalOpponentHp > expectedAtk) {
-                            actionType = 'skill';
-                            skillIdx = offensiveSkills[Math.floor(window.GameRandom() * offensiveSkills.length)];
-                        }
-                        // 4. Other skills (buffs, etc.) with a high chance
-                        else if (otherSkills.length > 0 && window.GameRandom() < 0.8) {
-                            actionType = 'skill';
-                            skillIdx = otherSkills[Math.floor(window.GameRandom() * otherSkills.length)];
-                        }
-                        // 5. Default to attack (e.g., HP is high so we skip defensive skills, or no skills left)
-                        else {
-                            actionType = 'attack';
-                        }
-                    }
+                    const decision = NpcAI.chooseAction(card, GameState.player1.battleCard, GameState.player2.standbyCards, availableSkills);
+                    actionType = decision.type;
+                    skillIdx = decision.index;
                 } else if (difficulty === 'hard') {
                     // Try to retreat if low HP and have healthy standby
                     const hpPercent = card.hp / card.maxHp;
@@ -2543,8 +2489,9 @@
                         setTimeout(() => {
                             let pickIdx = 0;
 
-                            // Hard & Hell mode picks the best character (highest combined HP+ATK)
-                            if (difficulty === 'hard' || difficulty === 'hell') {
+                            if (difficulty === 'hell') {
+                                pickIdx = NpcAI.bestCardIndex(player.standbyCards);
+                            } else if (difficulty === 'hard') {
                                 let maxScore = 0;
                                 player.standbyCards.forEach((c, idx) => {
                                     const baseAtk = typeof c.atk === 'object' ? Math.floor((c.atk.min + c.atk.max) / 2) : c.atk;
@@ -3048,10 +2995,37 @@
         }
 
         // Profile View Helpers
+        function openBattleProfile(uid) {
+            if (!uid) return;
+            // Keep the live battle page (and its peer connection) mounted while
+            // inspecting a profile. Some WebViews reuse the current tab for _blank.
+            const overlay = document.createElement('div');
+            overlay.className = 'battle-profile-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', '玩家資料');
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'battle-profile-close';
+            close.textContent = '← 返回戰鬥';
+            const frame = document.createElement('iframe');
+            frame.title = '玩家資料';
+            frame.src = `player.html?uid=${encodeURIComponent(uid)}`;
+            const onKey = event => { if (event.key === 'Escape') dismiss(); };
+            function dismiss() {
+                document.removeEventListener('keydown', onKey);
+                overlay.remove();
+            }
+            close.addEventListener('click', dismiss);
+            document.addEventListener('keydown', onKey);
+            overlay.append(close, frame);
+            document.body.appendChild(overlay);
+            close.focus();
+        }
         function viewMyProfile() {
             const user = AuthManager.getCurrentUser();
             if (user) {
-                window.open(`player.html?uid=${user.uid}`, '_blank');
+                openBattleProfile(user.uid);
             }
         }
 
@@ -3077,20 +3051,20 @@
             if (localStorage.getItem('isDisguisedBot') === 'true') {
                 const botName = localStorage.getItem('botMatchName');
                 if (botName) {
-                    window.open(`player.html?uid=NPC_${botName}`, '_blank');
+                    openBattleProfile(`NPC_${botName}`);
                     return;
                 }
             }
 
             if (opponentUid) {
-                window.open(`player.html?uid=${opponentUid}`, '_blank');
+                openBattleProfile(opponentUid);
                 return;
             }
 
             // Fallback for non-disguised bots or if info not yet received
             const botName = localStorage.getItem('botMatchName');
             if (botName) {
-                window.open(`player.html?uid=NPC_${botName}`, '_blank');
+                openBattleProfile(`NPC_${botName}`);
             }
         }
 
