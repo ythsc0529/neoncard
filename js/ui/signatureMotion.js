@@ -42,8 +42,8 @@
             markup: d => `<div class="sig-revive-pulse"></div><div class="sig-revive-fragment frag-a"></div><div class="sig-revive-fragment frag-b"></div><div class="sig-revive-fragment frag-c"></div><div class="sig-revive-fragment frag-d"></div><div class="sig-revive-card"><small>RETURN FROM ZERO / 復生</small><strong>${escape(d.name)}</strong></div><div class="sig-revive-line"></div><div class="sig-revive-word">復・活！</div>`
         },
         jobs: {
-            duration: 2150, cues: [[300, 1], [890, 2], [1570, 3]],
-            markup: d => `<div class="sig-jobs-apple">●<i></i></div><div class="sig-jobs-bite"></div><div class="sig-jobs-circuit"><i></i><i></i><i></i><i></i></div><div class="sig-jobs-screen"><small>ONE MORE THING / 創業</small><strong>${escape(d.to)}</strong></div><div class="sig-jobs-sfx">革新！</div>`
+            duration: 3200, cues: [[260, 1], [1030, 2], [1810, 3]],
+            markup: d => `<div class="rd-idea-paper"></div><div class="rd-idea-title">改變世界的三次靈感</div><div class="rd-idea-track"></div><div class="rd-era-card mac"><small>1984</small><div class="rd-macintosh"><i></i></div><b>Macintosh</b></div><div class="rd-era-card music"><small>2001</small><div class="rd-ipod"><i></i></div><b>iPod</b></div><div class="rd-era-card phone"><small>2007</small><div class="rd-iphone"><i></i></div><b>iPhone</b></div><div class="rd-idea-arrow a1">➜</div><div class="rd-idea-arrow a2">➜</div><div class="rd-idea-spark">✦</div><div class="rd-idea-stamp">再進化！</div><div class="rd-idea-name">${escape(d.to || '賈伯斯max')}</div>`
         },
         peter: {
             duration: 2200, cues: [[260, 1], [960, 2], [1630, 3]],
@@ -54,8 +54,8 @@
             markup: d => `<div class="sig-fighter-ring"></div><div class="sig-fighter-glove glove-left">拳</div><div class="sig-fighter-glove glove-right">王</div><div class="sig-fighter-crack"></div><div class="sig-fighter-belt"><small>CRITICAL ASCENSION</small><strong>${escape(d.to)}</strong></div><div class="sig-fighter-sfx">KO!</div>`
         },
         lich: {
-            duration: 2200, cues: [[270, 1], [1010, 2], [1660, 3]],
-            markup: d => `<div class="sig-lich-ground"></div><div class="sig-lich-bones"><i></i><i></i><i></i><i></i></div><div class="sig-lich-crown">♛</div><div class="sig-lich-eyes">● ●</div><div class="sig-lich-throne"><small>NECRO / 不死王權</small><strong>${escape(d.to)}</strong></div>`
+            duration: 3000, cues: [[270, 1], [1010, 2], [1660, 3]],
+            markup: d => `<div class="rd-chess-board"></div><div class="rd-grave g1">✝</div><div class="rd-grave g2">✝</div><div class="rd-grave g3">✝</div><div class="rd-bone-hand"><i></i><i></i><i></i></div><div class="rd-black-king">♚</div><div class="rd-lich-word">將・軍！</div><div class="rd-lich-name">${escape(d.to || '骷髏王')}</div>`
         },
         machine: {
             duration: 2150, cues: [[220, 1], [870, 2], [1570, 3]],
@@ -63,11 +63,11 @@
         },
         jet: {
             duration: 1700, cues: [[180, 1], [700, 2], [1250, 3]],
-            markup: d => `<div class="sig-jet-cloud cloud-a"></div><div class="sig-jet-cloud cloud-b"></div><div class="sig-jet-wing wing-left"></div><div class="sig-jet-wing wing-right"></div><div class="sig-jet-core">➤</div><div class="sig-jet-trail"></div><div class="sig-jet-name"><small>FORM SHIFT / 空中變形</small><strong>${escape(d.to)}</strong></div>`
+            markup: d => `<div class="rd-hangar-grid"></div><div class="rd-launch-rail"></div><div class="rd-k-fold left"></div><div class="rd-k-fold right"></div><div class="rd-k-core">K</div><div class="rd-jet-flight">➤</div><div class="rd-jet-trail"></div><div class="rd-jet-name">${escape(d.to || 'K型戰機')}・彈射升空</div>`
         },
         jetGuard: {
             duration: 1750, cues: [[230, 1], [810, 2], [1320, 3]],
-            markup: d => `<div class="sig-jet-guard-radar"><i></i><i></i><i></i></div><div class="sig-jet-guard-wing left"></div><div class="sig-jet-guard-wing right"></div><div class="sig-jet-guard-core">L</div><div class="sig-jet-guard-decoy">◆ ◆ ◆</div><div class="sig-jet-guard-name"><small>EVASION FORM / 誘餌展開</small><strong>${escape(d.to)}</strong></div>`
+            markup: d => `<div class="rd-stealth-grid"></div><div class="rd-l-core">L</div><div class="rd-l-wing"></div><div class="rd-missile m1">➤</div><div class="rd-missile m2">➤</div><div class="rd-decoy d1">◇</div><div class="rd-decoy d2">◇</div><div class="rd-decoy d3">◇</div><div class="rd-l-dodge">鎖定落空！</div><div class="rd-l-name">${escape(d.to || 'L型戰機')}・誘餌迴避</div>`
         },
         mutation: {
             duration: 1750, cues: [[230, 1], [760, 2], [1320, 3]],
@@ -75,15 +75,15 @@
         },
         empower: {
             duration: 1950, cues: [[200, 1], [830, 2], [1430, 3]],
-            markup: d => `<div class="sig-empower-bulb"><i></i></div><div class="sig-empower-meter"><span></span></div><div class="sig-empower-odds">20%</div><div class="sig-empower-split"><span>天才</span><b>命運</b><span>殞落</span></div><div class="sig-empower-result">${d.fatal ? '突然死亡！' : '存活！'}</div><div class="sig-empower-caption">賦能哥・天才少年</div>`
+            markup: d => `<div class="rd-genius-board">20%<small>命運考題</small></div><div class="rd-genius-desk">賦能哥</div><div class="rd-genius-paper">A　B　C　D　E</div><div class="rd-chance-door"></div><div class="rd-genius-bridge ${d.fatal ? 'fatal' : ''}"></div><div class="rd-genius-verdict ${d.fatal ? 'fatal' : 'safe'}">${d.fatal ? '命運落空！' : '通過命運！'}</div><div class="rd-genius-caption">天才少年・20% 生死判定</div>`
         },
         win: {
             duration: 2300, cues: [[260, 1], [930, 2], [1750, 3]],
             markup: d => `<div class="sig-win-burst"></div><div class="sig-win-ribbon ribbon-left"></div><div class="sig-win-ribbon ribbon-right"></div><div class="sig-win-crown">★</div><div class="sig-win-word">VICTORY!</div><div class="sig-win-name">${escape(d.winner)} 勝利！</div><div class="sig-win-chapter">FINAL CHAPTER / 勝利</div>`
         },
         loss: {
-            duration: 2350, cues: [[240, 1], [990, 2], [1780, 3]],
-            markup: d => `<div class="sig-loss-page page-a"></div><div class="sig-loss-page page-b"></div><div class="sig-loss-crack"></div><div class="sig-loss-word">DEFEAT</div><div class="sig-loss-name">${escape(d.winner)} 勝利</div><div class="sig-loss-next">TO BE CONTINUED / 再戰</div>`
+            duration: 3200, cues: [[240, 1], [990, 2], [1780, 3]],
+            markup: d => `<div class="rd-final-whistle">嗶——！</div><div class="rd-scoreboard"><small>FINAL / 終場</small><b>勝負已定</b></div><div class="rd-ink-flood"></div><div class="rd-loss-ticket"><strong>敗北</strong><small>DEFEAT</small></div><div class="rd-opponent">${escape(d.winner || '對手')} 勝利</div><div class="rd-next">翻頁・再戰</div>`
         }
     };
 
@@ -91,6 +91,9 @@
     function play(kind, data = {}) {
         const scene = scenes[kind];
         if (!scene) return Promise.resolve();
+        const pace = 1.5;
+        const lastReveal = Math.round(scene.cues.at(-1)[0] * pace);
+        const duration = Math.max(Math.round(scene.duration * pace), lastReveal + 1200);
         const layer = document.createElement('div');
         layer.className = `signature-scene signature-${kind}${scene.character ? ' character-signature' : ''}`;
         layer.dataset.phase = '0';
@@ -98,7 +101,7 @@
         layer.innerHTML = scene.markup(data);
         document.body.appendChild(layer);
         return new Promise(resolve => {
-            const timers = [...scene.cues, [scene.duration - 200, 4]].map(([at, phase]) => setTimeout(() => {
+            const timers = [...scene.cues.map(([at, phase]) => [Math.round(at * pace), phase]), [duration - 300, 4]].map(([at, phase]) => setTimeout(() => {
                 layer.dataset.phase = String(phase);
                 layer.classList.add(`phase-${phase}`);
             }, at));
@@ -106,7 +109,7 @@
                 timers.forEach(clearTimeout);
                 layer.remove();
                 resolve();
-            }, scene.duration));
+            }, duration));
         });
     }
     function enqueue(kind, data) {

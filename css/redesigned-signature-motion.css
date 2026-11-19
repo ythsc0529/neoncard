@@ -1,0 +1,307 @@
+/* Second-pass storyboards. Each scene keeps its own props and travel path. */
+.signature-scene [class^="rd-"] { position:absolute; box-sizing:border-box; font-weight:1000; }
+.signature-scene .cs-result { z-index:20;width:max-content;max-width:88%; }
+
+/* Motorcycle: traffic lights, starting gate, then a bike tears across the panel. */
+.signature-motorcycle { background:#f8d54b!important; }
+.rd-moto-street { inset:64% -10% 0; border-top:10px solid #171717; background:repeating-linear-gradient(105deg,#555 0 35px,#393939 35px 75px); transform:skewY(-6deg); }
+.rd-moto-street::after { content:"";position:absolute;top:55%;width:100%;border-top:8px dashed #fff; }
+.rd-moto-signal { left:7%;top:8%;width:13%;height:39%;border:8px solid #171717;background:#242424;box-shadow:8px 8px 0 #171717;display:grid;place-items:center; }
+.rd-moto-signal i { width:min(7vw,40px);aspect-ratio:1;border:4px solid #171717;border-radius:50%;background:#78332a; }
+.signature-motorcycle.phase-1 .rd-moto-signal i:last-child { background:#65e77c;box-shadow:0 0 30px #65e77c; }
+.rd-moto-gate { left:31%;top:8%;width:39%;height:50%;border:9px solid #171717;background:repeating-linear-gradient(0deg,#f33 0 19px,#fff 19px 38px);display:grid;place-items:center;font-size:clamp(35px,8vw,100px);transform-origin:top;transition:transform .5s; }
+.signature-motorcycle.phase-1 .rd-moto-gate { transform:rotateX(80deg); }
+.rd-moto-bike { left:-55%;top:48%;width:38%;height:29%;transition:left .7s cubic-bezier(.2,.9,.15,1),top .7s,transform .7s;z-index:3; }
+.rd-moto-bike b { position:absolute;left:19%;top:31%;width:62%;height:30%;border:7px solid #171717;background:#f34e42;clip-path:polygon(0 70%,22% 5%,83% 0,100% 80%,66% 100%); }
+.rd-moto-bike i { position:absolute;bottom:0;width:25%;aspect-ratio:1;border:8px solid #171717;border-radius:50%;background:#fff; }
+.rd-moto-bike i:nth-of-type(1) { left:8%; }.rd-moto-bike i:nth-of-type(2) { right:5%; }
+.rd-moto-rider { position:absolute;left:42%;top:-12%;font-size:clamp(80px,16vw,150px);color:#171717;line-height:1; }
+.signature-motorcycle.phase-1 .rd-moto-bike { left:17%; }
+.signature-motorcycle.phase-2 .rd-moto-bike { left:56%;top:28%;transform:rotate(-14deg) scale(1.22); }
+.rd-moto-rip { right:4%;top:11%;padding:4px 12px;border:7px solid #171717;background:#fff;font-size:clamp(30px,6vw,70px);transform:scale(0) rotate(18deg);transition:transform .4s;z-index:4; }
+.signature-motorcycle.phase-2 .rd-moto-rip { transform:scale(1) rotate(8deg); }
+
+/* Star inheritance: the old globe cracks, a seed arcs away, and the new world grows. */
+.signature-planetDeath { background:#101d39!important;color:#fff; }
+.rd-star-field { inset:0;background:radial-gradient(#fff 2px,transparent 3px);background-size:43px 47px;opacity:.4; }
+.rd-old-world,.rd-new-world { width:29%;aspect-ratio:1;border:9px solid #171717;border-radius:50%;display:grid;place-items:center;text-align:center;padding:8px;font-size:clamp(25px,5vw,62px);box-shadow:9px 9px 0 #171717; }
+.rd-old-world { left:8%;top:23%;background:#739ac8;transition:filter .6s,transform .6s; }.signature-planetDeath.phase-1 .rd-old-world { filter:grayscale(1);transform:rotate(-20deg) scale(.9); }
+.rd-world-crack { left:14%;top:27%;font-size:clamp(70px,16vw,170px);color:#ffdb48;opacity:0;transition:opacity .3s; }.signature-planetDeath.phase-1 .rd-world-crack { opacity:1; }
+.rd-star-seed { left:22%;top:42%;font-size:clamp(55px,12vw,130px);color:#ffdb48;text-shadow:0 0 24px #ffdb48;transition:left .8s cubic-bezier(.2,.7,.2,1),top .8s,transform .8s;z-index:2; }
+.signature-planetDeath.phase-2 .rd-star-seed { left:66%;top:21%;transform:scale(.55) rotate(180deg); }
+.rd-comet-trail { left:31%;top:34%;width:45%;height:25%;border-top:8px dashed #ffdb48;border-radius:50%;transform:rotate(-16deg) scaleX(0);transform-origin:left;transition:transform .7s; }.signature-planetDeath.phase-2 .rd-comet-trail { transform:rotate(-16deg) scaleX(1); }
+.rd-new-world { right:8%;top:18%;background:#f2a15a;transform:scale(.1);opacity:0;transition:transform .7s,opacity .3s; }.signature-planetDeath.phase-2 .rd-new-world { transform:scale(1);opacity:1; }
+.rd-orbit-caption { left:7%;bottom:25%;font-size:clamp(24px,5vw,55px);color:#ffdb48;transform:translateX(-100vw) rotate(-5deg);transition:transform .45s; }.signature-planetDeath.phase-3 .rd-orbit-caption { transform:translateX(0) rotate(-5deg); }
+
+/* Hero defense: three earned plates assemble, repel a bolt, then show healing. */
+.signature-heroShield { background:#98cce7!important; }
+.rd-shield-hero { left:7%;top:35%;width:27%;height:38%;border:9px solid #171717;border-radius:44% 44% 10% 10%;background:#ffdb48;display:grid;place-items:center;font-size:clamp(27px,6vw,65px);box-shadow:8px 8px 0 #171717; }
+.rd-shield-plate { left:45%;top:30%;width:20%;height:24%;border:8px solid #171717;background:#448fc0;clip-path:polygon(50% 0,100% 25%,90% 78%,50% 100%,10% 78%,0 25%);display:grid;place-items:center;font-size:clamp(24px,5vw,55px);transform:translateY(-90vh) rotate(65deg);transition:transform .65s cubic-bezier(.15,1.2,.2,1); }
+.rd-shield-plate.p2 { left:55%;top:43%;background:#62b4d0;transform:translateX(90vw) rotate(65deg); }.rd-shield-plate.p3 { left:36%;top:45%;background:#295b9c;transform:translateY(90vh) rotate(65deg); }
+.signature-heroShield.phase-1 .rd-shield-plate { transform:translate(0,0) rotate(0); }
+.rd-shield-bolt { right:-25%;top:42%;font-size:clamp(100px,20vw,220px);color:#f34e42;-webkit-text-stroke:5px #171717;transition:right .55s,transform .5s; }.signature-heroShield.phase-1 .rd-shield-bolt { right:7%; }.signature-heroShield.phase-2 .rd-shield-bolt { right:-30%;transform:rotate(160deg); }
+.rd-shield-impact { right:5%;top:8%;padding:4px 10px;border:6px solid #171717;background:#fff;color:#171717;font-size:clamp(38px,8vw,80px);transform:scale(0) rotate(-15deg);transition:transform .3s; }.signature-heroShield.phase-2 .rd-shield-impact { transform:scale(1) rotate(-15deg); }
+.rd-shield-heal { left:8%;bottom:25%;padding:8px 15px;border:6px solid #171717;background:#76d98c;font-size:clamp(23px,5vw,58px);transform:translateY(60vh);transition:transform .45s; }.signature-heroShield.phase-3 .rd-shield-heal { transform:translateY(0); }
+
+/* Hero run: rooftop jumps leave footprints while the incoming shot misses. */
+.signature-heroShoes { background:#b5eee4!important; }
+.rd-roof { bottom:15%;height:17%;border:8px solid #171717;background:repeating-linear-gradient(90deg,#3f6571 0 30px,#587a85 30px 60px); }.rd-roof.r1 { left:0;width:29%; }.rd-roof.r2 { left:39%;bottom:24%;width:24%; }.rd-roof.r3 { right:0;bottom:35%;width:27%; }
+.rd-runner { left:-28%;top:38%;width:25%;height:30%;border:8px solid #171717;border-radius:45% 45% 10% 10%;background:#ffdb48;display:grid;place-items:center;transition:left .6s,top .6s,transform .6s;z-index:3; }
+.rd-runner b { font-size:clamp(28px,5vw,55px); }.rd-runner i { position:absolute;bottom:-17%;font-size:clamp(50px,10vw,105px);font-style:normal;color:#f34e42;white-space:nowrap; }
+.signature-heroShoes.phase-1 .rd-runner { left:42%;top:25%;transform:rotate(-15deg); }.signature-heroShoes.phase-2 .rd-runner { left:75%;top:9%;transform:rotate(14deg) scale(.8); }
+.rd-projectile { right:-25%;top:49%;font-size:clamp(90px,19vw,200px);color:#f34e42;-webkit-text-stroke:4px #171717;transition:right .6s; }.signature-heroShoes.phase-1 .rd-projectile { right:36%; }.signature-heroShoes.phase-2 .rd-projectile { right:78%; }
+.rd-footprints { left:4%;top:53%;font-size:clamp(35px,8vw,85px);color:#171717;opacity:0;transform:rotate(-16deg); }.signature-heroShoes.phase-2 .rd-footprints { opacity:.5; }
+.rd-dodge { left:7%;top:10%;font-size:clamp(60px,15vw,160px);color:#f34e42;-webkit-text-stroke:4px #171717;transform:scale(0) rotate(-20deg);transition:transform .4s; }.signature-heroShoes.phase-2 .rd-dodge { transform:scale(1) rotate(-9deg); }
+
+/* Demon call: a quill signs the summoning contract and releases two minions. */
+.signature-demonCall { background:#251630!important;color:#fff; }
+.rd-contract { left:18%;top:8%;width:64%;height:57%;border:10px solid #171717;background:#f2dcb8;color:#171717;box-shadow:12px 12px 0 #cf3e70;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:12px;transform:translateY(-90vh) rotate(-8deg);transition:transform .6s; }.signature-demonCall.phase-1 .rd-contract { transform:translateY(0) rotate(-5deg); }
+.rd-contract small { font-size:clamp(20px,4vw,46px); }.rd-contract b { font-size:clamp(65px,14vw,150px); }.rd-contract em { font-size:clamp(28px,6vw,65px);color:#b63358; }
+.rd-quill { right:-10%;top:0;font-size:clamp(120px,25vw,270px);color:#c958e0;transition:right .7s,top .7s,transform .7s; }.signature-demonCall.phase-1 .rd-quill { right:22%;top:27%;transform:rotate(-20deg); }.signature-demonCall.phase-2 .rd-quill { right:-30%;top:70%; }
+.rd-demon-seal { left:43%;top:31%;font-size:clamp(80px,18vw,190px);color:#c62956;transform:scale(0) rotate(-45deg);transition:transform .4s; }.signature-demonCall.phase-2 .rd-demon-seal { transform:scale(1) rotate(0); }
+.rd-minion { bottom:-40%;width:22%;aspect-ratio:1;border:8px solid #171717;border-radius:50% 50% 15% 15%;background:#9b53bd;color:#fff;display:grid;place-items:center;font-size:clamp(45px,10vw,110px);transition:bottom .6s,left .6s,right .6s;box-shadow:6px 6px 0 #171717; }.rd-minion.m1 { left:12%; }.rd-minion.m2 { right:12%; }.signature-demonCall.phase-2 .rd-minion { bottom:22%; }
+
+/* Demon peck: essence is counted, pulled into the heart, then returns as HP. */
+.signature-demonPeck { background:#371a3e!important;color:#fff; }
+.rd-demon-heart { left:38%;top:22%;font-size:clamp(180px,36vw,370px);line-height:1;color:#e94d73;-webkit-text-stroke:9px #171717;transform:scale(.55);transition:transform .55s; }.signature-demonPeck.phase-2 .rd-demon-heart { transform:scale(1.15); }
+.rd-essence { width:18%;aspect-ratio:1;border:7px solid #171717;border-radius:50%;background:#aa6bd8;display:grid;place-items:center;font-size:clamp(40px,8vw,90px);transition:left .65s,top .65s,right .65s,transform .65s,opacity .65s; }.rd-essence.e1 { left:4%;top:16%; }.rd-essence.e2 { right:4%;top:12%; }.rd-essence.e3 { left:10%;bottom:10%;background:#ffdb48;color:#171717; }
+.signature-demonPeck.phase-1 .rd-essence.e1 { left:27%;top:30%; }.signature-demonPeck.phase-1 .rd-essence.e2 { right:27%;top:30%; }.signature-demonPeck.phase-1 .rd-essence.e3 { left:37%;transform:translateY(-30vh); }
+.signature-demonPeck.phase-2 .rd-essence { transform:scale(.1);opacity:0; }
+.signature-demonPeck.phase-2 .rd-essence.e3 { transform:scale(.1); }
+.rd-vein { left:19%;top:53%;width:62%;height:8%;border:7px solid #171717;background:repeating-linear-gradient(90deg,#e94d73 0 22px,#fff 22px 44px);transform:scaleX(0);transition:transform .6s; }.signature-demonPeck.phase-2 .rd-vein { transform:scaleX(1); }
+.rd-heartbeat { left:50%;top:12%;padding:8px 18px;border:8px solid #171717;background:#76d98c;color:#171717;font-size:clamp(40px,9vw,100px);white-space:nowrap;transform:translate(-50%,-80vh);transition:transform .5s; }.signature-demonPeck.phase-3 .rd-heartbeat { transform:translate(-50%,0); }
+
+/* Mady: a stopped clock splits the court into a personal buff and enemy error. */
+.signature-mady { background:#f7be69!important; }
+.rd-mady-court { inset:0;background:linear-gradient(112deg,#f3b75e 0 50%,#413257 50%);border:16px solid #171717; }
+.rd-mady-whistle { left:50%;top:3%;padding:6px 20px;border:8px solid #171717;background:#fff;font-size:clamp(35px,6vw,70px);white-space:nowrap;transform:translate(-50%,-80vh) rotate(-8deg);transition:transform .5s; }.signature-mady.phase-1 .rd-mady-whistle { transform:translate(-50%,0) rotate(-8deg); }
+.rd-mady-self,.rd-mady-foe { top:36%;width:28%;height:26%;border:8px solid #171717;border-radius:50%;display:grid;place-items:center;font-size:clamp(28px,6vw,65px);box-shadow:8px 8px 0 #171717; }.rd-mady-self { left:9%;background:#ffdb48; }.rd-mady-foe { right:9%;background:#b6a7c6;color:#fff; }
+.rd-mady-beam { left:45%;top:34%;height:35%;width:10%;background:#fff;clip-path:polygon(50% 0,100% 100%,0 100%);transform:scaleY(0);transition:transform .5s; }.signature-mady.phase-2 .rd-mady-beam { transform:scaleY(1); }
+.rd-mady-buff,.rd-mady-error { top:17%;padding:12px;border:7px solid #171717;font-size:clamp(20px,4vw,48px);line-height:1.25;box-shadow:6px 6px 0 #171717;transform:scale(0) rotate(-12deg);transition:transform .5s; }.rd-mady-buff { left:4%;background:#75df9d; }.rd-mady-error { right:4%;background:#ff6b68;color:#171717; }.rd-mady-error small { display:block;font-size:.48em; }
+.signature-mady.phase-3 .rd-mady-buff,.signature-mady.phase-3 .rd-mady-error { transform:scale(1) rotate(-4deg); }
+
+/* Peak: limit bands snap one by one and a gauge reveals the exact buff. */
+.signature-peak { background:#e6dcc7!important; }
+.rd-peak-gauge { left:5%;top:8%;width:31%;padding:8px;border:8px solid #171717;background:#fff;display:grid;text-align:center;box-shadow:7px 7px 0 #171717; }.rd-peak-gauge span { font-size:clamp(16px,3vw,32px); }.rd-peak-gauge b { font-size:clamp(70px,15vw,160px);color:#d33d30; }
+.rd-peak-figure { left:40%;top:15%;width:28%;height:62%;border:10px solid #171717;border-radius:50% 50% 8% 8%;background:#3b3b3b;color:#fff;display:grid;place-items:center;font-size:clamp(35px,8vw,85px);box-shadow:10px 10px 0 #171717;transform:scale(.8);transition:transform .6s; }.signature-peak.phase-2 .rd-peak-figure { transform:scale(1.1);background:#d54231; }
+.rd-peak-band { left:33%;width:45%;height:9%;border:7px solid #171717;background:#9b9b9b;transform:rotate(-16deg);transition:transform .6s,opacity .4s; }.rd-peak-band.b1 { top:29%; }.rd-peak-band.b2 { top:45%; }.rd-peak-band.b3 { top:61%; }
+.signature-peak.phase-1 .rd-peak-band.b1 { transform:translate(-50vw,-30vh) rotate(-60deg);opacity:0; }.signature-peak.phase-2 .rd-peak-band { transform:translate(70vw,-40vh) rotate(50deg);opacity:0; }
+.signature-peak.phase-2 .rd-peak-band.b1 { transform:translate(70vw,-40vh) rotate(50deg); }
+.rd-peak-burst { right:3%;top:6%;font-size:clamp(40px,7vw,80px);color:#e34532;-webkit-text-stroke:3px #171717;transform:scale(0) rotate(15deg);transition:transform .4s; }.signature-peak.phase-2 .rd-peak-burst { transform:scale(1) rotate(9deg); }
+.rd-peak-stats { left:5%;bottom:25%;padding:9px;border:7px solid #171717;background:#ffdb48;font-size:clamp(22px,5vw,54px);transform:translateX(-100vw);transition:transform .5s; }.signature-peak.phase-3 .rd-peak-stats { transform:translateX(0); }
+
+/* Probability zero: status slips are processed, shredded, and rejected. */
+.signature-probabilityZero { background:#d8e8ed!important; }
+.rd-zero-ledger { left:15%;top:10%;width:70%;height:62%;border:10px solid #171717;background:#fff;box-shadow:10px 10px 0 #171717;padding:15px;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:center;gap:12px;transform:translateY(-90vh);transition:transform .5s; }.signature-probabilityZero.phase-1 .rd-zero-ledger { transform:translateY(0); }
+.rd-zero-ledger small { width:100%;text-align:center;font-size:clamp(17px,3vw,34px); }.rd-zero-ledger span { border:5px solid #171717;background:#f96d65;padding:5px 12px;font-size:clamp(25px,5vw,55px); }
+.rd-zero-roller { left:50%;top:36%;padding:6px 20px;border:10px solid #171717;background:#ffdb48;font-size:clamp(80px,18vw,190px);white-space:nowrap;transform:translate(-50%,-50%) scale(0);transition:transform .5s; }.signature-probabilityZero.phase-2 .rd-zero-roller { transform:translate(-50%,-50%) scale(1) rotate(-7deg); }
+.rd-zero-shred { left:22%;top:46%;font-size:clamp(100px,22vw,230px);color:#171717;opacity:0;transform:rotate(-15deg); }.signature-probabilityZero.phase-2 .rd-zero-shred { opacity:.7; }
+.rd-zero-verdict { left:50%;top:12%;padding:8px 20px;border:9px double #d52e32;background:#fff;color:#d52e32;font-size:clamp(40px,10vw,110px);white-space:nowrap;transform:translate(-50%,-80vh) rotate(-10deg);transition:transform .5s; }.signature-probabilityZero.phase-3 .rd-zero-verdict { transform:translate(-50%,0) rotate(-10deg); }
+
+/* Brownian motion: a microscope zooms into six independent collision paths. */
+.signature-brownian { background:#d8f2ee!important; }
+.rd-micro-lens { left:20%;top:5%;width:60%;aspect-ratio:1;border:18px solid #171717;border-radius:50%;background:radial-gradient(circle,#fff 0 7%,#9bd9d1 8% 100%);box-shadow:10px 10px 0 #171717;transform:scale(.4);transition:transform .6s; }.signature-brownian.phase-1 .rd-micro-lens { transform:scale(1); }
+.rd-particle { font-size:clamp(55px,10vw,110px);-webkit-text-stroke:4px #171717;transition:transform .75s cubic-bezier(.5,-.3,.5,1.3); }.rd-particle.p1 { left:26%;top:20%;color:#f45c52; }.rd-particle.p2 { left:55%;top:17%;color:#ffdb48; }.rd-particle.p3 { left:38%;top:32%;color:#55b5d9; }.rd-particle.p4 { left:66%;top:40%;color:#f45c52; }.rd-particle.p5 { left:28%;top:48%;color:#ffdb48; }.rd-particle.p6 { left:53%;top:57%;color:#55b5d9; }
+.signature-brownian.phase-1 .p1 { transform:translate(16vw,15vh); }.signature-brownian.phase-1 .p2 { transform:translate(-18vw,13vh); }.signature-brownian.phase-1 .p3 { transform:translate(23vw,-12vh); }.signature-brownian.phase-1 .p4 { transform:translate(-20vw,-8vh); }.signature-brownian.phase-1 .p5 { transform:translate(10vw,-20vh); }.signature-brownian.phase-1 .p6 { transform:translate(-14vw,-16vh); }
+.signature-brownian.phase-2 .p1 { transform:translate(34vw,-8vh); }.signature-brownian.phase-2 .p2 { transform:translate(-34vw,30vh); }.signature-brownian.phase-2 .p3 { transform:translate(-12vw,25vh); }.signature-brownian.phase-2 .p4 { transform:translate(-36vw,11vh); }.signature-brownian.phase-2 .p5 { transform:translate(30vw,-31vh); }.signature-brownian.phase-2 .p6 { transform:translate(8vw,-34vh); }
+.rd-micro-collision { left:39%;top:24%;font-size:clamp(60px,13vw,140px);color:#f34e42;-webkit-text-stroke:4px #171717;transform:scale(0) rotate(-15deg);transition:transform .4s; }.signature-brownian.phase-2 .rd-micro-collision { transform:scale(1) rotate(-8deg); }
+.rd-random-damage { right:4%;bottom:23%;padding:8px 16px;border:8px solid #171717;background:#ffdb48;text-align:center;font-size:clamp(25px,5vw,55px);transform:translateX(90vw);transition:transform .5s; }.signature-brownian.phase-3 .rd-random-damage { transform:translateX(0); }
+
+/* Focused adjustments: align the object motion with the action it represents. */
+.cs-product { right:-40%;top:51%;padding:8px 16px;border:7px solid #171717;background:#ffdb48;font-size:clamp(30px,6vw,70px);transform:rotate(-8deg);transition:right .55s; }.signature-robotParts.phase-3 .cs-product { right:8%; }
+.signature-basketball .cs-basketball { transition:left .6s cubic-bezier(.3,.1,.5,1),top .6s cubic-bezier(.3,.1,.5,1),transform .6s; }
+.signature-basketball.phase-1 .cs-basketball { left:49%;top:20%;transform:scale(.8); }.signature-basketball.phase-2 .cs-basketball { left:74%;top:34%;transform:scale(.55); }
+.cs-swish { right:14%;top:48%;font-size:clamp(50px,11vw,105px);color:#fff;-webkit-text-stroke:2px #171717;transform:scale(0) rotate(-20deg);transition:transform .35s; }.signature-basketball.phase-2 .cs-swish { transform:scale(1) rotate(-12deg); }
+.signature-heroSword .cs-hammer { left:20%;top:-5%;transform:rotate(-60deg);transform-origin:70% 20%; }.signature-heroSword.phase-1 .cs-hammer { transform:rotate(30deg) translate(8vw,13vh); }.signature-heroSword .cs-sword { left:43%;top:35%; }.signature-heroSword.phase-2 .cs-sword { transform:scale(1.3) rotate(-15deg); }
+.cs-forge-hit { left:39%;top:29%;font-size:clamp(55px,12vw,130px);color:#fff;-webkit-text-stroke:2px #171717;transform:scale(0) rotate(-20deg);transition:transform .3s; }.signature-heroSword.phase-1 .cs-forge-hit { transform:scale(1) rotate(-12deg); }
+.cs-atk-gain { right:6%;top:16%;padding:8px 15px;border:7px solid #171717;background:#ffdb48;font-size:clamp(30px,6vw,70px);transform:translateY(-70vh);transition:transform .5s; }.signature-heroSword.phase-3 .cs-atk-gain { transform:translateY(0); }
+.signature-probabilityTheory .cs-equation { left:8%;font-size:clamp(50px,11vw,120px); }.signature-probabilityTheory .cs-curve { left:18%;top:49%;width:63%; }.cs-curve-dot { left:20%;top:63%;width:25px;aspect-ratio:1;border:5px solid #171717;border-radius:50%;background:#e33c3c;transition:left .6s,top .6s; }.signature-probabilityTheory.phase-2 .cs-curve-dot { left:73%;top:47%; }.signature-probabilityTheory .cs-multiplier { top:59%;font-size:clamp(35px,7vw,80px); }
+.signature-ordinary .cs-spotlight { transition:filter .5s,opacity .5s; }.signature-ordinary.phase-2 .cs-spotlight { filter:grayscale(1);opacity:.25; }.signature-ordinary.phase-1 .cs-eraser { left:12%; }.signature-ordinary.phase-2 .cs-eraser { left:55%; }.cs-erase-trail { left:10%;top:47%;width:0;height:14%;background:#fff;border:6px solid #171717;transition:width .6s; }.signature-ordinary.phase-2 .cs-erase-trail { width:65%; }.signature-ordinary.phase-3 .cs-stamp { transform:scale(1) rotate(-12deg); }
+
+/* Jobs: three inventions advance across a paper timeline before the evolution reveal. */
+.signature-jobs { background:#e9e0ca!important;color:#171717; }
+.rd-idea-paper { inset:0;background:radial-gradient(#17171724 1px,transparent 2px) 0/22px 22px,linear-gradient(145deg,#fff9e6,#d6e6e7);border:18px solid #171717;transform:translateY(-110vh);transition:transform .55s; }.signature-jobs.phase-1 .rd-idea-paper{transform:translateY(0)}
+.rd-idea-title { left:50%;top:5%;width:max-content;max-width:92%;padding:6px 18px;border:7px solid #171717;background:#ffdb48;text-align:center;font-size:clamp(27px,5vw,58px);transform:translate(-50%,-80vh) rotate(-3deg);transition:transform .5s;z-index:4; }.signature-jobs.phase-1 .rd-idea-title{transform:translate(-50%,0) rotate(-3deg)}
+.rd-idea-track { left:9%;top:58%;width:83%;border-top:10px dashed #171717;transform:scaleX(0);transform-origin:left;transition:transform .8s; }.signature-jobs.phase-1 .rd-idea-track{transform:scaleX(1)}
+.rd-era-card { top:25%;width:25%;height:42%;border:9px solid #171717;background:#fff;box-shadow:9px 9px 0 #171717;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:8px;text-align:center;transition:left .7s,top .7s,transform .7s,opacity .5s;z-index:2; }.rd-era-card small{font-size:clamp(21px,4vw,45px);letter-spacing:0}.rd-era-card b{font-size:clamp(18px,3vw,34px);line-height:1.1}
+.rd-era-card.mac{left:-35%;transform:rotate(-9deg)}.rd-era-card.music{left:-35%;transform:rotate(8deg)}.rd-era-card.phone{left:105%;width:33%;height:52%;top:18%;transform:rotate(13deg)}
+.rd-era-card .rd-macintosh,.rd-era-card .rd-ipod,.rd-era-card .rd-iphone{position:relative;flex:none}
+.signature-jobs.phase-1 .rd-era-card.mac{left:8%}.signature-jobs.phase-1 .rd-era-card.music{left:38%}
+.signature-jobs.phase-2 .rd-era-card.mac{left:2%;top:40%;transform:scale(.72) rotate(-12deg)}.signature-jobs.phase-2 .rd-era-card.music{left:25%;top:40%;transform:scale(.72) rotate(10deg)}.signature-jobs.phase-2 .rd-era-card.phone{left:56%;transform:rotate(-6deg)}
+.signature-jobs.phase-3 .rd-era-card.phone{transform:scale(1.08) rotate(-6deg)}
+.rd-macintosh { position:relative;width:74%;height:58%;border:8px solid #171717;border-radius:9px;background:#efe8d8;box-shadow:0 12px 0 #c9bda7; }.rd-macintosh i{position:absolute;left:13%;top:12%;width:74%;height:54%;border:6px solid #171717;background:#88bdd2}.rd-macintosh::after{content:"";position:absolute;left:31%;bottom:9%;width:38%;height:7%;background:#171717}
+.rd-ipod { position:relative;width:68%;height:59%;border:8px solid #171717;border-radius:16px;background:#d8e8e8; }.rd-ipod::before{content:"";position:absolute;left:12%;top:10%;width:76%;height:28%;border:5px solid #171717;background:#98cfda}.rd-ipod i{position:absolute;left:25%;bottom:9%;width:50%;aspect-ratio:1;border:7px solid #171717;border-radius:50%;background:#fff}
+.rd-iphone { position:relative;width:72%;height:70%;border:9px solid #171717;border-radius:20px;background:#202d3a;box-shadow:7px 7px 0 #171717; }.rd-iphone i{position:absolute;left:9%;top:8%;width:82%;height:77%;border:5px solid #171717;background:linear-gradient(140deg,#92d9db 0 49%,#f27855 50% 100%)}.rd-iphone::after{content:"";position:absolute;left:44%;bottom:3%;width:12%;aspect-ratio:1;border:3px solid #fff;border-radius:50%}
+.rd-idea-arrow{top:43%;font-size:clamp(70px,12vw,130px);color:#e5473c;opacity:0;transition:opacity .3s,transform .5s;z-index:3}.rd-idea-arrow.a1{left:29%;transform:translateX(-10vw)}.rd-idea-arrow.a2{left:59%;transform:translateX(-10vw)}.signature-jobs.phase-1 .rd-idea-arrow.a1,.signature-jobs.phase-2 .rd-idea-arrow.a2{opacity:1;transform:translateX(0)}
+.rd-idea-spark{right:8%;top:10%;font-size:clamp(85px,18vw,190px);color:#f04d42;-webkit-text-stroke:4px #171717;transform:scale(0) rotate(-30deg);transition:transform .5s;z-index:3}.signature-jobs.phase-2 .rd-idea-spark{transform:scale(1) rotate(12deg)}
+.rd-idea-stamp{left:7%;bottom:20%;padding:7px 14px;border:8px double #d83d32;background:#fff;color:#d83d32;font-size:clamp(37px,7vw,78px);transform:scale(0) rotate(-20deg);transition:transform .45s;z-index:4}.signature-jobs.phase-3 .rd-idea-stamp{transform:scale(1) rotate(-12deg)}
+.rd-idea-name{left:50%;bottom:4%;width:max-content;max-width:89%;padding:8px 20px;border:9px solid #171717;background:#ffdb48;font-size:clamp(38px,7vw,85px);white-space:nowrap;transform:translate(-50%,100vh) rotate(-4deg);transition:transform .5s;z-index:5}.signature-jobs.phase-3 .rd-idea-name{transform:translate(-50%,0) rotate(-4deg)}
+
+/* Lich: grave markers become chess pieces; a skeletal hand crowns the king. */
+.signature-lich { background:#251b32!important;color:#fff; }
+.rd-chess-board { inset:35% -10% -30%;border:12px solid #171717;background:repeating-conic-gradient(#ede6df 0 25%,#4a354b 0 50%) 0/90px 90px;transform:perspective(600px) rotateX(55deg); }
+.rd-grave { top:-40%;font-size:clamp(100px,22vw,230px);color:#a6a2aa;-webkit-text-stroke:5px #171717;transition:top .6s,transform .6s; }.rd-grave.g1 { left:10%; }.rd-grave.g2 { left:39%; }.rd-grave.g3 { right:10%; }.signature-lich.phase-1 .rd-grave { top:27%;transform:rotate(-10deg); }
+.rd-bone-hand { right:-42%;top:14%;width:37%;height:17%;transform:rotate(-23deg);transition:right .7s,top .7s;z-index:3; }.rd-bone-hand::before{content:"";position:absolute;right:-10%;top:32%;width:88%;height:34%;border:7px solid #171717;border-radius:40px;background:#eee3d4}.rd-bone-hand::after{content:"";position:absolute;left:7%;top:23%;width:24%;height:54%;border:7px solid #171717;border-radius:48%;background:#eee3d4}.rd-bone-hand i{position:absolute;left:-11%;width:39%;height:15%;border:5px solid #171717;border-radius:20px;background:#fff;z-index:2}.rd-bone-hand i:nth-child(1){top:18%;transform:rotate(-14deg)}.rd-bone-hand i:nth-child(2){top:42%}.rd-bone-hand i:nth-child(3){top:66%;transform:rotate(14deg)}.signature-lich.phase-2 .rd-bone-hand { right:13%;top:24%; }
+.rd-black-king { left:40%;top:30%;font-size:clamp(160px,34vw,350px);color:#111;-webkit-text-stroke:5px #c8aad7;transform:scale(0);transition:transform .6s; }.signature-lich.phase-2 .rd-black-king { transform:scale(1); }
+.rd-lich-word { left:5%;top:6%;font-size:clamp(50px,10vw,110px);color:#ffdb48;transform:scale(0) rotate(-15deg);transition:transform .4s; }.signature-lich.phase-3 .rd-lich-word { transform:scale(1) rotate(-9deg); }
+.rd-lich-name { right:5%;bottom:6%;padding:8px 20px;border:8px solid #171717;background:#c0a0d6;color:#171717;font-size:clamp(32px,7vw,80px);transform:translateY(80vh);transition:transform .5s; }.signature-lich.phase-3 .rd-lich-name { transform:translateY(0); }
+
+/* K jet: blueprint panels fold into a letter K and the craft leaves a launch rail. */
+.signature-jet { background:#d5e4f1!important; }
+.rd-hangar-grid { inset:0;background:linear-gradient(#3b63772a 2px,transparent 2px),linear-gradient(90deg,#3b63772a 2px,transparent 2px);background-size:40px 40px; }
+.rd-launch-rail { left:5%;bottom:21%;width:90%;height:13%;border:8px solid #171717;background:repeating-linear-gradient(90deg,#60656b 0 35px,#aaa 35px 70px); }
+.rd-k-fold { top:25%;width:25%;height:25%;border:9px solid #171717;background:#e85a3c;transition:left .6s,right .6s,top .6s,transform .6s; }.rd-k-fold.left { left:-35%;clip-path:polygon(0 0,100% 0,70% 100%,0 100%); }.rd-k-fold.right { right:-35%;clip-path:polygon(0 0,100% 0,100% 100%,30% 100%); }.signature-jet.phase-1 .rd-k-fold.left { left:28%;top:36%;transform:rotate(24deg); }.signature-jet.phase-1 .rd-k-fold.right { right:28%;top:36%;transform:rotate(-24deg); }
+.rd-k-core { left:43%;top:30%;width:14%;height:30%;border:9px solid #171717;background:#fff;color:#171717;display:grid;place-items:center;font-size:clamp(80px,15vw,160px);transform:scale(0);transition:transform .5s; }.signature-jet.phase-1 .rd-k-core { transform:scale(1); }.signature-jet.phase-2 .rd-k-core { transform:scale(1); }
+.rd-jet-flight { left:41%;top:32%;font-size:clamp(130px,27vw,290px);color:#e85a3c;-webkit-text-stroke:7px #171717;transform:scale(0) rotate(-30deg);transition:transform .7s,left .7s,top .7s; }.signature-jet.phase-2 .rd-jet-flight { left:84%;top:-15%;transform:scale(.65) rotate(-30deg); }
+.rd-jet-trail { left:15%;top:55%;width:70%;height:12px;background:repeating-linear-gradient(90deg,#fff 0 35px,transparent 35px 65px);transform:rotate(-29deg) scaleX(0);transform-origin:left;transition:transform .7s; }.signature-jet.phase-2 .rd-jet-trail { transform:rotate(-29deg) scaleX(1); }
+.rd-jet-name { left:50%;bottom:5%;padding:8px 18px;border:8px solid #171717;background:#ffdb48;color:#171717;font-size:clamp(30px,6vw,70px);white-space:nowrap;transform:translate(-50%,100vh);transition:transform .5s; }.signature-jet.phase-3 .rd-jet-name { transform:translate(-50%,0); }
+
+/* L jet: a stealth wing dodges missiles while three decoys take the lock. */
+.signature-jetGuard { background:#18263b!important;color:#fff; }
+.rd-stealth-grid { inset:0;background:repeating-radial-gradient(circle at 50% 45%,#55e4e522 0 2px,transparent 3px 65px),linear-gradient(#132030,#223b50); }
+.rd-l-core { left:40%;top:21%;width:22%;height:35%;border:9px solid #71e3dc;background:#263d54;display:grid;place-items:center;font-size:clamp(120px,24vw,260px);color:#fff;transform:translateY(-90vh);transition:transform .6s,left .6s,top .6s; }.signature-jetGuard.phase-1 .rd-l-core { transform:translateY(0); }.signature-jetGuard.phase-2 .rd-l-core { left:12%;top:4%;transform:rotate(-30deg) scale(.65); }
+.rd-l-wing { left:34%;top:44%;width:37%;height:15%;border:8px solid #71e3dc;background:#36536a;clip-path:polygon(0 0,100% 0,80% 100%,20% 100%);transform:scaleX(0);transition:transform .6s,left .6s,top .6s; }.signature-jetGuard.phase-1 .rd-l-wing { transform:scaleX(1); }.signature-jetGuard.phase-2 .rd-l-wing { left:7%;top:23%;transform:rotate(-30deg) scale(.65); }
+.rd-missile { right:-20%;font-size:clamp(70px,14vw,150px);color:#f34e42;-webkit-text-stroke:4px #171717;transition:right .7s,top .7s,transform .7s; }.rd-missile.m1 { top:25%; }.rd-missile.m2 { top:50%; }.signature-jetGuard.phase-1 .rd-missile { right:17%; }.signature-jetGuard.phase-2 .rd-missile { right:39%;top:41%;transform:scale(.45) rotate(30deg); }
+.rd-decoy { left:50%;top:43%;font-size:clamp(70px,14vw,150px);color:#ffdb48;transform:scale(0);transition:transform .5s,left .5s,top .5s; }.signature-jetGuard.phase-2 .rd-decoy.d1 { left:40%;top:29%;transform:scale(1); }.signature-jetGuard.phase-2 .rd-decoy.d2 { left:58%;top:45%;transform:scale(.8); }.signature-jetGuard.phase-2 .rd-decoy.d3 { left:42%;top:60%;transform:scale(.6); }
+.rd-l-dodge { right:5%;top:7%;font-size:clamp(45px,9vw,100px);color:#71e3dc;transform:scale(0) rotate(12deg);transition:transform .4s; }.signature-jetGuard.phase-3 .rd-l-dodge { transform:scale(1) rotate(5deg); }
+.rd-l-name { left:50%;bottom:5%;padding:8px 18px;border:8px solid #171717;background:#71e3dc;color:#171717;font-size:clamp(28px,6vw,68px);white-space:nowrap;transform:translate(-50%,100vh);transition:transform .5s; }.signature-jetGuard.phase-3 .rd-l-name { transform:translate(-50%,0); }
+
+/* Empower: the genius faces a five-choice exam; one fate door is red. */
+.signature-empower { background:#f0e7cc!important; }
+.rd-genius-board { left:12%;top:7%;width:76%;height:28%;border:10px solid #171717;background:#344f45;color:#fff;display:grid;place-items:center;font-size:clamp(85px,18vw,190px);transform:translateY(-70vh);transition:transform .55s; }.rd-genius-board small { font-size:.3em;color:#ffdb48; }.signature-empower.phase-1 .rd-genius-board { transform:translateY(0); }
+.rd-genius-desk { left:7%;top:47%;width:28%;height:22%;border:8px solid #171717;background:#b67b4b;display:grid;place-items:center;font-size:clamp(25px,5vw,55px);box-shadow:7px 7px 0 #171717; }
+.rd-genius-paper { left:31%;top:46%;width:57%;padding:12px;border:8px solid #171717;background:#fff;font-size:clamp(36px,7vw,77px);letter-spacing:.06em;text-align:center;transform:scaleX(0);transition:transform .55s; }.signature-empower.phase-1 .rd-genius-paper { transform:scaleX(1); }
+.rd-chance-door { left:49%;top:45%;width:15%;height:31%;border:9px solid #171717;background:#d94b4b;transform:rotateX(85deg);transform-origin:top;transition:transform .5s; }.signature-empower.phase-2 .rd-chance-door { transform:rotateX(0); }
+.rd-genius-bridge { left:44%;top:58%;width:26%;height:7%;border:6px solid #171717;background:#75d68d;transform:scaleX(0);transition:transform .5s; }.rd-genius-bridge.fatal { background:#e14b4b;clip-path:polygon(0 0,40% 0,44% 45%,55% 55%,59% 0,100% 0,100% 100%,58% 100%,54% 62%,42% 56%,38% 100%,0 100%); }.signature-empower.phase-2 .rd-genius-bridge { transform:scaleX(1); }
+.rd-genius-verdict { left:50%;top:12%;padding:10px 22px;border:9px double #171717;background:#75d68d;font-size:clamp(40px,9vw,100px);white-space:nowrap;transform:translate(-50%,-80vh) rotate(-8deg);transition:transform .5s; }.rd-genius-verdict.fatal { background:#ef5958;color:#fff; }.signature-empower.phase-3 .rd-genius-verdict { transform:translate(-50%,0) rotate(-8deg); }
+.rd-genius-caption { left:50%;bottom:6%;padding:7px 18px;border:7px solid #171717;background:#ffdb48;font-size:clamp(23px,5vw,55px);white-space:nowrap;transform:translate(-50%,100vh);transition:transform .5s; }.signature-empower.phase-3 .rd-genius-caption { transform:translate(-50%,0); }
+
+/* Loss: the final whistle freezes the verdict before black ink covers the panel. */
+.signature-loss { background:#d9d9dc!important; }
+.rd-final-whistle { left:6%;top:10%;font-size:clamp(65px,14vw,150px);color:#e3473e;-webkit-text-stroke:4px #171717;transform:scale(0) rotate(-15deg);transition:transform .4s; }.signature-loss.phase-1 .rd-final-whistle { transform:scale(1) rotate(-10deg); }
+.rd-scoreboard { right:9%;top:10%;width:43%;height:42%;border:11px solid #171717;background:#fff;display:grid;place-items:center;text-align:center;box-shadow:9px 9px 0 #171717;transform:translateY(-75vh);transition:transform .55s; }.rd-scoreboard small { font-size:clamp(17px,3vw,30px); }.rd-scoreboard b { font-size:clamp(45px,8vw,90px);line-height:1.1; }
+.rd-ink-flood { left:-15%;bottom:-80%;width:130%;height:100%;background:#171717;transform:rotate(-12deg);transition:bottom .75s; }.signature-loss.phase-2 .rd-ink-flood { bottom:-12%; }
+.rd-loss-ticket { left:50%;top:35%;width:76%;padding:10px 22px;border:10px solid #fff;background:#e3483c;color:#fff;display:grid;place-items:center;transform:translate(-50%,-50%) scale(0) rotate(-15deg);transition:transform .55s;z-index:3; }.rd-loss-ticket strong{font-size:clamp(105px,20vw,210px);letter-spacing:.12em;line-height:1.1}.rd-loss-ticket small{font-size:clamp(22px,4vw,42px);letter-spacing:.3em}.signature-loss.phase-2 .rd-loss-ticket { transform:translate(-50%,-50%) scale(1) rotate(-5deg); }
+.rd-opponent { left:50%;bottom:20%;padding:8px 20px;border:7px solid #fff;background:#fff;color:#171717;font-size:clamp(27px,6vw,66px);white-space:nowrap;transform:translate(-50%,80vh);transition:transform .5s;z-index:3; }.signature-loss.phase-3 .rd-opponent { transform:translate(-50%,0); }
+.rd-next { left:50%;bottom:8%;font-size:clamp(18px,4vw,43px);letter-spacing:.08em;color:#ffdb48;white-space:nowrap;transform:translate(-50%,80vh);transition:transform .5s;z-index:3; }.signature-loss.phase-3 .rd-next { transform:translate(-50%,0); }
+
+/* Sleep's three outcomes have separate props and motion, while copy traces a real skill. */
+.rd-moment { position:relative;isolation:isolate;width:min(900px,100%);height:min(620px,88vh);border:10px solid #171717;overflow:hidden;background:#e9e3f4;color:#171717;box-shadow:11px 11px 0 #171717;font-family:'Noto Sans TC',system-ui,sans-serif; }
+.rd-moment [class^="rd-"] { position:absolute;box-sizing:border-box;font-weight:1000; }
+.rd-asleep { background:#221c40; }.rd-asleep::before,.rd-dreaming::before,.rd-awake::before { content:"";position:absolute;inset:0;background:radial-gradient(#fff6 2px,transparent 3px);background-size:25px 25px;opacity:.5; }
+.rd-sleep-window { left:36%;top:7%;width:28%;aspect-ratio:1;border:11px solid #171717;border-radius:50%;background:#fff1bb;display:grid;place-items:center;font-size:clamp(100px,22vw,220px);color:#784aab;transform:scale(0);transition:transform .6s; }.rd-asleep.phase-1 .rd-sleep-window { transform:scale(1); }
+.rd-sleep-curtain { top:0;width:35%;height:76%;border:9px solid #171717;background:repeating-linear-gradient(90deg,#6e4c9b 0 25px,#53367e 25px 50px);transition:transform .65s; }.rd-sleep-curtain.left { left:-35%; }.rd-sleep-curtain.right { right:-35%; }.rd-asleep.phase-2 .rd-sleep-curtain.left { transform:translateX(95%); }.rd-asleep.phase-2 .rd-sleep-curtain.right { transform:translateX(-95%); }
+.rd-sleep-pillow { left:29%;top:-35%;width:42%;height:22%;border:9px solid #171717;border-radius:45%;background:#d3b6eb;display:grid;place-items:center;font-size:clamp(50px,10vw,110px);transform:rotate(-12deg);transition:top .65s;z-index:2; }.rd-asleep.phase-2 .rd-sleep-pillow { top:42%; }
+.rd-sleeper { left:27%;bottom:16%;width:46%;padding:12px;border:8px solid #171717;border-radius:50%;background:#ffe4bd;text-align:center;font-size:clamp(32px,7vw,70px);transform:translateY(80vh);transition:transform .6s;z-index:2; }.rd-asleep.phase-1 .rd-sleeper { transform:translateY(0); }
+.rd-sleep-verdict { left:50%;bottom:5%;width:max-content;max-width:90%;padding:8px 18px;border:7px solid #171717;background:#ffdb48;text-align:center;font-size:clamp(24px,5vw,55px);transform:translate(-50%,100vh) rotate(-4deg);transition:transform .5s;z-index:5; }.rd-moment.phase-3 .rd-sleep-verdict { transform:translate(-50%,0) rotate(-4deg); }
+.rd-dreaming { background:#32305d; }.rd-dream-clock { left:6%;top:6%;font-size:clamp(90px,19vw,200px);color:#ffdb48;transform:rotate(-180deg) scale(.3);transition:transform .8s; }.rd-dreaming.phase-1 .rd-dream-clock { transform:rotate(0) scale(1); }
+.rd-dream-ring { left:50%;top:47%;width:56%;aspect-ratio:1;border:11px dashed #d8baff;border-radius:50%;transform:translate(-50%,-50%) scale(0) rotate(0);transition:transform .8s; }.rd-dream-ring.r2 { width:40%;border-color:#ffdb48; }.rd-dream-ring.r3 { width:23%;border-color:#fff; }.rd-dreaming.phase-1 .rd-dream-ring { transform:translate(-50%,-50%) scale(1) rotate(90deg); }.rd-dreaming.phase-2 .rd-dream-ring { transform:translate(-50%,-50%) scale(1.15) rotate(240deg); }
+.rd-dreamer { left:50%;top:46%;padding:12px 25px;border:8px solid #171717;border-radius:50%;background:#d8baff;font-size:clamp(32px,7vw,70px);transform:translate(-50%,-50%) scale(0);transition:transform .55s; }.rd-dreaming.phase-1 .rd-dreamer { transform:translate(-50%,-50%) scale(1); }
+.rd-dream-z { right:8%;top:12%;font-size:clamp(65px,14vw,150px);color:#fff;transform:translateY(-70vh) rotate(15deg);transition:transform .6s; }.rd-dreaming.phase-2 .rd-dream-z { transform:translateY(0) rotate(15deg); }
+.rd-awake { background:#f4db80; }.rd-alarm { left:7%;top:-45%;font-size:clamp(120px,24vw,260px);transform:rotate(-25deg);transition:top .55s,transform .55s; }.rd-awake.phase-1 .rd-alarm { top:8%;transform:rotate(12deg); }
+.rd-dream-glass { left:27%;top:13%;width:48%;height:60%;border:13px solid #171717;background:#93c2e8aa;transform:rotate(6deg) scale(.7);transition:transform .55s,opacity .35s; }.rd-awake.phase-1 .rd-dream-glass { transform:rotate(0) scale(1); }.rd-awake.phase-2 .rd-dream-glass { transform:rotate(-14deg) scale(1.4);opacity:0; }
+.rd-waking { left:30%;top:37%;width:42%;padding:20px;border:8px solid #171717;background:#ffeac4;text-align:center;font-size:clamp(35px,7vw,75px);transform:translateY(70vh);transition:transform .6s; }.rd-awake.phase-2 .rd-waking { transform:translateY(0); }
+.rd-shards { left:5%;top:50%;font-size:clamp(70px,12vw,120px);color:#fff;-webkit-text-stroke:4px #171717;transform:scale(0) rotate(-40deg);transition:transform .5s; }.rd-awake.phase-2 .rd-shards { transform:scale(1) rotate(-5deg); }
+.rd-wake-word { right:6%;top:67%;padding:6px 12px;border:6px solid #171717;background:#f34e42;color:#fff;font-size:clamp(40px,8vw,70px);transform:scale(0);transition:transform .4s; }.rd-awake.phase-2 .rd-wake-word { transform:scale(1); }
+.rd-copy { background:#edcfbd; }.rd-copy::before { content:"";position:absolute;inset:0;background:repeating-conic-gradient(#17171714 0 4deg,transparent 4deg 14deg);opacity:.5; }
+.rd-eye-target,.rd-eye-user { top:34%;width:27%;height:30%;border:9px solid #171717;border-radius:50% 50% 15% 15%;background:#fff;display:grid;place-items:center;text-align:center;padding:8px;font-size:clamp(27px,5vw,57px);box-shadow:8px 8px 0 #171717;transition:transform .6s; }.rd-eye-target { left:6%;transform:translateX(-70vw); }.rd-eye-user { right:6%;background:#f5b0a4;transform:translateX(70vw); }.rd-copy.phase-1 .rd-eye-target,.rd-copy.phase-1 .rd-eye-user { transform:translateX(0); }
+.rd-eye-lens { left:50%;top:30%;font-size:clamp(170px,34vw,360px);line-height:1;color:#e43f39;-webkit-text-stroke:9px #171717;transform:translate(-50%,-50%) scale(0) rotate(-90deg);transition:transform .7s; }.rd-copy.phase-1 .rd-eye-lens { transform:translate(-50%,0) scale(1) rotate(0); }.rd-copy.phase-2 .rd-eye-lens { transform:translate(-50%,0) scale(.7) rotate(180deg); }
+.rd-ink-line { left:20%;top:48%;width:61%;height:11px;background:#171717;transform:scaleX(0);transition:transform .65s; }.rd-copy.phase-2 .rd-ink-line { transform:scaleX(1); }
+.rd-copy-scroll { left:50%;top:14%;padding:10px 22px;border:9px solid #171717;background:#ffdb48;font-size:clamp(36px,8vw,85px);white-space:nowrap;transform:translate(-50%,-70vh) rotate(-12deg);transition:transform .55s;z-index:3; }.rd-copy.phase-2 .rd-copy-scroll { transform:translate(-50%,0) rotate(-8deg); }
+.rd-copy-verdict { left:50%;bottom:7%;padding:8px 19px;border:8px solid #171717;background:#f34e42;color:#fff;font-size:clamp(28px,6vw,65px);white-space:nowrap;transform:translate(-50%,80vh) rotate(5deg);transition:transform .5s; }.rd-copy.phase-3 .rd-copy-verdict { transform:translate(-50%,0) rotate(5deg); }
+
+/* Keep the finished action visible through the result reveal. */
+.signature-motorcycle.phase-2 .rd-moto-gate,.signature-motorcycle.phase-3 .rd-moto-gate{transform:rotateX(80deg)}
+.signature-motorcycle.phase-3 .rd-moto-bike{left:56%;top:28%;transform:rotate(-14deg) scale(1.22)}
+.signature-motorcycle.phase-3 .rd-moto-rip{transform:scale(1) rotate(8deg)}
+.signature-planetDeath.phase-2 .rd-old-world,.signature-planetDeath.phase-3 .rd-old-world{filter:grayscale(1);transform:rotate(-20deg) scale(.9)}
+.signature-planetDeath.phase-2 .rd-world-crack,.signature-planetDeath.phase-3 .rd-world-crack{opacity:1}
+.signature-planetDeath.phase-3 .rd-star-seed{left:66%;top:21%;transform:scale(.55) rotate(180deg)}
+.signature-planetDeath.phase-3 .rd-comet-trail{transform:rotate(-16deg) scaleX(1)}
+.signature-planetDeath.phase-3 .rd-new-world{transform:scale(1);opacity:1}
+.signature-heroShield.phase-2 .rd-shield-plate,.signature-heroShield.phase-3 .rd-shield-plate{transform:translate(0,0) rotate(0)}
+.signature-heroShield.phase-3 .rd-shield-bolt{right:-30%;transform:rotate(160deg)}
+.signature-heroShield.phase-3 .rd-shield-impact{transform:scale(1) rotate(-15deg)}
+.signature-heroShoes.phase-3 .rd-runner{left:75%;top:9%;transform:rotate(14deg) scale(.8)}
+.signature-heroShoes.phase-3 .rd-projectile{right:78%}
+.signature-heroShoes.phase-3 .rd-footprints{opacity:.5}
+.signature-heroShoes.phase-3 .rd-dodge{transform:scale(1) rotate(-9deg)}
+.signature-demonCall.phase-3 .rd-demon-seal{transform:scale(1) rotate(0)}
+.signature-demonCall.phase-3 .rd-minion{bottom:22%}
+.signature-demonPeck.phase-3 .rd-demon-heart{transform:scale(1.15)}
+.signature-demonPeck.phase-3 .rd-essence{transform:scale(.1);opacity:0}
+.signature-demonPeck.phase-3 .rd-vein{transform:scaleX(1)}
+.signature-mady.phase-2 .rd-mady-whistle,.signature-mady.phase-3 .rd-mady-whistle{transform:translate(-50%,0) rotate(-8deg)}
+.signature-mady.phase-3 .rd-mady-beam{transform:scaleY(1)}
+.signature-peak.phase-3 .rd-peak-figure{transform:scale(1.1);background:#d54231}
+.signature-peak.phase-3 .rd-peak-band{transform:translate(70vw,-40vh) rotate(50deg);opacity:0}
+.signature-peak.phase-3 .rd-peak-burst{transform:scale(1) rotate(9deg)}
+.signature-probabilityZero.phase-2 .rd-zero-ledger,.signature-probabilityZero.phase-3 .rd-zero-ledger{transform:translateY(0)}
+.signature-probabilityZero.phase-3 .rd-zero-roller{transform:translate(-50%,-50%) scale(1) rotate(-7deg)}
+.signature-brownian.phase-2 .rd-micro-lens,.signature-brownian.phase-3 .rd-micro-lens{transform:scale(1)}
+.signature-basketball.phase-3 .cs-basketball{left:74%;top:34%;transform:scale(.55)}
+.signature-basketball.phase-3 .cs-swish{transform:scale(1) rotate(-12deg)}
+.signature-heroSword.phase-3 .cs-sword{transform:scale(1.3) rotate(-15deg)}
+.signature-ordinary.phase-3 .cs-spotlight{filter:grayscale(1);opacity:.25}
+.signature-ordinary.phase-3 .cs-eraser{left:55%}
+.signature-ordinary.phase-3 .cs-erase-trail{width:65%}
+.signature-jobs.phase-3 .rd-era-card.mac{left:2%;top:40%;transform:scale(.72) rotate(-12deg)}
+.signature-jobs.phase-3 .rd-era-card.music{left:25%;top:40%;transform:scale(.72) rotate(10deg)}
+.signature-jobs.phase-3 .rd-era-card.phone{left:56%}
+.signature-lich.phase-3 .rd-bone-hand{right:13%;top:24%}
+.signature-lich.phase-3 .rd-black-king{transform:scale(1)}
+.signature-jet.phase-2 .rd-k-fold.left,.signature-jet.phase-3 .rd-k-fold.left{left:28%;top:36%;transform:rotate(24deg)}
+.signature-jet.phase-2 .rd-k-fold.right,.signature-jet.phase-3 .rd-k-fold.right{right:28%;top:36%;transform:rotate(-24deg)}
+.signature-jet.phase-3 .rd-k-core{transform:scale(1)}
+.signature-jet.phase-3 .rd-jet-flight{left:84%;top:-15%;transform:scale(.65) rotate(-30deg)}
+.signature-jet.phase-3 .rd-jet-trail{transform:rotate(-29deg) scaleX(1)}
+.signature-jetGuard.phase-3 .rd-l-core{left:12%;top:4%;transform:rotate(-30deg) scale(.65)}
+.signature-jetGuard.phase-3 .rd-l-wing{left:7%;top:23%;transform:rotate(-30deg) scale(.65)}
+.signature-jetGuard.phase-3 .rd-missile{right:39%;top:41%;transform:scale(.45) rotate(30deg)}
+.signature-jetGuard.phase-3 .rd-decoy.d1{left:40%;top:29%;transform:scale(1)}
+.signature-jetGuard.phase-3 .rd-decoy.d2{left:58%;top:45%;transform:scale(.8)}
+.signature-jetGuard.phase-3 .rd-decoy.d3{left:42%;top:60%;transform:scale(.6)}
+.signature-empower.phase-2 .rd-genius-board,.signature-empower.phase-3 .rd-genius-board{transform:translateY(0)}
+.signature-empower.phase-3 .rd-chance-door{transform:rotateX(0)}
+.signature-empower.phase-3 .rd-genius-bridge{transform:scaleX(1)}
+.signature-loss.phase-3 .rd-ink-flood{bottom:-12%}
+.signature-loss.phase-3 .rd-loss-ticket{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}
+.rd-asleep.phase-2 .rd-sleep-window,.rd-asleep.phase-3 .rd-sleep-window{transform:scale(1)}
+.rd-asleep.phase-3 .rd-sleep-curtain.left{transform:translateX(95%)}
+.rd-asleep.phase-3 .rd-sleep-curtain.right{transform:translateX(-95%)}
+.rd-asleep.phase-3 .rd-sleep-pillow{top:42%}
+.rd-asleep.phase-2 .rd-sleeper,.rd-asleep.phase-3 .rd-sleeper{transform:translateY(0)}
+.rd-dreaming.phase-2 .rd-dream-clock,.rd-dreaming.phase-3 .rd-dream-clock{transform:rotate(0) scale(1)}
+.rd-dreaming.phase-3 .rd-dream-ring{transform:translate(-50%,-50%) scale(1.15) rotate(240deg)}
+.rd-dreaming.phase-2 .rd-dreamer,.rd-dreaming.phase-3 .rd-dreamer{transform:translate(-50%,-50%) scale(1)}
+.rd-dreaming.phase-3 .rd-dream-z{transform:translateY(0) rotate(15deg)}
+.rd-awake.phase-2 .rd-alarm,.rd-awake.phase-3 .rd-alarm{top:8%;transform:rotate(12deg)}
+.rd-awake.phase-3 .rd-dream-glass{transform:rotate(-14deg) scale(1.4);opacity:0}
+.rd-awake.phase-3 .rd-waking{transform:translateY(0)}
+.rd-awake.phase-3 .rd-shards{transform:scale(1) rotate(-5deg)}
+.rd-awake.phase-3 .rd-wake-word{transform:scale(1)}
+.rd-copy.phase-2 .rd-eye-target,.rd-copy.phase-2 .rd-eye-user,.rd-copy.phase-3 .rd-eye-target,.rd-copy.phase-3 .rd-eye-user{transform:translateX(0)}
+.rd-copy.phase-3 .rd-eye-lens{transform:translate(-50%,0) scale(.7) rotate(180deg)}
+.rd-copy.phase-3 .rd-ink-line{transform:scaleX(1)}
+.rd-copy.phase-3 .rd-copy-scroll{transform:translate(-50%,0) rotate(-8deg)}
+
+@media(max-width:600px) {
+    .rd-moment { height:min(680px,88vh);border-width:7px; }
+    .rd-sleep-window { left:26%;width:48%;top:18%;font-size:110px }.rd-sleep-pillow{left:18%;width:64%}.rd-sleeper{left:18%;width:64%;bottom:20%}.rd-dream-clock{left:4%;top:9%;font-size:90px}.rd-dream-ring{width:80%}.rd-dream-ring.r2{width:58%}.rd-dream-ring.r3{width:35%}.rd-dream-z{font-size:70px}.rd-alarm{font-size:120px}.rd-dream-glass{left:17%;width:66%}.rd-waking{left:19%;width:62%}.rd-wake-word{top:67%;font-size:50px}.rd-shards{font-size:80px}
+    .rd-eye-target,.rd-eye-user{width:35%;top:43%;height:24%;font-size:23px}.rd-eye-target{left:2%}.rd-eye-user{right:2%}.rd-eye-lens{left:50%;top:25%;font-size:200px}.rd-copy-scroll{top:12%;font-size:38px}.rd-copy-verdict{font-size:28px}
+    .rd-idea-title{top:6%;font-size:27px;padding:6px 8px}.rd-idea-track{top:61%}.rd-era-card{width:34%;height:34%;top:27%;padding:4px;border-width:6px}.rd-era-card small{font-size:19px}.rd-era-card b{font-size:15px}.rd-era-card.phone{width:46%;height:47%;top:21%}.signature-jobs.phase-1 .rd-era-card.mac{left:4%}.signature-jobs.phase-1 .rd-era-card.music{left:44%}.signature-jobs.phase-2 .rd-era-card.mac,.signature-jobs.phase-3 .rd-era-card.mac{left:-1%;top:43%;transform:scale(.64) rotate(-12deg)}.signature-jobs.phase-2 .rd-era-card.music,.signature-jobs.phase-3 .rd-era-card.music{left:23%;top:43%;transform:scale(.64) rotate(10deg)}.signature-jobs.phase-2 .rd-era-card.phone,.signature-jobs.phase-3 .rd-era-card.phone{left:46%}.signature-jobs.phase-3 .rd-era-card.phone{transform:scale(1.02) rotate(-6deg)}.rd-macintosh,.rd-ipod,.rd-iphone{border-width:6px}.rd-idea-arrow{font-size:58px}.rd-idea-arrow.a1{left:32%}.rd-idea-arrow.a2{left:52%}.rd-idea-spark{top:27%;right:4%;font-size:70px}.rd-idea-stamp{bottom:19%;left:4%;font-size:34px}.rd-idea-name{font-size:36px;bottom:6%}.rd-grave{font-size:105px}.rd-bone-hand{width:43%;height:13%}.rd-bone-hand::before,.rd-bone-hand::after{border-width:5px}.rd-bone-hand i{border-width:4px}.rd-black-king{font-size:190px}.rd-lich-word{font-size:52px}.rd-lich-name{font-size:33px}
+    .rd-k-core{left:42%;width:20%;font-size:85px}.rd-k-fold{width:32%}.signature-jet.phase-1 .rd-k-fold.left{left:22%}.signature-jet.phase-1 .rd-k-fold.right{right:22%}.rd-jet-flight{font-size:130px}.rd-jet-name{font-size:26px}.rd-l-core{font-size:125px}.rd-missile{font-size:76px}.rd-decoy{font-size:75px}.rd-l-name{font-size:24px}.rd-l-dodge{font-size:47px}
+    .rd-genius-board{left:6%;width:88%;top:10%;font-size:95px}.rd-genius-desk{top:48%;width:35%;font-size:23px}.rd-genius-paper{left:36%;width:59%;font-size:31px}.rd-genius-verdict{font-size:38px}.rd-genius-caption{font-size:22px}.rd-final-whistle{font-size:74px}.rd-scoreboard{right:4%;width:55%;height:30%;top:17%}.rd-scoreboard b{font-size:38px}.rd-loss-ticket{width:86%;padding:10px}.rd-loss-ticket strong{font-size:100px}.rd-loss-ticket small{font-size:24px}.rd-opponent{font-size:26px}.rd-next{font-size:23px}
+}
+
+@media(max-width:600px) {
+    .rd-moto-signal{width:20%;height:30%}.rd-moto-gate{left:29%;width:50%;height:36%;font-size:35px}.rd-moto-bike{width:52%}.signature-motorcycle.phase-2 .rd-moto-bike{left:49%;top:35%;transform:rotate(-14deg) scale(.95)}.rd-moto-rip{top:12%;font-size:35px}
+    .rd-old-world,.rd-new-world{width:37%;font-size:24px}.rd-new-world{right:4%}.rd-orbit-caption{bottom:29%;font-size:24px}.rd-star-seed{font-size:65px}
+    .rd-shield-hero{left:4%;width:34%;height:30%}.rd-shield-plate{left:43%;width:24%;height:20%}.rd-shield-plate.p2{left:55%}.rd-shield-plate.p3{left:34%}.rd-shield-heal{bottom:28%;font-size:22px}
+    .rd-runner{width:34%;height:21%}.rd-runner i{font-size:46px}.signature-heroShoes.phase-2 .rd-runner{left:70%;top:21%}.rd-dodge{top:18%;font-size:65px}
+    .rd-contract{left:9%;width:82%;height:50%}.rd-contract b{font-size:65px}.rd-quill{font-size:150px}.rd-minion{width:27%;font-size:50px}.rd-demon-heart{left:30%;top:29%;font-size:220px}.rd-essence{width:25%;font-size:40px}.rd-heartbeat{font-size:44px}
+    .rd-mady-self,.rd-mady-foe{width:31%;height:18%;font-size:28px;top:44%}.rd-mady-buff,.rd-mady-error{top:20%;font-size:19px}.rd-mady-whistle{font-size:40px}
+    .rd-peak-gauge{width:40%}.rd-peak-gauge b{font-size:75px}.rd-peak-figure{left:45%;width:38%;height:45%;top:25%;font-size:40px}.rd-peak-band{left:35%;width:55%}.rd-peak-burst{top:16%;font-size:46px}.rd-peak-stats{bottom:27%;font-size:22px}
+    .rd-zero-ledger{left:7%;width:86%;height:52%}.rd-zero-ledger span{font-size:24px}.rd-zero-roller{font-size:65px}.rd-zero-verdict{top:12%;font-size:38px}
+    .rd-micro-lens{left:8%;top:19%;width:84%;border-width:12px}.rd-particle{font-size:60px}.rd-random-damage{bottom:25%;font-size:23px}.cs-product{font-size:30px}.signature-basketball.phase-2 .cs-basketball{left:69%;top:36%}.signature-heroSword .cs-hammer{left:2%}.cs-atk-gain{font-size:29px}.signature-probabilityTheory .cs-equation{font-size:55px}.signature-probabilityTheory .cs-multiplier{font-size:32px}
+}

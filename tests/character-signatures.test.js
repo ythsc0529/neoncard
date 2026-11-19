@@ -17,13 +17,14 @@ test('every requested character action owns a distinct storyboard and routes to 
         ['勇者', '跑步', 'heroShoes'], ['麥狄', '麥狄時刻', 'mady'], ['巔峰', '全盛時期', 'peak'],
         ['概率學', '概率學概論', 'probabilityTheory'], ['概率學', '概率為0', 'probabilityZero'],
         ['概率學', '概率為100', 'probabilityHundred'],
-        ['愛因斯坦', '布朗運動', 'brownian'], ['阿福', '呼叫增援', 'alfred']
+        ['愛因斯坦', '布朗運動', 'brownian'], ['阿福', '呼叫增援', 'alfred'],
+        ['灰塵', '過敏', 'dustAllergy']
     ];
     for (const [name, skill, kind] of routes) {
         await motion.combat({ attacker: { name }, skill: { name: skill, effect: { type: 'damage' } } });
         assert.equal(called.at(-1).kind, kind, `${name}/${skill}`);
     }
-    const keys = ['motorcycle', 'robotParts', 'ball', 'tea', 'planetDeath', 'basketball', 'photocopy',
+    const keys = ['motorcycle', 'robotParts', 'ball', 'tea', 'dustAllergy', 'planetDeath', 'basketball', 'photocopy',
         'snooker', 'heroShop', 'heroSword', 'heroShield', 'heroShoes', 'demonCall', 'demonPeck',
         'mady', 'wounded', 'peak', 'probabilityPassive', 'probabilityTheory', 'probabilityZero',
         'probabilityHundred', 'injuryChain', 'machineNest', 'ordinary', 'brownian', 'alfred'];
@@ -33,6 +34,97 @@ test('every requested character action owns a distinct storyboard and routes to 
         assert.equal(storyboard.cues.length, 3, key);
         assert.ok(storyboard.duration > storyboard.cues.at(-1)[0], key);
         assert.match(storyboard.markup({ name: '測試' }), /cs-result/, key);
+    }
+});
+
+test('signature scenes leave time for the result and connect the repaired motion', async () => {
+    const timers = [];
+    const layers = [];
+    const context = vm.createContext({
+        window: {}, console,
+        document: {
+            createElement: () => ({ dataset: {}, classList: { add() {} }, setAttribute() {}, remove() { this.removed = true; } }),
+            body: { appendChild: layer => layers.push(layer) }
+        },
+        setTimeout: (fn, delay) => { const timer = { fn, delay }; timers.push(timer); return timer; },
+        clearTimeout: () => {}
+    });
+    vm.runInContext(read('js/ui/signatureMotion.js'), context);
+    vm.runInContext(read('js/ui/characterSignatureMotion.js'), context);
+    const motion = context.window.SignatureMotion;
+    const dust = motion.scenes.dustAllergy.markup({ target: '對手', percent: 4 });
+    assert.match(dust, /cs-dust-cloud/);
+    assert.match(dust, /對手/);
+    assert.match(dust, /每回合 -4% HP/);
+    assert.match(motion.scenes.tea.markup({ name: '紅茶' }), /cs-pour.*cs-tea-fill/);
+    assert.match(motion.scenes.snooker.markup({}), /cs-cueball/);
+    const css = read('css/character-signature-motion.css');
+    assert.match(css, /signature-snooker\.phase-2 \.cs-cueball\{left:58%/);
+    assert.match(css, /signature-tea\.phase-2 \.cs-pour path\{stroke-dashoffset:0/);
+    assert.match(css, /signature-tea\.phase-2 \.cs-tea-fill\{height:67%/);
+
+    const finished = motion.event('dustAllergy', { target: '對手' });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(layers.length, 1);
+    assert.deepEqual(timers.map(timer => timer.delay), [330, 1200, 2250, 3150, 3450]);
+    timers.sort((a, b) => a.delay - b.delay).forEach(timer => timer.fn());
+    await finished;
+    assert.equal(layers[0].removed, true);
+});
+
+test('redesigned evolution and result scenes reveal their actual outcome', () => {
+    const context = vm.createContext({ window: {}, console });
+    vm.runInContext(read('js/ui/signatureMotion.js'), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const outcomes = [
+        ['jobs', { to: '賈伯斯max' }, /rd-macintosh.*rd-ipod.*rd-iphone.*賈伯斯max/],
+        ['lich', { to: '骷髏王' }, /rd-black-king.*骷髏王/],
+        ['jet', { to: 'K型戰機' }, /rd-k-core.*K型戰機/],
+        ['jetGuard', { to: 'L型戰機' }, /rd-decoy.*L型戰機/],
+        ['empower', { fatal: true }, /rd-genius-bridge fatal.*命運落空/],
+        ['loss', { winner: '魔王' }, /rd-loss-ticket.*敗北.*魔王 勝利/]
+    ];
+    for (const [kind, data, expected] of outcomes) {
+        assert.match(scenes[kind].markup(data), expected, kind);
+        assert.equal(scenes[kind].cues.length, 3, kind);
+    }
+    assert.match(scenes.empower.markup({ fatal: false }), /通過命運/);
+    assert.doesNotMatch(scenes.empower.markup({ fatal: false }), /rd-genius-bridge fatal/);
+    assert.doesNotMatch(scenes.jobs.markup({}), /rd-keynote|ONE MORE THING/);
+    assert.doesNotMatch(scenes.lich.markup({}), /☛/);
+    assert.doesNotMatch(scenes.loss.markup({}), /0 : 1/);
+    for (const kind of ['jobs', 'lich', 'loss']) {
+        assert.ok((scenes[kind].duration - scenes[kind].cues.at(-1)[0]) * 1.5 >= 1800, `${kind} result should stay readable`);
+    }
+});
+
+test('sleep and copied skill moments use separate readable results', async () => {
+    const timers = [];
+    const stage = { isConnected: true, classList: { add() {} } };
+    const container = { innerHTML: '', querySelector: () => stage };
+    const context = vm.createContext({
+        window: {}, console,
+        document: { addEventListener() {} },
+        setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }
+    });
+    vm.runInContext(read('js/ui/animations.js') + '\nglobalThis.motion = Animations;', context);
+    const motion = context.motion;
+    motion.container = container;
+    motion.show = () => {};
+    motion.hide = () => {};
+    const cases = [
+        ['sleep', { applied: true, character: '魔眼' }, /rd-asleep.*魔眼 陷入睡眠/],
+        ['sleep', { character: '魔眼' }, /rd-dreaming.*本回合仍在夢中/],
+        ['sleep', { awake: true, character: '魔眼' }, /rd-awake.*魔眼 恢復行動/],
+        ['copy', { target: '魔王', skill: '啄食', source: '摳屎不累' }, /rd-copy.*魔王.*啄食.*摳屎不累/]
+    ];
+    for (const [kind, data, expected] of cases) {
+        timers.length = 0;
+        const finished = motion.characterMoment(kind, data);
+        assert.match(container.innerHTML, expected);
+        assert.deepEqual(timers.map(timer => timer.delay), [250, 1050, 2200, 3400]);
+        timers.forEach(timer => timer.fn());
+        await finished;
     }
 });
 

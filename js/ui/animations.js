@@ -543,6 +543,7 @@ const Animations = {
 
     // Character-specific manga panels. The result stays visible before play resumes.
     async characterMoment(kind, details = {}) {
+        if (kind === 'sleep' || kind === 'copy') return this.redesignedMoment(kind, details);
         const scenes = {
             sleep: { issue: '神益州 / 晚安', heading: details.awake ? '夢境破碎！' : details.applied ? '晚安，入夢。' : '還在夢中…', sfx: details.awake ? '醒！' : 'Zzz', accent: 'sleep' },
             replace: { issue: '不平凡 / 註定平凡', heading: '命運改寫！', sfx: '換！', accent: 'replace' },
@@ -564,6 +565,27 @@ const Animations = {
             const stage = this.container.querySelector('.manga-moment');
             setTimeout(() => { if (stage.isConnected) stage.classList.add('is-revealed'); }, 350);
             setTimeout(() => { if (stage.isConnected) this.hide(); resolve(); }, kind === 'replace' ? 2600 : 2200);
+        });
+    },
+
+    redesignedMoment(kind, details) {
+        const character = this.escapeText(details.character || '對手');
+        const variant = kind === 'copy' ? 'copy' : details.awake ? 'awake' : details.applied ? 'asleep' : 'dreaming';
+        const markup = variant === 'asleep'
+            ? `<div class="rd-sleep-window">☾</div><div class="rd-sleep-curtain left"></div><div class="rd-sleep-curtain right"></div><div class="rd-sleep-pillow">Zzz</div><div class="rd-sleeper">${character}</div><div class="rd-sleep-verdict">${character} 陷入睡眠</div>`
+            : variant === 'dreaming'
+                ? `<div class="rd-dream-clock">↻</div><div class="rd-dream-ring r1"></div><div class="rd-dream-ring r2"></div><div class="rd-dream-ring r3"></div><div class="rd-dreamer">${character}</div><div class="rd-dream-z">Zzz...</div><div class="rd-sleep-verdict">本回合仍在夢中</div>`
+                : variant === 'awake'
+                    ? `<div class="rd-alarm">⏰</div><div class="rd-dream-glass"></div><div class="rd-waking">${character}</div><div class="rd-shards">✦　✦　✦</div><div class="rd-wake-word">醒！</div><div class="rd-sleep-verdict">${character} 恢復行動</div>`
+                    : `<div class="rd-eye-target">${this.escapeText(details.target || '對手')}</div><div class="rd-eye-lens">◉</div><div class="rd-ink-line"></div><div class="rd-copy-scroll">${this.escapeText(details.skill || '技能')}</div><div class="rd-eye-user">${this.escapeText(details.source || '摳屎不累')}</div><div class="rd-copy-verdict">寫輪眼・複製成功</div>`;
+        return new Promise(resolve => {
+            this.show();
+            this.container.innerHTML = `<div class="rd-moment rd-${variant}" role="status" aria-live="assertive">${markup}</div>`;
+            const stage = this.container.querySelector('.rd-moment');
+            for (const [delay, phase] of [[250, 1], [1050, 2], [2200, 3]]) {
+                setTimeout(() => { if (stage.isConnected) stage.classList.add(`phase-${phase}`); }, delay);
+            }
+            setTimeout(() => { if (stage.isConnected) this.hide(); resolve(); }, 3400);
         });
     },
 

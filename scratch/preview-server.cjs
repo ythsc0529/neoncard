@@ -40,12 +40,29 @@ function preview(name, mobile) {
         }document.body.prepend(bar);`;
     }
     html = html.replace('</body>', `<script>document.addEventListener('DOMContentLoaded',()=>{${boot}});</script></body>`);
-    if (mobile) return `<!doctype html><html><head><title>390px / ${name}</title><style>body{margin:0;background:#ccc;display:grid;place-items:start center}iframe{width:390px;height:844px;border:0}</style></head><body><iframe src="/preview/${name}.html" title="Mobile preview"></iframe></body></html>`;
+    if (mobile) return `<!doctype html><html><head><title>390px / ${name}</title><style>body{margin:0;height:100vh;overflow:hidden;background:#ccc;display:grid;place-items:start center}iframe{width:390px;height:min(844px,100vh);border:0}</style></head><body><iframe src="/preview/${name}.html" title="Mobile preview"></iframe></body></html>`;
     return html;
 }
 http.createServer((req,res) => {
     try {
         const url = new URL(req.url,'http://localhost');
+        if (url.pathname === '/signature-gallery.html') {
+            res.writeHead(302, { Location: '/preview/signature-gallery.html' });
+            return res.end();
+        }
+        if (url.pathname === '/preview/signature-gallery.html') {
+            const galleryPath = path.join(__dirname, 'signature-gallery.html');
+            if (!fs.existsSync(galleryPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                return res.end('本機動畫試映頁尚未建立');
+            }
+            res.setHeader('Content-Type','text/html; charset=utf-8');
+            res.setHeader('Cache-Control','no-store');
+            if (url.searchParams.has('mobile')) {
+                return res.end('<!doctype html><html lang="zh-Hant"><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>手機預覽 / 專屬動畫試映室</title><style>body{margin:0;height:100vh;overflow:hidden;background:#d3d3d3;display:grid;place-items:start center}iframe{width:390px;height:min(844px,100vh);border:0;background:#fff}</style></head><body><iframe src="/preview/signature-gallery.html" title="390px 手機版專屬動畫試映室"></iframe></body></html>');
+            }
+            return res.end(fs.readFileSync(galleryPath, 'utf8'));
+        }
         const match = url.pathname.match(/^\/preview\/(\w+)\.html$/);
         if (match && fs.existsSync(path.join(root,match[1]+'.html'))) {
             res.setHeader('Content-Type','text/html; charset=utf-8'); return res.end(preview(match[1],url.searchParams.has('mobile')));

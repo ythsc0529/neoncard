@@ -207,9 +207,11 @@ test('planet, vehicle and mahjong summons receive distinct comic cut-ins', async
         await new Promise(setImmediate);
         const layer = document.body.children.at(-1);
         assert.equal(layer.className, `signature-scene signature-${theme}`);
-        clock.tick(270);
+        clock.tick(405);
         assert.equal(layer.dataset.phase, '1');
-        clock.tick(1680);
+        const scene = c.window.SignatureMotion.scenes[theme];
+        const total = Math.max(Math.round(scene.duration * 1.5), Math.round(scene.cues.at(-1)[0] * 1.5) + 1200);
+        clock.tick(total - 405);
         await action;
         assert.equal(layer.removed, true);
     }
@@ -229,13 +231,14 @@ test('named skill, replacement and evolution routes play their own complete stor
         const layer = document.body.children.at(-1);
         assert.equal(layer.className, `signature-scene signature-${kind}`);
         const scene = c.window.SignatureMotion.scenes[kind];
-        clock.tick(scene.cues[0][0]);
+        const total = Math.max(Math.round(scene.duration * 1.5), Math.round(scene.cues.at(-1)[0] * 1.5) + 1200);
+        clock.tick(Math.round(scene.cues[0][0] * 1.5));
         assert.equal(layer.dataset.phase, '1');
-        clock.tick(scene.duration - scene.cues[0][0] - 200);
+        clock.tick(total - Math.round(scene.cues[0][0] * 1.5) - 300);
         assert.equal(layer.dataset.phase, '4');
         assert.ok(layer.classList.contains('phase-1'));
         assert.ok(layer.classList.contains('phase-3'));
-        clock.tick(200);
+        clock.tick(300);
         await action;
         assert.equal(layer.removed, true);
     }
@@ -244,13 +247,13 @@ test('named skill, replacement and evolution routes play their own complete stor
     const replacement = document.body.children.at(-1);
     assert.equal(replacement.className, 'signature-scene signature-replacement');
     assert.match(replacement.innerHTML, /魔眼/);
-    clock.tick(c.window.SignatureMotion.scenes.replacement.duration);
+    clock.tick(Math.max(Math.round(c.window.SignatureMotion.scenes.replacement.duration * 1.5), Math.round(c.window.SignatureMotion.scenes.replacement.cues.at(-1)[0] * 1.5) + 1200));
     await swap;
     const evo = c.ComicMotion.evolution({from:'賈伯斯',to:'賈伯斯max'});
     await new Promise(setImmediate);
     const evolution = document.body.children.at(-1);
     assert.equal(evolution.className, 'signature-scene signature-jobs');
-    clock.tick(c.window.SignatureMotion.scenes.jobs.duration);
+    clock.tick(Math.max(Math.round(c.window.SignatureMotion.scenes.jobs.duration * 1.5), Math.round(c.window.SignatureMotion.scenes.jobs.cues.at(-1)[0] * 1.5) + 1200));
     await evo;
     assert.equal(clock.timers.size, 0);
 });
