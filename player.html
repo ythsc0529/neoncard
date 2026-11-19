@@ -74,7 +74,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
-    <link rel="stylesheet" href="css/profile-comic.css?v=1">
+    <link rel="stylesheet" href="css/profile-v2.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 <body data-page="player">
@@ -86,9 +86,10 @@
     </div>
 
     <div class="player-page" id="playerPage" style="display:none;">
-        <a href="javascript:history.back()" class="back-btn">← 返回</a>
+        <div class="player-page-header"><a href="javascript:history.back()" class="back-btn">← 返回</a><div><span class="profile-eyebrow">NEONCARD / PLAYER FILE</span><h1>玩家檔案</h1><p>認識對手，也找到下一位隊友。</p></div><span class="player-header-symbol" aria-hidden="true">★</span></div>
 
         <div class="glass hero-card">
+            <div class="hero-identity">
             <!-- Avatar + Name -->
             <div class="hero-avatar">
                 <span id="heroAvatarEmoji" style="font-size:3rem;">👤</span>
@@ -102,6 +103,9 @@
                 <span class="edit-icon" onclick="copyUid()" title="複製 UID" style="cursor:pointer; font-size:0.8rem;">📋</span>
             </div>
             <div id="heroLevel" style="color:var(--neon-cyan); font-family:var(--font-heading); font-size:1.1rem; margin-top:10px;"></div>
+            </div>
+
+            <div class="hero-details">
 
             <!-- Fav Characters -->
             <div class="fav-section" id="favSection" style="display:none;">
@@ -124,6 +128,7 @@
                         <div id="playerTitleName" style="color:var(--neon-gold);font-family:var(--font-heading);font-size:0.85rem;margin-top:4px;"></div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
 

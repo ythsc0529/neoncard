@@ -95,7 +95,8 @@ test('coin result is fixed before the panel closes', async () => {
 });
 
 test('replacement panel identifies both cards that changed', async () => {
-    const { animations, container, flush } = makeAnimations();
+    const harness = makeAnimations();
+    const { animations, container, runUntil, flush } = harness;
     const finished = animations.characterMoment('replace', {
         changes: [
             { player: '甲', from: '戰士', to: '平凡' },
@@ -105,6 +106,11 @@ test('replacement panel identifies both cards that changed', async () => {
     assert.match(container.innerHTML, /戰士/);
     assert.match(container.innerHTML, /醫生/);
     assert.match(container.innerHTML, /平凡/);
+    assert.match(container.innerHTML, /v3-fate-row/);
+    runUntil(1050);
+    assert.equal(harness.stage.added.has('is-shuffling'), true);
+    runUntil(2100);
+    assert.equal(harness.stage.added.has('is-revealed'), true);
     flush();
     await finished;
     assert.equal(container.innerHTML, '');

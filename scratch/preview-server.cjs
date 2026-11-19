@@ -29,6 +29,36 @@ function preview(name, mobile) {
     let boot = `document.querySelectorAll('#pageLoading,#resourcePreloader,#privacyModal,#authOverlay,#pgLoading').forEach(el=>el.style.display='none');
         document.querySelectorAll('#mainMenu,#shopPage,#trialPage,#passPage,#teamPage,#missionsPage,#playerPage,#profilePage').forEach(el=>el.style.display='block');`;
     if (isMain) boot += `document.getElementById('statsCard').classList.remove('hidden');document.getElementById('mainMenuRankName').textContent='骸 II';`;
+    if (name === 'profile') boot += `
+        document.getElementById('nameDisplay').textContent='墨線玩家';
+        document.getElementById('bioDisplay').textContent='喜歡用奇怪的組合打出漂亮的一局。歡迎一起挑戰！';
+        document.getElementById('uidDisplay').textContent='preview-only';
+        document.getElementById('joinDateDisplay').textContent='2026 年 6 月 12 日';
+        document.getElementById('favCharsRow').innerHTML='<span class="fav-chip">勇者</span><span class="fav-chip">火星</span><span class="fav-chip">烏龍茶</span>';
+        document.getElementById('profileLevel').textContent='7';document.getElementById('profileExp').textContent='680';document.getElementById('profileMoney').textContent='2,400';document.getElementById('profileDeeds').textContent='120';
+        document.getElementById('friendList').innerHTML='<div class="friend-card"><div class="friend-card-row"><div class="friend-avatar">👤</div><div class="friend-info"><div class="friend-name">星軌旅人</div><div class="friend-bio">今晚有人要打一場嗎？</div><div>● 在線</div></div><div class="friend-actions"><button class="btn btn-sm btn-gold">邀請對戰</button><button class="btn btn-sm">查看</button></div></div><div class="friend-stats-bar">🏆 競賽 <b>67%</b>（12勝6敗）</div></div><div class="friend-card"><div class="friend-card-row"><div class="friend-avatar">👤</div><div class="friend-info"><div class="friend-name">撞球大師</div><div class="friend-bio">練習炸杆中</div><div>離線</div></div><div class="friend-actions"><button class="btn btn-sm">查看</button></div></div></div>';
+    `;
+    if (name === 'player') boot += `
+        document.getElementById('heroName').textContent='星軌旅人';
+        document.getElementById('heroBio').textContent='收藏星球牌，也喜歡和朋友研究新戰術。';
+        document.getElementById('heroMeta').textContent='📅 加入於 2026 年 6 月 12 日';
+        document.getElementById('uidText').textContent='UID: preview-friend';
+        document.getElementById('heroLevel').textContent='LV. 12 / 星軌旅人';
+        document.getElementById('favSection').style.display='block';
+        document.getElementById('favChips').innerHTML='<div class="fav-chip">地球</div><div class="fav-chip">火星</div><div class="fav-chip">奧沙利文</div>';
+        document.getElementById('rankTitleSection').style.display='block';
+        document.getElementById('playerRankName').textContent='璀璨 III';
+        document.getElementById('playerRankImg').style.display='none';
+        document.getElementById('playerRankStars').textContent='★★★';
+        document.getElementById('playerTitleBlock').style.display='block';
+        document.getElementById('playerTitleImg').style.display='none';
+        document.getElementById('playerTitleName').textContent='銀河挑戰者';
+        document.getElementById('statsSection').style.display='block';
+        document.getElementById('statsGrid').innerHTML='<div class="stat-card"><div class="stat-mode">🏆 競賽</div><div class="stat-rate">67%</div><div class="stat-detail">12勝 6敗</div></div><div class="stat-card"><div class="stat-mode">🌐 線上</div><div class="stat-rate">58%</div><div class="stat-detail">14勝 10敗</div></div>';
+        document.getElementById('historySection').style.display='block';
+        document.getElementById('historyList').innerHTML='<div class="match-item"><div class="match-result-badge win">勝</div><div class="match-info"><div class="match-opponent">對戰 墨線玩家</div><div class="match-meta">🏆 排位賽 · 勝利</div></div><div class="match-time">昨天</div></div>';
+        document.getElementById('actionBar').innerHTML='<button class="btn btn-gold">邀請對戰</button><button class="btn">加為好友</button>';
+    `;
     if (name === 'shop') boot += `const testBtn=document.createElement('button');testBtn.className='btn';testBtn.textContent='預覽十連動畫（測試資料）';testBtn.onclick=()=>showGachaModal(Array.from({length:10},(_,i)=>({name:['戰士','醫生','魔眼','伊魯帕恩'][i%4],rarity:i===9?'MYTHIC':i===8?'LEGENDARY':i%2?'RARE':'COMMON',type:'char',isDupe:i<3})));document.getElementById('shopPage').prepend(testBtn);`;
     if (name === 'game') {
         html = html.replace('</head>', '<script src="js/ui/animations.js"></script></head>');

@@ -543,6 +543,7 @@ const Animations = {
 
     // Character-specific manga panels. The result stays visible before play resumes.
     async characterMoment(kind, details = {}) {
+        if (kind === 'replace') return this.fateRewriteMoment(details);
         if (kind === 'sleep' || kind === 'copy') return this.redesignedMoment(kind, details);
         const scenes = {
             sleep: { issue: '神益州 / 晚安', heading: details.awake ? '夢境破碎！' : details.applied ? '晚安，入夢。' : '還在夢中…', sfx: details.awake ? '醒！' : 'Zzz', accent: 'sleep' },
@@ -565,6 +566,22 @@ const Animations = {
             const stage = this.container.querySelector('.manga-moment');
             setTimeout(() => { if (stage.isConnected) stage.classList.add('is-revealed'); }, 350);
             setTimeout(() => { if (stage.isConnected) this.hide(); resolve(); }, kind === 'replace' ? 2600 : 2200);
+        });
+    },
+
+    fateRewriteMoment(details = {}) {
+        const changes = Array.isArray(details.changes) ? details.changes : [];
+        const rows = changes.length
+            ? changes.map(change => `<div class="v3-fate-row"><small>${this.escapeText(change.player || '玩家')}</small><strong class="v3-fate-old">${this.escapeText(change.from || '原角色')}</strong><b class="v3-fate-shredder">✂</b><strong class="v3-fate-new">${this.escapeText(change.to || '新角色')}</strong></div>`).join('')
+            : '<div class="v3-fate-row"><strong class="v3-fate-new">備戰區沒有可替換角色</strong></div>';
+        return new Promise(resolve => {
+            this.show();
+            this.container.innerHTML = `<div class="manga-stage manga-fate-v3" role="status" aria-live="assertive"><div class="manga-speedlines"></div><div class="v3-fate-heading">不平凡・命運裁決</div><div class="v3-fate-scroll">${rows}</div><div class="v3-fate-verdict">註定平凡！</div></div>`;
+            const stage = this.container.querySelector('.manga-fate-v3');
+            for (const [delay, phase] of [[180, 'is-entered'], [1050, 'is-shuffling'], [2100, 'is-revealed']]) {
+                setTimeout(() => { if (stage.isConnected) stage.classList.add(phase); }, delay);
+            }
+            setTimeout(() => { if (stage.isConnected) this.hide(); resolve(); }, 4100);
         });
     },
 

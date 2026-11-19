@@ -1462,6 +1462,16 @@ const GameState = {
 
             // On death: summon category (地球-適居帶, 土星-星球之力, 梅子綠茶-梅子給我擦)
             case 'summon_category':
+                if (trigger === 'on_hit_basic' || trigger === 'on_skill_count') {
+                    if (!card.resources) card.resources = {};
+                    if (trigger === 'on_skill_count' && effect.skill && args.skillName !== effect.skill) break;
+                    const counter = trigger === 'on_hit_basic' ? 'hit_count' : 'skill_count';
+                    card.resources[counter] = (card.resources[counter] || 0) + 1;
+                    if (card.resources[counter] % (effect.count || 1) !== 0) {
+                        this.addLog(`${card.name} 被動 [${card.passive.name}]：${card.resources[counter]}/${effect.count || 1}`, 'status');
+                        break;
+                    }
+                }
                 const catOwner = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
                 const catChar = getRandomFromCategory(effect.category);
                 if (catChar) {
@@ -1744,26 +1754,6 @@ const GameState = {
                 }
                 break;
 
-
-            case 'summon_category': // on_skill_count trigger with summon_category
-                if (effect.trigger === 'on_skill_count') {
-                    if (!card.resources) card.resources = {};
-                    // Only match the specific skill if effect.skill is set
-                    if (!effect.skill || args.skillName === effect.skill) {
-                        card.resources.skill_count = (card.resources.skill_count || 0) + 1;
-                        if (card.resources.skill_count % effect.count === 0) {
-                            const catOwnerKey = this.player1.battleCard === card || this.player1.standbyCards.includes(card) ? 'player1' : 'player2';
-                            const catChar = getRandomFromCategory(effect.category);
-                            if (catChar) {
-                                const inst = createCharacterInstance(catChar);
-                                this[catOwnerKey].standbyCards.push(inst);
-                                this.addLog(`${card.name} 被動 [${card.passive.name}]：召喚了 ${inst.name}`, 'skill');
-                                Animations.drawCards([inst]);
-                            }
-                        }
-                    }
-                }
-                break;
 
             // Bonus damage by rarity passive (摳P-垃圾不分藍綠)
             case 'bonus_damage_by_rarity': {

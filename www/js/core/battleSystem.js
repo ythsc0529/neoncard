@@ -59,6 +59,10 @@ const BattleSystem = {
         // Apply damage
         const result = await this.applyDamage(attacker, defender, damage);
 
+        if (!result?.dodged && !result?.blocked) {
+            await GameState.processPassive(defender, 'on_hit_basic', { attacker });
+        }
+
         attacker.hasAttacked = true;
 
         // 摳P 被動: on_attack 觸發

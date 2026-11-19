@@ -5,6 +5,56 @@ const path = require('node:path');
 const vm = require('node:vm');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
+test('selected second-pass storyboards replace the live scenes with distinct actions', () => {
+    const context = vm.createContext({ window: {}, console });
+    vm.runInContext(read('js/ui/signatureMotion.js'), context);
+    vm.runInContext(read('js/ui/characterSignatureMotion.js'), context);
+    const before = context.window.SignatureMotion.scenes.motorcycle.markup({ name: '測試' });
+    vm.runInContext(read('js/ui/signatureStoryboardsV2.js'), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const keys = ['motorcycle', 'robotParts', 'ball', 'heroSword', 'heroShield', 'wounded',
+        'probabilityTheory', 'probabilityHundred', 'planet', 'vehicle', 'replacement', 'revival',
+        'machine', 'jet', 'jetGuard', 'win'];
+    const markup = keys.map(key => scenes[key].markup({ name: '測試', to: '測試', incoming: '測試', winner: '測試' }));
+    assert.equal(new Set(markup).size, keys.length);
+    assert.notEqual(markup[0], before);
+    for (const key of keys) {
+        assert.equal(scenes[key].cues.length, 3, key);
+        assert.ok(scenes[key].duration > scenes[key].cues.at(-1)[0], key);
+        assert.match(scenes[key].markup({ name: '測試' }), /v2-outcome/, key);
+    }
+    assert.match(scenes.probabilityHundred.markup({}), /20–40% 機率 \/ 成功時/);
+    assert.match(scenes.replacement.markup({ outgoing: '<舊>', incoming: '<新>' }), /&lt;舊&gt;.*&lt;新&gt;/s);
+    assert.match(read('game.html'), /signatureStoryboardsV2\.js/);
+});
+
+test('third-pass scenes preserve actual results and give each reviewed event new staging', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV2.js']) vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const keys = ['motorcycle', 'heroSword', 'wounded', 'probabilityTheory', 'probabilityHundred',
+        'replacement', 'revival', 'ball', 'planetDeath', 'heroShield'];
+    const previous = Object.fromEntries(keys.map(key => [key, scenes[key].markup({ name: '火星' })]));
+    vm.runInContext(read('js/ui/signatureStoryboardsV3.js'), context);
+    const values = keys.map(key => {
+        const markup = scenes[key].markup({ name: '火星', incoming: '魔眼', outgoing: '戰士', count: 5 });
+        assert.notEqual(markup, previous[key], key);
+        assert.match(markup, /v3-stage/, key);
+        assert.match(markup, /v3-result/, key);
+        assert.equal(scenes[key].cues.length, 3, key);
+        return markup;
+    });
+    assert.equal(new Set(values).size, keys.length);
+    assert.match(scenes.ball.markup({ name: '足球' }), /<path d="M60 33/);
+    assert.match(scenes.ball.markup({ name: '籃球' }), /fill="#ec772a"/);
+    assert.match(scenes.heroShield.markup({}), /<svg viewBox="0 0 180 220"/);
+    assert.match(scenes.planetDeath.markup({ from: '地球', name: '火星' }), /data-planet="火星".*is-target|is-target.*data-planet="火星"/);
+    assert.match(scenes.planetDeath.markup({ name: '火星' }), /animateMotion.*273 380/s);
+    assert.match(scenes.probabilityHundred.markup({}), /20–40% 機率判定/);
+    assert.match(read('game.html'), /signatureStoryboardsV3\.js/);
+});
+
 test('every requested character action owns a distinct storyboard and routes to it', async () => {
     const context = vm.createContext({ window: {}, console });
     vm.runInContext(read('js/ui/signatureMotion.js'), context);
@@ -18,14 +68,14 @@ test('every requested character action owns a distinct storyboard and routes to 
         ['概率學', '概率學概論', 'probabilityTheory'], ['概率學', '概率為0', 'probabilityZero'],
         ['概率學', '概率為100', 'probabilityHundred'],
         ['愛因斯坦', '布朗運動', 'brownian'], ['阿福', '呼叫增援', 'alfred'],
-        ['灰塵', '過敏', 'dustAllergy']
+        ['灰塵', '過敏', 'dustAllergy'], ['撞球', '炸杆', 'snookerBreak']
     ];
     for (const [name, skill, kind] of routes) {
         await motion.combat({ attacker: { name }, skill: { name: skill, effect: { type: 'damage' } } });
         assert.equal(called.at(-1).kind, kind, `${name}/${skill}`);
     }
     const keys = ['motorcycle', 'robotParts', 'ball', 'tea', 'dustAllergy', 'planetDeath', 'basketball', 'photocopy',
-        'snooker', 'heroShop', 'heroSword', 'heroShield', 'heroShoes', 'demonCall', 'demonPeck',
+        'snooker', 'snookerBreak', 'heroShop', 'heroSword', 'heroShield', 'heroShoes', 'demonCall', 'demonPeck',
         'mady', 'wounded', 'peak', 'probabilityPassive', 'probabilityTheory', 'probabilityZero',
         'probabilityHundred', 'injuryChain', 'machineNest', 'ordinary', 'brownian', 'alfred'];
     assert.equal(new Set(keys.map(k => motion.scenes[k].markup({ name: '測試', from: '來源', chance: 7, count: 1 }))).size, keys.length);
@@ -33,8 +83,54 @@ test('every requested character action owns a distinct storyboard and routes to 
         const storyboard = motion.scenes[key];
         assert.equal(storyboard.cues.length, 3, key);
         assert.ok(storyboard.duration > storyboard.cues.at(-1)[0], key);
-        assert.match(storyboard.markup({ name: '測試' }), /cs-result/, key);
+        assert.match(storyboard.markup({ name: '測試' }), /cs-result|orbit-reveal/, key);
     }
+});
+
+test('break shot and planet draw reveal the actual action and planet', () => {
+    const context = vm.createContext({ window: {}, console });
+    vm.runInContext(read('js/ui/signatureMotion.js'), context);
+    vm.runInContext(read('js/ui/characterSignatureMotion.js'), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    assert.match(scenes.snookerBreak.markup({ name: '撞球' }), /break-rack.*break-impact.*暈眩判定/s);
+    const planet = scenes.planetDeath.markup({ from: '地球', name: '火星' });
+    assert.match(planet, /orbit-meteor.*--target-x:57%;--target-y:69%/s);
+    assert.match(planet, /planet-4 chosen.*火星/s);
+    assert.match(planet, /orbit-reveal.*火星/s);
+});
+
+test('oolong tea counts successful basic hits and draws on every second hit', async () => {
+    const draws = [];
+    const context = vm.createContext({
+        window: {}, console,
+        Animations: { comicAction: async () => {}, drawCards: async cards => draws.push(...cards) },
+        getRandomFromCategory: category => category === 'tea' ? { name: '梅子綠茶' } : null,
+        createCharacterInstance: data => ({ ...data })
+    });
+    vm.runInContext(read('js/core/gameState.js') + '\nglobalThis.state = GameState;', context);
+    vm.runInContext(read('js/core/battleSystem.js') + '\nglobalThis.battle = BattleSystem;', context);
+    const { state, battle } = context;
+    const tea = { name: '烏龍茶', hp: 50, maxHp: 50, atk: 10, resources: { hit_count: 0 }, statusEffects: [], passive: { name: '烏龍', effect: { trigger: 'on_hit_basic', count: 2, action: 'summon_category', category: 'tea' } } };
+    const attacker = { name: '戰士', hp: 100, atk: 1, statusEffects: [] };
+    state.player1 = { battleCard: tea, standbyCards: [] };
+    state.player2 = { battleCard: attacker, standbyCards: [] };
+    state.addLog = () => {};
+    battle.applyDamage = async () => ({ damage: 1 });
+    await battle.normalAttack(attacker, tea);
+    assert.equal(tea.resources.hit_count, 1);
+    assert.equal(draws.length, 0);
+    await battle.normalAttack(attacker, tea);
+    assert.equal(tea.resources.hit_count, 2);
+    assert.equal(draws.length, 1);
+    assert.equal(state.player1.standbyCards[0].name, '梅子綠茶');
+    battle.applyDamage = async () => ({ damage: 0, dodged: true });
+    await battle.normalAttack(attacker, tea);
+    assert.equal(tea.resources.hit_count, 2);
+    let finalHits = 0;
+    battle.applyDamage = async () => { if (++finalHits === 2) tea.hp = 0; return { damage: 1 }; };
+    await battle.normalAttack(attacker, tea);
+    await battle.normalAttack(attacker, tea);
+    assert.equal(draws.length, 2);
 });
 
 test('signature scenes leave time for the result and connect the repaired motion', async () => {

@@ -782,7 +782,7 @@
     </style>
     <link rel="stylesheet" href="css/comic-ui.css?v=ink2">
     <link rel="stylesheet" href="css/comic-motion.css?v=ink2">
-    <link rel="stylesheet" href="css/profile-comic.css?v=1">
+    <link rel="stylesheet" href="css/profile-v2.css?v=1">
     <script src="js/ui/comicMotion.js?v=ink2"></script>
 </head>
 
@@ -802,7 +802,8 @@
         <!-- Header -->
         <div class="page-header">
             <a href="index.html" class="back-btn">← 返回主選單</a>
-            <div class="page-heading">個人檔案</div>
+            <div class="profile-header-copy"><span class="profile-eyebrow">NEONCARD / PLAYER HQ</span><div class="page-heading">我的玩家基地<span>個人檔案</span></div><p>整理戰績、展示角色，和好友一起開啟下一場對戰。</p></div>
+            <div class="profile-header-mark" aria-hidden="true">NC<span>★</span></div>
         </div>
 
         <div class="profile-grid">
@@ -810,6 +811,7 @@
             <div class="profile-card" id="userCard">
                 <!-- Card Header (red accent) -->
                 <div class="profile-card-header">
+                    <div class="profile-card-kicker">PLAYER CARD <span>NO. 01</span></div>
                     <div class="avatar-ring">
                         <div class="avatar-placeholder" id="avatarEmoji">👤</div>
                         <img id="avatarImg" style="display:none;" alt="Avatar">
@@ -941,6 +943,8 @@
             </div>
             <!-- Right: Tabs -->
             <div class="right-panel">
+
+                <div class="social-heading"><span>COMMUNITY / 社交中心</span><strong>一起上場！</strong><p>查看好友動態、最近對戰與新的好友邀請。</p></div>
 
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('friends')" id="tab-friends">好友</button>

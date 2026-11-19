@@ -9,10 +9,22 @@
         robotParts: scene(1650, d => `<div class="cs-conveyor"></div><div class="cs-part p1">I</div><div class="cs-part p2">II</div><div class="cs-part p3">III</div><div class="cs-press">▼</div><div class="cs-product">${e(d.name || '機器人')}</div><div class="cs-result">${e(d.name || '機器人')} 出廠</div>`),
         ball: scene(1650, d => `<div class="cs-court"></div><div class="cs-bounce b1"></div><div class="cs-bounce b2"></div><div class="cs-ball"></div><div class="cs-hoop">◎</div><div class="cs-result">${e(d.name || '球類')} 入場！</div>`),
         tea: scene(1650, d => `<div class="cs-leaves">❧ ❧ ❧</div><div class="cs-kettle">♨</div><svg class="cs-pour" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M 68 38 C 60 45 52 47 50 61" /></svg><div class="cs-cup"><div class="cs-tea-fill"></div></div><div class="cs-result">${e(d.name || '茶類')} 沖泡完成</div>`),
-        planetDeath: scene(1650, d => `<div class="rd-star-field"></div><div class="rd-old-world">${e(d.from || '舊星')}</div><div class="rd-world-crack">╱╲</div><div class="rd-star-seed">✦</div><div class="rd-comet-trail"></div><div class="rd-new-world">${e(d.name || '新星')}</div><div class="rd-orbit-caption">星之火種，交給你！</div><div class="cs-result">${e(d.name || '新星')}・星軌繼承</div>`),
+        planetDeath: {
+            character: true, duration: 3900, cues: [[180, 1], [650, 2], [2450, 3]],
+            markup: d => {
+                const planets = ['太陽', '水星', '金星', '地球', '火星', '木星', '土星', '天王星', '海王星', '冥王星', '北極星'];
+                const positions = [[49,45],[24,34],[32,66],[44,23],[57,69],[72,31],[81,61],[12,69],[91,36],[8,25],[52,12]];
+                const selected = Math.max(0, planets.indexOf(d.name));
+                return `<div class="orbit-sky"></div><div class="orbit-ring ring-a"></div><div class="orbit-ring ring-b"></div><div class="orbit-ring ring-c"></div><div class="orbit-source">${e(d.from || '殞落的星球')}<small>星球殞落</small></div><div class="orbit-system">${planets.map((name, i) => `<div class="orbit-planet planet-${i}${i === selected ? ' chosen' : ''}" style="--x:${positions[i][0]}%;--y:${positions[i][1]}%"><i></i><span>${e(name)}</span></div>`).join('')}</div><div class="orbit-meteor" style="--target-x:${positions[selected][0]}%;--target-y:${positions[selected][1]}%"><i></i></div><div class="orbit-sfx">咻──！</div><div class="orbit-reveal"><small>流星停靠 / NEW PLANET</small><strong>${e(d.name || '太陽')}</strong></div>`;
+            }
+        },
         basketball: scene(1650, d => `<div class="cs-court"></div><div class="cs-player">堯冥</div><div class="cs-basketball"></div><div class="cs-backboard">▣</div><div class="cs-net">╲╱</div><div class="cs-swish">唰！</div><div class="cs-result">${e(d.name || '籃球')}！灌籃召喚</div>`),
         photocopy: scene(1650, d => `<div class="cs-original">${e(d.name || '對手卡牌')}</div><div class="cs-scanner"></div><div class="cs-light"></div><div class="cs-sheet">COPY</div><div class="cs-result">複印完成・${e(d.name)}</div>`),
         snooker: scene(1650, d => `<div class="cs-felt"></div><div class="cs-cue"></div><div class="cs-cueball"></div><div class="cs-poolball">147</div><div class="cs-pocket"></div><div class="cs-result">撞球・進袋！</div>`),
+        snookerBreak: {
+            character: true, duration: 3200, cues: [[180, 1], [680, 2], [1750, 3]],
+            markup: d => `<div class="break-table"><i class="break-pocket p1"></i><i class="break-pocket p2"></i><i class="break-pocket p3"></i><i class="break-pocket p4"></i></div><div class="break-label">${e(d.name || '撞球')} / 炸杆</div><div class="break-cue"></div><div class="break-white"></div><div class="break-rack">${Array.from({ length: 10 }, (_, i) => `<i class="break-ball ball-${i + 1}"></i>`).join('')}</div><div class="break-impact">砰！</div><div class="break-stamp">65%<small>暈眩判定・兩回合</small></div><div class="cs-result">炸杆・一桿開球！</div>`
+        },
         dustAllergy: scene(1650, d => `<div class="cs-dust-cloud"><i></i><i></i><i></i><i></i><i></i></div><div class="cs-dust-source">灰塵</div><div class="cs-dust-target"><span>!?</span><b>${e(d.target || '對手')}</b></div><div class="cs-dust-sneeze">哈啾！</div><div class="cs-dust-stamp">過敏<br><small>每回合 -${e(d.percent ?? 4)}% HP</small></div><div class="cs-result">灰塵・過敏附著</div>`),
         heroShop: scene(1650, d => `<div class="cs-shop-awning">商店</div><div class="cs-shop-shelf">劍　盾　鞋</div><div class="cs-shop-hand">✋</div><div class="cs-shop-item">${e(d.name)}</div><div class="cs-result">勇者取得 ${e(d.name)}</div>`),
         heroSword: scene(1650, () => `<div class="cs-forge">▰</div><div class="cs-hammer">⚒</div><div class="cs-sword">⚔</div><div class="cs-forge-hit">鏘！</div><div class="cs-sparks">✦ ✦ ✦</div><div class="cs-atk-gain">ATK +10</div><div class="cs-result">鍛鍊・劍化為攻擊力</div>`),
@@ -40,7 +52,7 @@
         '麥狄/麥狄時刻': 'mady', '巔峰/全盛時期': 'peak',
         '概率學/概率學概論': 'probabilityTheory', '概率學/概率為0': 'probabilityZero', '概率學/概率為100': 'probabilityHundred',
         '愛因斯坦/布朗運動': 'brownian', '阿福/呼叫增援': 'alfred',
-        '灰塵/過敏': 'dustAllergy'
+        '灰塵/過敏': 'dustAllergy', '撞球/炸杆': 'snookerBreak'
     };
     motion.combat = ({ attacker, defender, skill }) => {
         const kind = skillScenes[`${attacker?.name}/${skill?.name}`];
