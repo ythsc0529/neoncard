@@ -667,8 +667,8 @@ const Animations = {
     },
 
     // Revive animation
-    async reviveEffect(charName) {
-        if (window.SignatureMotion) return await window.SignatureMotion.revival(charName);
+    async reviveEffect(charName, hp) {
+        if (window.SignatureMotion) return await window.SignatureMotion.revival(charName, hp);
         return new Promise(resolve => {
             this.show();
             this.container.innerHTML = `<div class="ink-revival"><div class="ink-revival-ring"></div><span>RETURN FROM ZERO / 逆轉生死</span><strong></strong><b>復 活！</b></div>`;

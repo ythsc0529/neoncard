@@ -1,0 +1,14 @@
+/* Skill-specific storyboards. SignatureMotion owns scheduling and cleanup. */
+(function (global) {
+    const motion = global.SignatureMotion;
+    if (!motion) return;
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const scene = markup => ({ character: true, duration: 3650, cues: [[180, 1], [940, 2], [2150, 3]], markup });
+    const result = (label, value) => `<div class="v3-result"><small>${label}</small><strong>${esc(value)}</strong></div>`;
+    const soccerBall = `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="53" fill="#fff" stroke="#181b22" stroke-width="7"/><path d="M60 33 79 47 72 69 48 69 41 47Z" fill="#181b22"/><path d="M60 33 58 8M79 47 104 40M72 69 91 91M48 69 29 91M41 47 16 40" fill="none" stroke="#181b22" stroke-width="6"/></svg>`;
+    Object.assign(motion.scenes, {
+        soccerKick: scene(d => `<div class="v3-stage v4-soccer"><div class="v4-soccer-issue">足球 / 踢足球</div><div class="v4-soccer-pitch"><i></i><b></b></div><div class="v4-soccer-player"><span>足<br>球</span><i class="head"></i><i class="body"></i><i class="leg"></i><i class="boot"></i></div><div class="v4-soccer-ball">${soccerBall}</div><div class="v4-soccer-arc"></div><div class="v4-soccer-target">${esc(d.target || '對手')}</div><div class="v4-soccer-net"></div><div class="v4-soccer-impact">砰！</div><div class="v4-soccer-stamp">每回合 −${esc(d.damage ?? 5)}<small>直到倒下</small></div>${result('踢足球 / 持續傷害', `${d.target || '對手'} 每回合 −${d.damage ?? 5}`)}</div>`),
+        nocturne: scene(d => `<div class="v3-stage v4-nocturne"><div class="v4-nocturne-title">周接輪 <small>蕭邦的夜曲</small></div><div class="v4-nocturne-moon"></div><div class="v4-nocturne-staff"><i></i><i></i><i></i><i></i><i></i></div><div class="v4-nocturne-notes">♪ ♫ ♪</div><div class="v4-nocturne-keys">${Array.from({length:9},(_,i)=>`<i class="${[1,2,4,5,6].includes(i)?'black':''}"></i>`).join('')}</div><div class="v4-nocturne-hand">✦</div><div class="v4-nocturne-split"><span>50%<b>♪ −${esc(d.damage ?? 35)} 傷害</b></span><span>50%<b>♫ 暈眩 ${esc(d.stun ?? 1)} 回合</b></span></div><div class="v4-nocturne-sfx">鏘──</div>${result('夜曲落下 / 兩種判定', `${d.damage ?? 35} 傷害 或 暈眩 ${d.stun ?? 1} 回合`)}</div>`),
+        massEnergy: scene(d => { const atk = Number(d.enemyAtk); const value = Number.isFinite(atk) && atk >= 0 ? String(atk) : '?'; return `<div class="v3-stage v4-energy"><div class="v4-energy-header">愛因斯坦 / 質能等價</div><div class="v4-energy-grid"></div><div class="v4-energy-source"><small>${esc(d.target || '對手')} 的普攻</small><strong>ATK ${esc(value)}</strong></div><div class="v4-energy-arrow">➜</div><div class="v4-energy-mass">m</div><div class="v4-energy-equation">E = mc²</div><div class="v4-energy-core"><i></i><b>✦</b></div><div class="v4-energy-ray"></div><div class="v4-energy-burst">能量釋放！</div>${result('以對手當前攻擊力計算', `造成 ${value} 傷害`)}</div>`; })
+    });
+})(window);

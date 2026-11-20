@@ -333,12 +333,24 @@
     <link rel="stylesheet" href="css/redesigned-signature-motion.css?v=2">
     <link rel="stylesheet" href="css/next-signatures.css?v=1">
     <link rel="stylesheet" href="css/signature-storyboards-v2.css?v=1">
-    <link rel="stylesheet" href="css/signature-storyboards-v3.css?v=2">
-    <script src="js/ui/comicMotion.js?v=ink5"></script>
-    <script src="js/ui/signatureMotion.js?v=5"></script>
-    <script src="js/ui/characterSignatureMotion.js?v=4"></script>
+    <link rel="stylesheet" href="css/signature-storyboards-v3.css?v=3">
+    <link rel="stylesheet" href="css/signature-storyboards-v4.css?v=1">
+    <link rel="stylesheet" href="css/signature-storyboards-v5.css?v=2">
+    <link rel="stylesheet" href="css/signature-storyboards-v6.css?v=4">
+    <link rel="stylesheet" href="css/signature-storyboards-v7.css?v=3">
+    <link rel="stylesheet" href="css/signature-storyboards-v8.css?v=4">
+    <link rel="stylesheet" href="css/signature-storyboards-v9.css?v=8">
+    <script src="js/ui/comicMotion.js?v=ink6"></script>
+    <script src="js/ui/signatureMotion.js?v=7"></script>
+    <script src="js/ui/characterSignatureMotion.js?v=7"></script>
     <script src="js/ui/signatureStoryboardsV2.js?v=1"></script>
-    <script src="js/ui/signatureStoryboardsV3.js?v=1"></script>
+    <script src="js/ui/signatureStoryboardsV3.js?v=2"></script>
+    <script src="js/ui/signatureStoryboardsV4.js?v=1"></script>
+    <script src="js/ui/signatureStoryboardsV5.js?v=2"></script>
+    <script src="js/ui/signatureStoryboardsV6.js?v=1"></script>
+    <script src="js/ui/signatureStoryboardsV7.js?v=4"></script>
+    <script src="js/ui/signatureStoryboardsV8.js?v=3"></script>
+    <script src="js/ui/signatureStoryboardsV9.js?v=4"></script>
 </head>
 
 <body data-page="game">
@@ -766,10 +778,10 @@
     <script src="js/data/characters_part6.js"></script>
     <script src="js/data/characters.js"></script>
     <script src="js/core/tutorialSystem.js?v=manga2"></script>
-    <script src="js/core/gameState.js?v=manga5"></script>
+    <script src="js/core/gameState.js?v=manga7"></script>
     <script src="js/core/npcAI.js"></script>
-    <script src="js/core/battleSystem.js?v=manga4"></script>
-    <script src="js/ui/animations.js?v=manga6"></script>
+    <script src="js/core/battleSystem.js?v=manga6"></script>
+    <script src="js/ui/animations.js?v=manga7"></script>
     <script src="js/ui/soundManager.js"></script>
     <script src="js/ui/settlement.js?v=2"></script>
     <script>
@@ -1414,11 +1426,12 @@
 
             if (action.type === 'replace_death') {
                 const player = GameState[opponentKey];
-                const outgoing = player.battleCard;
+                const outgoing = GameState.replacementOutgoing(opponentKey);
                 const incoming = player.standbyCards[action.skillIdx];
                 if (!incoming) return;
                 await ComicMotion.swap({ outgoing, incoming, opponent: true });
                 player.battleCard = player.standbyCards.splice(action.skillIdx, 1)[0];
+                player.lastFallenName = null;
                 GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
 
                 const modal = document.getElementById('replacementModal');
@@ -2509,10 +2522,11 @@
                                 });
                             }
 
-                            const outgoing = player.battleCard;
+                            const outgoing = GameState.replacementOutgoing(playerKey);
                             const incoming = player.standbyCards[pickIdx];
                             ComicMotion.swap({ outgoing, incoming, opponent: true }).then(() => {
                             player.battleCard = player.standbyCards.splice(pickIdx, 1)[0];
+                            player.lastFallenName = null;
                         GameState.addLog(window.isDisguisedBot()
                             ? `${player.name} 派遣 ${player.battleCard.name} 上場！`
                             : `[NPC] ${player.name} 自動替換 ${player.battleCard.name} 上場！`, 'status');
@@ -2567,8 +2581,9 @@
                         }
 
                         // Perform the swap (remove from standby, set as battle)
-                        await ComicMotion.swap({ outgoing: player.battleCard, incoming: player.standbyCards[idx] });
+                        await ComicMotion.swap({ outgoing: GameState.replacementOutgoing(playerKey), incoming: player.standbyCards[idx] });
                         player.battleCard = player.standbyCards.splice(idx, 1)[0];
+                        player.lastFallenName = null;
                         GameState.addLog(`${player.name} 派遣 ${player.battleCard.name} 上場！`, 'status');
 
                         modal.classList.remove('active');

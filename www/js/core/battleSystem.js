@@ -645,7 +645,16 @@ const BattleSystem = {
                     await this.applyDamage(attacker, defender, effect.value);
                     break;
                 case 'damage_random':
-                    const randDmg = await Animations.showRandomNumber(effect.min, effect.max, '隨機傷害');
+                    const brownianScene = attacker.name === '愛因斯坦' && !!window.SignatureMotion?.event;
+                    const randDmg = brownianScene
+                        ? Math.floor(window.GameRandom() * (effect.max - effect.min + 1)) + effect.min
+                        : await Animations.showRandomNumber(effect.min, effect.max, '隨機傷害');
+                    if (brownianScene) {
+                        window.SoundManager?.play('random');
+                        await window.SignatureMotion.event('brownian', {
+                            damage: randDmg, min: effect.min, max: effect.max, target: defender.name
+                        });
+                    }
                     await this.applyDamage(attacker, defender, randDmg);
                     break;
                 case 'damage_atk_mult':
@@ -1214,16 +1223,19 @@ const BattleSystem = {
                     }
                     break;
                 case 'damage_or_stun': // 周接輪-蕭邦的夜曲
-                    if (await Animations.probabilityRoll(effect.chance, '技能判定')) {
+                    // Keep the same single gameplay RNG roll, then reveal its real result in the nocturne scene.
+                    const nocturneStun = attacker.passive?.effect?.action === 'conditional_stun' && attacker.hp < 10 ? 2 : effect.stun;
+                    const nocturneHit = attacker.name === '周接輪'
+                        ? Math.floor(window.GameRandom() * 100) + 1 <= effect.chance
+                        : await Animations.probabilityRoll(effect.chance, '技能判定');
+                    if (attacker.name === '周接輪') await window.SignatureMotion?.event('nocturne', {
+                        damage: effect.damage, stun: nocturneStun, outcome: nocturneHit ? 'damage' : 'stun', target: defender.name
+                    });
+                    if (nocturneHit) {
                         await this.applyDamage(attacker, defender, effect.damage);
                     } else {
-                        // Check passive for enhanced stun
-                        let stunTurns = effect.stun;
-                        if (attacker.passive?.effect?.action === 'conditional_stun' && attacker.hp < 10) {
-                            stunTurns = 2;
-                        }
-                        defender.statusEffects.push({ type: 'stun', name: '暈眩', turns: stunTurns });
-                        GameState.addLog(`${defender.name} 被暈眩 ${stunTurns} 回合`, 'status');
+                        defender.statusEffects.push({ type: 'stun', name: '暈眩', turns: nocturneStun });
+                        GameState.addLog(`${defender.name} 被暈眩 ${nocturneStun} 回合`, 'status');
                     }
                     break;
                 case 'damage_or_self_damage': // 怕瘦團-請記得揍我一拳, 李白-喝酒
@@ -2628,11 +2640,21 @@ const BattleSystem = {
                 case 'buff_atk_mult_chance_range': // 概率學-概率學概論
                     {
                         const rollChance = Math.floor(window.GameRandom() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
-                        if (await Animations.probabilityRoll(rollChance, '強化判定')) {
+                        const showTheory = attacker.name === '概率學' && !!window.SignatureMotion?.event;
+                        const roll = showTheory ? Math.floor(window.GameRandom() * 100) + 1 : null;
+                        const success = showTheory ? roll <= rollChance : await Animations.probabilityRoll(rollChance, '強化判定');
+                        const beforeAtk = attacker.atk;
+                        if (success) {
                             attacker.atk = Math.floor(attacker.atk * (effect.mult || 3));
                             GameState.addLog(`${attacker.name} 攻擊力提升到 ${attacker.atk}！`, 'skill');
                         } else {
                             GameState.addLog(`強化失敗`, 'status');
+                        }
+                        if (showTheory) {
+                            window.SoundManager?.play('random');
+                            await window.SignatureMotion.event('probabilityTheory', {
+                                chance: rollChance, roll, success, beforeAtk, afterAtk: attacker.atk, mult: effect.mult || 3
+                            });
                         }
                     }
                     break;
@@ -2640,9 +2662,19 @@ const BattleSystem = {
                 case 'debuff_enemy_atk_half_chance_range': // 概率學-概率為100
                     {
                         const rollChance = Math.floor(window.GameRandom() * (effect.max_chance - effect.min_chance + 1)) + effect.min_chance;
-                        if (await Animations.probabilityRoll(rollChance, '削弱判定')) {
+                        const showHundred = attacker.name === '概率學' && !!window.SignatureMotion?.event;
+                        const roll = showHundred ? Math.floor(window.GameRandom() * 100) + 1 : null;
+                        const success = showHundred ? roll <= rollChance : await Animations.probabilityRoll(rollChance, '削弱判定');
+                        const beforeAtk = defender.atk;
+                        if (success) {
                             defender.atk = Math.floor(defender.atk / 2);
                             GameState.addLog(`${defender.name} 攻擊力減半！`, 'status');
+                        }
+                        if (showHundred) {
+                            window.SoundManager?.play('random');
+                            await window.SignatureMotion.event('probabilityHundred', {
+                                chance: rollChance, roll, success, beforeAtk, afterAtk: defender.atk, target: defender.name
+                            });
                         }
                     }
                     break;

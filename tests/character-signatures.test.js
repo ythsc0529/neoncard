@@ -55,6 +55,246 @@ test('third-pass scenes preserve actual results and give each reviewed event new
     assert.match(read('game.html'), /signatureStoryboardsV3\.js/);
 });
 
+test('football, nocturne and mass-energy skills use separate scenes and current combat values', async () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV3.js', 'js/ui/signatureStoryboardsV4.js']) vm.runInContext(read(file), context);
+    const motion = context.window.SignatureMotion;
+    const calls = [];
+    motion.preview = (kind, data) => { calls.push({ kind, data }); return Promise.resolve(); };
+    for (const [name, skill, kind, effect] of [
+        ['足球', '踢足球', 'soccerKick', { damage: 5 }],
+        ['愛因斯坦', '質能等價', 'massEnergy', {}]
+    ]) {
+        await motion.combat({ attacker: { name }, defender: { name: '魔眼', atk: 47 }, skill: { name: skill, effect } });
+        assert.equal(calls.at(-1).kind, kind);
+        assert.equal(calls.at(-1).data.enemyAtk, 47);
+        assert.match(motion.scenes[kind].markup(calls.at(-1).data), /v3-result/);
+        assert.equal(motion.scenes[kind].cues.length, 3);
+    }
+    assert.match(motion.scenes.massEnergy.markup(calls.at(-1).data), /造成 47 傷害/);
+    assert.match(motion.scenes.soccerKick.markup({ target: '魔眼', damage: 5 }), /魔眼 每回合 −5/);
+    const before = calls.length;
+    await motion.combat({ attacker: { name: '周接輪' }, defender: { name: '魔眼' }, skill: { name: '蕭邦的夜曲' } });
+    assert.equal(calls.length, before, 'night music waits for the actual gameplay roll');
+    assert.match(read('js/ui/comicMotion.js'), /SignatureMotion\.combat\(\{ attacker, defender, skill \}\)/);
+    assert.match(read('game.html'), /signatureStoryboardsV4\.js/);
+});
+
+test('ten reviewed storyboards replace their earlier actions and keep actual result data', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV2.js', 'js/ui/signatureStoryboardsV3.js',
+        'js/ui/signatureStoryboardsV4.js']) vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const keys = ['basketball', 'nocturne', 'massEnergy', 'planet', 'vehicle',
+        'replacement', 'revival', 'win', 'alfred', 'empower'];
+    const data = { name: '火星', target: '魔眼', incoming: '替補', outgoing: '戰士',
+        winner: '勝者', enemyAtk: 47, damage: 35, stun: 1, fatal: false };
+    const previous = Object.fromEntries(keys.map(key => [key, scenes[key].markup(data)]));
+    vm.runInContext(read('js/ui/signatureStoryboardsV5.js'), context);
+    const markup = keys.map(key => {
+        const value = scenes[key].markup(data);
+        assert.notEqual(value, previous[key], key);
+        assert.match(value, new RegExp(`v5-${key === 'massEnergy' ? 'mass' : key}`), key);
+        assert.match(value, /v5-reveal/, key);
+        assert.equal(scenes[key].cues.length, 3, key);
+        assert.ok(scenes[key].duration > scenes[key].cues.at(-1)[0], key);
+        return value;
+    });
+    assert.equal(new Set(markup).size, keys.length);
+    assert.match(scenes.basketball.markup({ name: '籃球' }), /30 傷害・籃球加入備戰區/);
+    assert.match(scenes.massEnergy.markup({ target: '魔眼', enemyAtk: 47 }), /ATK 47 → 傷害 47/);
+    assert.match(scenes.replacement.markup({ outgoing: '戰士', incoming: '魔眼' }), /戰士.*魔眼/s);
+    assert.match(scenes.win.markup({ winner: '玩家甲' }), /玩家甲 勝利/);
+    assert.match(scenes.empower.markup({ fatal: true }), /賦能哥死亡/);
+    assert.match(scenes.empower.markup({ fatal: false }), /賦能哥存活/);
+    assert.match(scenes.alfred.markup({ name: '扁佛狹' }), /扁佛狹/);
+    assert.match(scenes.nocturne.markup({ target: '魔眼', damage: 35, outcome: 'damage' }), /魔眼 受到 35 傷害/);
+    assert.match(scenes.nocturne.markup({ target: '魔眼', stun: 2, outcome: 'stun' }), /魔眼 暈眩 2 回合/);
+    assert.match(read('game.html'), /signatureStoryboardsV5\.js/);
+    assert.match(read('js/ui/signatureStoryboardsV3.js'), /name === '羽球'.*<svg/s);
+});
+
+test('latest feedback changes five live scenes while preserving real outcomes', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/signatureStoryboardsV5.js'])
+        vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const keys = ['replacement', 'revival', 'nocturne', 'empower', 'alfred'];
+    const before = Object.fromEntries(keys.map(key => [key, scenes[key].markup({ name: '勇者' })]));
+    vm.runInContext(read('js/ui/signatureStoryboardsV6.js'), context);
+    for (const key of keys) {
+        const markup = scenes[key].markup({ name: '勇者' });
+        assert.notEqual(markup, before[key], key);
+        assert.match(markup, new RegExp(`v6-${key}`), key);
+        assert.equal(scenes[key].cues.length, 3, key);
+        assert.ok(scenes[key].duration > scenes[key].cues.at(-1)[0], key);
+    }
+    assert.match(scenes.replacement.markup({ outgoing: '<舊>', incoming: '<新>' }), /&lt;舊&gt;.*&lt;新&gt;/s);
+    assert.match(scenes.revival.markup({ name: '勇者' }), /勇者 復活/);
+    assert.match(scenes.nocturne.markup({ target: '魔眼', outcome: 'damage', damage: 35 }), /魔眼 受到 35 傷害/);
+    assert.match(scenes.nocturne.markup({ target: '魔眼', outcome: 'stun', stun: 2 }), /魔眼 暈眩 2 回合/);
+    assert.match(scenes.empower.markup({ fatal: true }), /顆秒！.*幫.*賦能哥死亡/s);
+    assert.match(scenes.empower.markup({ fatal: false }), /賦能哥存活/);
+    assert.match(scenes.alfred.markup({ name: '扁佛狹' }), /v6-bat-figure.*扁佛狹/s);
+    assert.match(read('game.html'), /signatureStoryboardsV6\.js/);
+    assert.match(read('scratch/signature-gallery.html'), /signatureStoryboardsV6\.js/);
+});
+
+test('seven new storyboards retain their own action and the passed gameplay result', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV3.js', 'js/ui/signatureStoryboardsV6.js'])
+        vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const keys = ['probabilityTheory', 'probabilityZero', 'probabilityHundred',
+        'ordinary', 'brownian', 'revival', 'nocturne'];
+    const before = Object.fromEntries(keys.map(key => [key, scenes[key].markup({ name: '勇者' })]));
+    vm.runInContext(read('js/ui/signatureStoryboardsV7.js'), context);
+    const data = { name: '一般般', from: '魔眼', target: '對手', hp: 30,
+        chance: 65, roll: 42, success: true, beforeAtk: 20, afterAtk: 60, damage: 67, turns: 3, outcome: 'damage' };
+    const markup = keys.map(key => {
+        const value = scenes[key].markup(data);
+        assert.notEqual(value, before[key], key);
+        assert.match(value, new RegExp(`v7-${key === 'probabilityTheory' ? 'theory' : key === 'probabilityZero' ? 'zero' : key === 'probabilityHundred' ? 'hundred' : key}`), key);
+        assert.equal(scenes[key].cues.length, 3, key);
+        assert.ok(scenes[key].duration > scenes[key].cues.at(-1)[0], key);
+        return value;
+    });
+    assert.equal(new Set(markup).size, keys.length);
+    assert.match(scenes.probabilityTheory.markup(data), /ATK 20 → 60/);
+    assert.match(scenes.probabilityTheory.markup({ ...data, success: false, roll: 88, afterAtk: 20 }), /判定失敗・ATK 20 不變/);
+    assert.match(scenes.probabilityHundred.markup({ ...data, beforeAtk: 70, afterAtk: 35 }), /ATK 70 → 35/);
+    assert.match(scenes.ordinary.markup({ from: '<舊>', name: '<新>' }), /&lt;舊&gt;.*&lt;新&gt;/s);
+    assert.match(scenes.brownian.markup(data), /對手 受到 67 傷害/);
+    assert.match(scenes.revival.markup({ name: '勇者', hp: 30 }), /勇者 復活・HP 30/);
+    assert.match(scenes.nocturne.markup({ ...data, outcome: 'stun', stun: 2 }), /對手 暈眩 2 回合/);
+    assert.match(read('game.html'), /signatureStoryboardsV7\.js/);
+});
+
+test('injury and revival use new actions while the record and lyric play in nocturne', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV7.js']) vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const oldInjury = scenes.injuryChain.markup({ from: '重傷', name: '受傷' });
+    const oldRevival = scenes.revival.markup({ name: '勇者', hp: 30 });
+    vm.runInContext(read('js/ui/signatureStoryboardsV8.js'), context);
+    assert.notEqual(scenes.injuryChain.markup({ from: '重傷', name: '受傷' }), oldInjury);
+    assert.notEqual(scenes.revival.markup({ name: '勇者', hp: 30 }), oldRevival);
+    for (const [from, name] of [['殘骸', '半殘'], ['半殘', '重傷'], ['重傷', '受傷'], ['巔峰', '殘骸']]) {
+        const markup = scenes.injuryChain.markup({ from, name });
+        assert.match(markup, new RegExp(`${from} → ${name}`));
+        assert.match(markup, /v8-injury-scan/);
+    }
+    assert.match(scenes.revival.markup({ name: '勇者', hp: 30 }), /勇者 復活・HP 30/);
+    assert.match(scenes.revival.markup({ name: '勇者', hp: 30 }), /v8-revive-bird.*<svg.*left-wing.*right-wing/s);
+    assert.match(scenes.nocturne.markup({ outcome: 'damage' }), /為你彈奏.*蕭邦的夜曲/s);
+    assert.match(read('css/signature-storyboards-v8.css'), /v8-vinyl-spin 2\.7s linear infinite/);
+    assert.match(read('game.html'), /signatureStoryboardsV8\.js/);
+});
+
+test('wound cycle and torn final page reveal the actual summon and winner', () => {
+    const context = vm.createContext({ window: {}, console });
+    for (const file of ['js/ui/signatureMotion.js', 'js/ui/characterSignatureMotion.js',
+        'js/ui/signatureStoryboardsV8.js']) vm.runInContext(read(file), context);
+    const scenes = context.window.SignatureMotion.scenes;
+    const priorInjury = scenes.injuryChain.markup({ from: '重傷', name: '受傷' });
+    const priorLoss = scenes.loss.markup({ winner: '魔眼' });
+    vm.runInContext(read('js/ui/signatureStoryboardsV9.js'), context);
+    assert.notEqual(scenes.injuryChain.markup({ from: '重傷', name: '受傷' }), priorInjury);
+    assert.notEqual(scenes.loss.markup({ winner: '魔眼' }), priorLoss);
+    for (const [from, name] of [['殘骸', '半殘'], ['半殘', '重傷'], ['重傷', '受傷'], ['巔峰', '殘骸']]) {
+        const markup = scenes.injuryChain.markup({ from, name });
+        assert.match(markup, /v9-chain-wheel/);
+        assert.match(markup, new RegExp(`${from} → ${name}`));
+    }
+    assert.match(scenes.injuryChain.markup({ from: '巔峰', name: '殘骸' }), /--from-angle:288deg;--to-angle:360deg/);
+    assert.match(scenes.loss.markup({ winner: '魔眼' }), /v9-tear-page/);
+    assert.match(scenes.loss.markup({ winner: '魔眼' }), /v9-tear-result-winner/);
+    assert.match(scenes.loss.markup({ winner: '魔眼' }), /<strong>魔眼<\/strong>/);
+    assert.match(scenes.loss.markup({ winner: '魔眼' }), /敗北/);
+    assert.match(read('game.html'), /signatureStoryboardsV9\.js/);
+});
+
+test('probability and Brownian scenes show real rolls without consuming extra RNG', async () => {
+    const events = [];
+    const damage = [];
+    let rolls = [];
+    const context = vm.createContext({
+        window: {
+            GameRandom: () => { assert.ok(rolls.length, 'unexpected RNG call'); return rolls.shift(); },
+            SignatureMotion: { event: async (kind, data) => events.push({ kind, data }) }
+        },
+        Animations: { probabilityRoll: () => { throw new Error('generic probability visual should not play'); },
+            showRandomNumber: () => { throw new Error('generic random visual should not play'); } },
+        GameState: { addLog() {} }, console
+    });
+    vm.runInContext(read('js/core/battleSystem.js'), context);
+    const battle = vm.runInContext('BattleSystem', context);
+    battle.applyDamage = async (_attacker, _defender, amount) => damage.push(amount);
+    const probability = { name: '概率學', atk: 20 };
+    const enemy = { name: '魔眼', atk: 70 };
+    rolls = [0.5, 0.41];
+    await battle.executeSkillEffect(probability, enemy, { effect: { type: 'buff_atk_mult_chance_range', min_chance: 40, max_chance: 90, mult: 3 } });
+    assert.equal(rolls.length, 0);
+    assert.equal(probability.atk, 60);
+    assert.equal(events.at(-1).kind, 'probabilityTheory');
+    assert.equal(events.at(-1).data.roll, 42);
+    rolls = [0.5, 0.95];
+    await battle.executeSkillEffect(probability, enemy, { effect: { type: 'buff_atk_mult_chance_range', min_chance: 40, max_chance: 90, mult: 3 } });
+    assert.equal(rolls.length, 0);
+    assert.equal(probability.atk, 60);
+    assert.equal(events.at(-1).data.success, false);
+    assert.equal(events.at(-1).data.afterAtk, 60);
+    rolls = [0.5, 0.17];
+    await battle.executeSkillEffect(probability, enemy, { effect: { type: 'debuff_enemy_atk_half_chance_range', min_chance: 20, max_chance: 40 } });
+    assert.equal(rolls.length, 0);
+    assert.equal(enemy.atk, 35);
+    assert.equal(events.at(-1).kind, 'probabilityHundred');
+    assert.equal(events.at(-1).data.afterAtk, 35);
+    rolls = [0.5, 0.95];
+    await battle.executeSkillEffect(probability, enemy, { effect: { type: 'debuff_enemy_atk_half_chance_range', min_chance: 20, max_chance: 40 } });
+    assert.equal(rolls.length, 0);
+    assert.equal(enemy.atk, 35);
+    assert.equal(events.at(-1).data.success, false);
+    assert.equal(events.at(-1).data.afterAtk, 35);
+    rolls = [0.66];
+    await battle.executeSkillEffect({ name: '愛因斯坦' }, enemy, { effect: { type: 'damage_random', min: 1, max: 100 } });
+    assert.equal(rolls.length, 0);
+    assert.equal(events.at(-1).kind, 'brownian');
+    assert.equal(events.at(-1).data.damage, 67);
+    assert.deepEqual(damage, [67]);
+});
+
+test('nocturne consumes one battle roll and shows the matching damage or stun', async () => {
+    const events = [];
+    const damage = [];
+    const context = vm.createContext({
+        window: { GameRandom: () => 0.49, SignatureMotion: { event: async (kind, data) => events.push({ kind, data }) } },
+        Animations: { probabilityRoll: () => { throw new Error('generic roll should not play'); } },
+        GameState: { addLog() {} }, console
+    });
+    vm.runInContext(read('js/core/battleSystem.js'), context);
+    const battle = vm.runInContext('BattleSystem', context);
+    battle.applyDamage = async (_attacker, _defender, amount) => damage.push(amount);
+    const attacker = { name: '周接輪', hp: 20, passive: { effect: { action: 'conditional_stun' } } };
+    const defender = { name: '魔眼', statusEffects: [] };
+    const skill = { name: '蕭邦的夜曲', effect: { type: 'damage_or_stun', chance: 50, damage: 35, stun: 1 } };
+    await battle.executeSkillEffect(attacker, defender, skill);
+    assert.equal(events.at(-1).kind, 'nocturne');
+    assert.equal(events.at(-1).data.outcome, 'damage');
+    assert.deepEqual(damage, [35]);
+    context.window.GameRandom = () => 0.5;
+    attacker.hp = 9;
+    await battle.executeSkillEffect(attacker, defender, skill);
+    assert.equal(events.at(-1).data.outcome, 'stun');
+    assert.equal(events.at(-1).data.stun, 2);
+    assert.equal(defender.statusEffects.at(-1).turns, 2);
+    assert.deepEqual(damage, [35]);
+});
+
 test('every requested character action owns a distinct storyboard and routes to it', async () => {
     const context = vm.createContext({ window: {}, console });
     vm.runInContext(read('js/ui/signatureMotion.js'), context);
@@ -65,15 +305,18 @@ test('every requested character action owns a distinct storyboard and routes to 
     const routes = [
         ['堯冥', '打籃球', 'basketball'], ['勇者', '鍛鍊', 'heroSword'], ['勇者', '防禦', 'heroShield'],
         ['勇者', '跑步', 'heroShoes'], ['麥狄', '麥狄時刻', 'mady'], ['巔峰', '全盛時期', 'peak'],
-        ['概率學', '概率學概論', 'probabilityTheory'], ['概率學', '概率為0', 'probabilityZero'],
-        ['概率學', '概率為100', 'probabilityHundred'],
-        ['愛因斯坦', '布朗運動', 'brownian'], ['阿福', '呼叫增援', 'alfred'],
+        ['概率學', '概率為0', 'probabilityZero'],
+        ['阿福', '呼叫增援', 'alfred'],
         ['灰塵', '過敏', 'dustAllergy'], ['撞球', '炸杆', 'snookerBreak']
     ];
     for (const [name, skill, kind] of routes) {
         await motion.combat({ attacker: { name }, skill: { name: skill, effect: { type: 'damage' } } });
         assert.equal(called.at(-1).kind, kind, `${name}/${skill}`);
     }
+    const prior = called.length;
+    for (const [name, skill] of [['概率學', '概率學概論'], ['概率學', '概率為100'], ['愛因斯坦', '布朗運動']])
+        await motion.combat({ attacker: { name }, skill: { name: skill, effect: {} } });
+    assert.equal(called.length, prior, 'random skills wait for their gameplay results');
     const keys = ['motorcycle', 'robotParts', 'ball', 'tea', 'dustAllergy', 'planetDeath', 'basketball', 'photocopy',
         'snooker', 'snookerBreak', 'heroShop', 'heroSword', 'heroShield', 'heroShoes', 'demonCall', 'demonPeck',
         'mady', 'wounded', 'peak', 'probabilityPassive', 'probabilityTheory', 'probabilityZero',
@@ -238,10 +481,13 @@ test('death removes only the fallen hero or demon owner cards', async () => {
     state.player1 = { battleCard: hero, standbyCards: [child('劍', '勇者'), child('盾', '勇者'), child('鞋', '勇者'), child('魔穢', '魔王'), { name: '普通牌' }] };
     await state.handleDeath('player1');
     assert.deepEqual(state.player1.standbyCards.map(c => c.name), ['魔穢', '普通牌']);
+    assert.equal(state.replacementOutgoing('player1').name, '勇者');
+    assert.equal(state.replacementOutgoing('player1').hp, 0);
     const demon = card('魔王');
     state.player2 = { battleCard: demon, standbyCards: [child('魔穢', '魔王'), child('劍', '勇者')] };
     await state.handleDeath('player2');
     assert.deepEqual(state.player2.standbyCards.map(c => c.name), ['劍']);
+    assert.equal(state.replacementOutgoing('player2').name, '魔王');
 });
 
 test('a successful revival keeps owner cards', async () => {
@@ -253,6 +499,7 @@ test('a successful revival keeps owner cards', async () => {
     state.checkRevive = async card => { card.hp = 100; return true; };
     assert.equal(await state.handleDeath('player1'), false);
     assert.equal(state.player1.standbyCards.length, 1);
+    assert.equal(state.player1.lastFallenName, null);
 });
 
 test('three robot types merge when one is on the field', async () => {

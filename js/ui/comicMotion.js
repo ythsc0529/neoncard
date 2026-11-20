@@ -37,7 +37,7 @@
     let queue = Promise.resolve();
     async function performCombat({ attacker, defender, skill, kind = 'attack', source, target }) {
         if (kind === 'skill' && global.SignatureMotion) {
-            const signature = global.SignatureMotion.combat({ attacker, skill });
+            const signature = global.SignatureMotion.combat({ attacker, defender, skill });
             if (signature) return await signature;
         }
         const style = kind === 'attack' ? 'strike' : classifySkill(skill);

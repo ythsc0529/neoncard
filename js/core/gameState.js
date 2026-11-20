@@ -11,6 +11,7 @@ const GameState = {
     player1: {
         name: '玩家1',
         battleCard: null,
+        lastFallenName: null,
         standbyCards: [],
         allCards: [],
         skipTurns: 0
@@ -19,6 +20,7 @@ const GameState = {
     player2: {
         name: '玩家2',
         battleCard: null,
+        lastFallenName: null,
         standbyCards: [],
         allCards: [],
         skipTurns: 0
@@ -44,6 +46,7 @@ const GameState = {
 
         ['player1', 'player2'].forEach(p => {
             this[p].battleCard = null;
+            this[p].lastFallenName = null;
             this[p].standbyCards = [];
             this[p].allCards = [];
             this[p].skipTurns = 0;
@@ -175,6 +178,7 @@ const GameState = {
     setBattleCard(playerKey, cardIndex) {
         const player = this[playerKey];
         player.battleCard = player.allCards[cardIndex];
+        player.lastFallenName = null;
         player.standbyCards = player.allCards.filter((_, i) => i !== cardIndex);
         // Initialize MVP tracking
         if (player.battleCard && player.battleCard.turnsOnField === undefined) {
@@ -187,6 +191,7 @@ const GameState = {
         const player = this[playerKey];
         const oldBattle = player.battleCard;
         player.battleCard = player.standbyCards[standbyIndex];
+        player.lastFallenName = null;
         player.standbyCards[standbyIndex] = oldBattle;
         this.didSwapOrDie[playerKey] = true;
         // Initialize MVP tracking for newly entered card
@@ -198,6 +203,11 @@ const GameState = {
     // Add card to standby
     addToStandby(playerKey, card) {
         this[playerKey].standbyCards.push(card);
+    },
+
+    replacementOutgoing(playerKey) {
+        const player = this[playerKey];
+        return player.battleCard || (player.lastFallenName ? { name: player.lastFallenName, hp: 0 } : null);
     },
 
     // Remove dead cards
@@ -219,8 +229,11 @@ const GameState = {
                 if (before !== player.standbyCards.length) {
                     this.addLog(`${deadCard.name} 陣亡，附屬卡牌已消失`, 'status');
                 }
+                player.lastFallenName = deadCard.name;
                 player.battleCard = null;
                 this.didSwapOrDie[playerKey] = true;
+            } else {
+                player.lastFallenName = null;
             }
 
             return !revived;
@@ -257,7 +270,7 @@ const GameState = {
                 card.hp = effect.hp || 30;
                 card.resources.revive_chance_current = Math.max(minChance, currentChance - (effect.decay || 10));
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活！(概率: ${currentChance}%)`, 'status');
-                await Animations.reviveEffect(card.name);
+                await Animations.reviveEffect(card.name, card.hp);
                 return true;
             }
             return false;
@@ -288,7 +301,7 @@ const GameState = {
                 card.reviveCount = (card.reviveCount || 0) + 1;
                 const chanceMsg = decay > 0 ? ` (成功機率: ${chance}%)` : '';
                 this.addLog(`${card.name} 觸發被動 [${card.passive.name}] 復活了！${chanceMsg}`, 'status');
-                await Animations.reviveEffect(card.name);
+                await Animations.reviveEffect(card.name, card.hp);
 
                 if (effect.action === 'draw_revive_limited') {
                     // Draw cards to standby (not overwrite allCards)
@@ -573,6 +586,7 @@ const GameState = {
                         const p2 = this.player2;
                         if (p2.standbyCards.length > 0) {
                             p2.battleCard = p2.standbyCards.shift();
+                            p2.lastFallenName = null;
                             this.addLog(`${p2.name} 派遣 ${p2.battleCard.name} 上場！`, 'status');
                             if (typeof window.updateUI === 'function') window.updateUI();
                         }

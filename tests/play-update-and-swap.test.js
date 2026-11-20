@@ -68,6 +68,31 @@ test('death replacement still shows the entrance when the old battle slot is emp
     assert.equal(document.body.child.removed, true);
 });
 
+test('death replacement forwards the actual fallen character after the battle slot is cleared', async () => {
+    const shown = [];
+    const window = { SignatureMotion: { replacement: async ({ outgoing, incoming }) => {
+        shown.push([outgoing.name, incoming.name]);
+    } } };
+    const context = vm.createContext({ window, document: {}, console });
+    vm.runInContext(read('js/core/gameState.js') + '\nglobalThis.state = GameState;', context);
+    vm.runInContext(read('js/ui/comicMotion.js'), context);
+    const state = context.state;
+    state.addLog = () => {};
+    state.processPassive = async () => {};
+    state.checkRevive = async () => false;
+    state.didSwapOrDie = { player1: false, player2: false };
+    state.player1.battleCard = { name: '勇者', hp: 0, deathCount: 0 };
+    state.player1.standbyCards = [{ name: '魔眼', hp: 80 }];
+
+    await state.handleDeath('player1');
+    assert.equal(state.player1.battleCard, null);
+    await window.ComicMotion.swap({
+        outgoing: state.replacementOutgoing('player1'),
+        incoming: state.player1.standbyCards[0]
+    });
+    assert.deepEqual(shown, [['勇者', '魔眼']]);
+});
+
 test('summon preview resolves the actual target and renders its base stats', () => {
     const source = read('game.html');
     const helpers = source.slice(source.indexOf('function escapeBattleHtml'), source.indexOf('function openBattleCardDetails'));

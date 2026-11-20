@@ -144,12 +144,12 @@
         scenes, skillKind, evolutionKind,
         combat({ attacker, skill }) {
             const kind = skillKind(attacker, skill);
-            return kind ? enqueue(kind, { name: skill?.name }) : null;
+            return kind ? enqueue(kind, { name: skill?.effect?.target || (kind === 'planet' || kind === 'vehicle' ? '待揭曉' : skill?.name) }) : null;
         },
         replacement({ outgoing, incoming }) { return enqueue('replacement', { outgoing: outgoing?.name, incoming: incoming?.name }); },
         evolution({ from, to }) { return enqueue(evolutionKind(to), { from, to }); },
         certainty(description) { return enqueue('certainty', { description }); },
-        revival(name) { return enqueue('revival', { name }); },
+        revival(name, hp) { return enqueue('revival', { name, hp }); },
         empowerment(fatal) { return enqueue('empower', { fatal }); },
         outcome(winner, won) { return enqueue(won ? 'win' : 'loss', { winner }); },
         preview(kind, data) { return enqueue(kind, data); }

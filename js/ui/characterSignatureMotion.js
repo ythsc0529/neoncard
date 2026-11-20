@@ -51,12 +51,17 @@
         '勇者/鍛鍊': 'heroSword', '勇者/防禦': 'heroShield', '勇者/跑步': 'heroShoes',
         '麥狄/麥狄時刻': 'mady', '巔峰/全盛時期': 'peak',
         '概率學/概率學概論': 'probabilityTheory', '概率學/概率為0': 'probabilityZero', '概率學/概率為100': 'probabilityHundred',
-        '愛因斯坦/布朗運動': 'brownian', '阿福/呼叫增援': 'alfred',
+        '愛因斯坦/布朗運動': 'brownian', '愛因斯坦/質能等價': 'massEnergy', '阿福/呼叫增援': 'alfred',
+        '足球/踢足球': 'soccerKick',
         '灰塵/過敏': 'dustAllergy', '撞球/炸杆': 'snookerBreak'
     };
     motion.combat = ({ attacker, defender, skill }) => {
+        // These scenes reveal the real roll after the gameplay result is known.
+        if ((attacker?.name === '周接輪' && skill?.name === '蕭邦的夜曲') ||
+            (attacker?.name === '概率學' && ['概率學概論', '概率為100'].includes(skill?.name)) ||
+            (attacker?.name === '愛因斯坦' && skill?.name === '布朗運動')) return Promise.resolve();
         const kind = skillScenes[`${attacker?.name}/${skill?.name}`];
-        if (kind) return motion.preview(kind, { name: skill?.effect?.target, target: defender?.name, percent: skill?.effect?.damage });
+        if (kind) return motion.preview(kind, { name: skill?.effect?.target, target: defender?.name, percent: skill?.effect?.damage, damage: skill?.effect?.damage, stun: skill?.effect?.stun, turns: skill?.effect?.turns, enemyAtk: defender?.atk });
         const effect = skill?.effect || {};
         if (attacker?.name === '機器母巢' && skill?.name === '生產') return null;
         if (effect.category === 'motorcycle' || /摩托車/.test(effect.target || '')) return null;
